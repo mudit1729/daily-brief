@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ timeline.name }} — Signal Brief{% endblock %}
+
+{% block content %}
+<header class="sb-page-header">
+  <div class="sb-timeline-header">
+    <a href="{{ url_for('views.timelines_page') }}" class="sb-back-link" aria-label="Back to timelines">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
+    <div>
+      <h1 class="sb-page-title">
+        <span class="sb-timeline-icon">{{ timeline.icon or '📅' }}</span>
+        {{ timeline.name }}
+      </h1>
+      {% if timeline.description %}
+      <p class="sb-page-subtitle">{{ timeline.description }}</p>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<!-- Entity filter chips -->
+{% if timeline.entities_json and timeline.entities_json | length > 1 %}
+<div class="sb-entity-filters">
+  <a href="{{ url_for('views.timeline_detail', timeline_id=timeline.id) }}"
+     class="sb-entity-chip {% if not entity_filter %}sb-entity-chip--active{% endif %}">
+    All
+  </a>
+  {% for entity in timeline.entities_json %}
+  <a href="{{ url_for('views.timeline_detail', timeline_id=timeline.id, entity=entity) }}"
+     class="sb-entity-chip {% if entity_filter == entity %}sb-entity-chip--active{% endif %}"
+     style="--chip-color: {{ entity_colors.get(entity, '#a3a3a3') }}">
+    {{ entity }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Timeline -->
+{% if months %}
+<div class="sb-timeline" role="list" aria-label="Timeline events">
+  {% for month in months %}
+  <div class="sb-timeline__month" role="listitem">
+    <div class="sb-timeline__month-label">{{ month.label }}</div>
+    <div class="sb-timeline__events">
+      {% for event in month.events %}
+      <div class="sb-timeline__event" data-entity="{{ event.entity or '' }}"
+           data-significance="{{ event.significance or 5 }}">
+        <div class="sb-timeline__event-dot"
+             style="background: {{ entity_colors.get(event.entity, '#a3a3a3') }};
+                    {% if event.significance >= 8 %}width: 14px; height: 14px;{% endif %}">
+        </div>
+        <div class="sb-timeline__event-content">
+          <div class="sb-timeline__event-header">
+            <time class="sb-timeline__event-date" datetime="{{ event.event_date.isoformat() }}">
+              {{ event.event_date.strftime('%b %d') }}
+            </time>
+            {% if event.entity %}
+            <span class="sb-entity-tag" style="--entity-color: {{ entity_colors.get(event.entity, '#a3a3a3') }}">
+              {{ event.entity }}
+            </span>
+            {% endif %}
+            {% if event.event_type %}
+            <span class="sb-event-type">{{ event.event_type }}</span>
+            {% endif %}
+          </div>
+          <h3 class="sb-timeline__event-title">{{ event.title }}</h3>
+          {% if event.summary %}
+          <p class="sb-timeline__event-summary">{{ event.summary }}</p>
+          {% endif %}
+          {% if event.source_urls_json %}
+          <div class="sb-timeline__event-sources">
+            {% for url in event.source_urls_json[:2] %}
+            <a href="{{ url }}" target="_blank" rel="noopener" class="sb-timeline__source-link">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+              Source
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="sb-empty" style="margin-top: var(--sb-space-8);">
+  <p class="sb-empty__text">No events yet for this timeline.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -32,6 +32,7 @@
       <a class="sb-nav__brand" href="{{ url_for('views.index') }}">Signal Brief</a>
       <ul class="sb-nav__tabs" role="tablist">
         <li><a href="{{ url_for('views.index') }}" {% if active_tab == 'today' %}class="active" aria-current="page"{% endif %}>Today</a></li>
+        <li><a href="{{ url_for('views.timelines_page') }}" {% if active_tab == 'timelines' %}class="active" aria-current="page"{% endif %}>Timelines</a></li>
         <li><a href="{{ url_for('views.stories_page') }}" {% if active_tab == 'stories' %}class="active" aria-current="page"{% endif %}>Stories</a></li>
         <li><a href="{{ url_for('views.market_page') }}" {% if active_tab == 'market' %}class="active" aria-current="page"{% endif %}>Market</a></li>
         <li><a href="{{ url_for('views.thesis_page') }}" {% if active_tab == 'thesis' %}class="active" aria-current="page"{% endif %}>Thesis</a></li>

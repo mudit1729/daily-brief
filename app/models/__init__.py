@@ -10,6 +10,7 @@ from app.models.user import UserPreference, FeedbackAction, DailyInsight
 from app.models.cost import LLMCallLog, DailyCostSummary
 from app.models.claim import ClaimLedger
 from app.models.investment import InvestmentThesis
+from app.models.timeline import Timeline, TimelineEvent
 
 __all__ = [
     'Source', 'Article', 'ArticleEmbedding',
@@ -21,4 +22,5 @@ __all__ = [
     'UserPreference', 'FeedbackAction', 'DailyInsight',
     'LLMCallLog', 'DailyCostSummary',
     'ClaimLedger', 'InvestmentThesis',
+    'Timeline', 'TimelineEvent',
 ]

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Timelines — Signal Brief{% endblock %}
+
+{% block content %}
+<header class="sb-page-header">
+  <h1 class="sb-page-title">Timelines</h1>
+  <p class="sb-page-subtitle">Track unfolding narratives across entities and geopolitics</p>
+</header>
+
+{% if timelines_data %}
+<div class="sb-timelines-grid">
+  {% for td in timelines_data %}
+  {% set t = td.timeline %}
+  <a href="{{ url_for('views.timeline_detail', timeline_id=t.id) }}" class="sb-timeline-card">
+    <div class="sb-timeline-card__header">
+      <span class="sb-timeline-card__icon">{{ t.icon or '📅' }}</span>
+      <div class="sb-timeline-card__title-wrap">
+        <h2 class="sb-timeline-card__title">{{ t.name }}</h2>
+        <p class="sb-timeline-card__description">{{ t.description or '' }}</p>
+      </div>
+    </div>
+
+    <div class="sb-timeline-card__entities">
+      {% for entity in (t.entities_json or []) %}
+      <span class="sb-entity-badge" style="--entity-color: {{ td.entity_colors.get(entity, '#a3a3a3') }}">
+        {{ entity }}
+      </span>
+      {% endfor %}
+    </div>
+
+    <div class="sb-timeline-card__meta">
+      <span class="sb-timeline-card__count">{{ td.event_count }} events</span>
+      {% if td.first_date and td.last_date %}
+      <span class="sb-timeline-card__range">
+        {{ td.first_date.strftime('%b %Y') }} — {{ td.last_date.strftime('%b %Y') }}
+      </span>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+{% include 'partials/empty_state.html' %}
+{% endif %}
+{% endblock %}
