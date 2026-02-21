@@ -38,6 +38,11 @@ def client(app):
 
 
 @pytest.fixture
+def admin_headers(app):
+    return {'X-Admin-Key': app.config['ADMIN_API_KEY']}
+
+
+@pytest.fixture
 def db_session(app):
     with app.app_context():
         yield _db.session

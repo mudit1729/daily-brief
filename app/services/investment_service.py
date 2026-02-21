@@ -1,5 +1,4 @@
 import logging
-from datetime import date
 from app.extensions import db
 from app.models.investment import InvestmentThesis
 from app.integrations.market_data import MarketDataService
@@ -18,37 +17,45 @@ class InvestmentService:
         Otherwise returns "No thesis today".
         """
         if not feature_flags.is_enabled('investment_thesis'):
-            return None
+            return None, {'total_tokens': 0, 'cost_usd': 0.0}
 
         gate_passed, signals = self.market_service.check_momentum_value_gate(snapshots)
 
-        thesis = InvestmentThesis(
-            date=target_date,
-            brief_id=brief_id,
-            gate_passed=gate_passed,
-            momentum_signal={
-                'count': signals['momentum_count'],
-                'pass': signals['momentum_pass'],
-            },
-            value_signal={
-                'gold_change_pct': signals['gold_change_pct'],
-                'pass': signals['value_pass'],
-            },
-        )
+        thesis = InvestmentThesis.query.filter_by(
+            date=target_date, brief_id=brief_id
+        ).first()
+        if not thesis:
+            thesis = InvestmentThesis(date=target_date, brief_id=brief_id)
+            db.session.add(thesis)
+
+        thesis.gate_passed = gate_passed
+        thesis.momentum_signal = {
+            'count': signals['momentum_count'],
+            'pass': signals['momentum_pass'],
+        }
+        thesis.value_signal = {
+            'gold_change_pct': signals['gold_change_pct'],
+            'pass': signals['value_pass'],
+        }
+
+        usage = {'total_tokens': 0, 'cost_usd': 0.0}
 
         if not gate_passed:
             thesis.thesis_text = "No thesis today. Gate conditions not met."
             thesis.supporting_clusters_json = []
         else:
-            thesis_text = self._generate_with_llm(
+            thesis_result = self._generate_with_llm(
                 snapshots, top_clusters, signals, llm_gateway, brief_id
             )
-            thesis.thesis_text = thesis_text
+            thesis.thesis_text = thesis_result['content']
+            usage = {
+                'total_tokens': thesis_result.get('total_tokens', 0),
+                'cost_usd': thesis_result.get('cost_usd', 0.0),
+            }
             thesis.supporting_clusters_json = [c.id for c in top_clusters[:5]]
 
-        db.session.add(thesis)
         db.session.commit()
-        return thesis
+        return thesis, usage
 
     def _generate_with_llm(self, snapshots, clusters, signals, llm_gateway, brief_id):
         """Generate thesis text using LLM."""
@@ -93,7 +100,15 @@ class InvestmentService:
                 brief_id=brief_id,
                 max_tokens=300,
             )
-            return result['content']
+            return {
+                'content': result['content'],
+                'total_tokens': result.get('total_tokens', 0),
+                'cost_usd': result.get('cost_usd', 0.0),
+            }
         except Exception as e:
             logger.error(f"Failed to generate investment thesis: {e}")
-            return f"Thesis generation failed: {str(e)}"
+            return {
+                'content': f"Thesis generation failed: {str(e)}",
+                'total_tokens': 0,
+                'cost_usd': 0.0,
+            }
