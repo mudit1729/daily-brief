@@ -62,7 +62,7 @@ def sample_brief(db_session):
                     {
                         'location': 'New York',
                         'forecasts': [
-                            {'date': '2025-01-01', 'condition': 'Clear', 'high_f': 45, 'low_f': 30},
+                            {'date': '2025-01-01', 'condition': 'Clear', 'high_c': 7, 'low_c': -1, 'high_f': 45, 'low_f': 30},
                         ],
                     },
                 ]

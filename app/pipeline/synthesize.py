@@ -16,13 +16,13 @@ from app.utils.text import extract_lead_sentences, truncate
 
 logger = logging.getLogger(__name__)
 
-# Section definitions with priority order and display config
+# Section definitions — cluster_section now matches compress.py section keys directly
 SECTIONS = [
-    {'key': 'general_news_us', 'title': 'US News', 'cluster_section': 'general_news', 'region_filter': 'us', 'order': 0},
+    {'key': 'general_news_us', 'title': 'US News', 'cluster_section': 'general_news_us', 'order': 0},
     {'key': 'market', 'title': 'Market Trends', 'cluster_section': 'market', 'order': 1},
     {'key': 'ai_news', 'title': 'AI & Tech', 'cluster_section': 'ai_news', 'order': 2},
-    {'key': 'general_news_india', 'title': 'India', 'cluster_section': 'general_news', 'region_filter': 'india', 'order': 3},
-    {'key': 'general_news_geopolitics', 'title': 'Geopolitics', 'cluster_section': 'general_news', 'region_filter': 'global', 'order': 4},
+    {'key': 'general_news_india', 'title': 'India', 'cluster_section': 'general_news_india', 'order': 3},
+    {'key': 'general_news_geopolitics', 'title': 'Geopolitics', 'cluster_section': 'general_news_geopolitics', 'order': 4},
     {'key': 'weather', 'title': 'Weather', 'order': 5},
     {'key': 'science', 'title': 'Science', 'cluster_section': 'science', 'order': 6},
     {'key': 'health', 'title': 'Health', 'cluster_section': 'health', 'order': 7},

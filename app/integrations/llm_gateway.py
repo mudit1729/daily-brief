@@ -51,7 +51,7 @@ class LLMGateway:
             response = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                max_tokens=effective_max,
+                max_completion_tokens=effective_max,
             )
         except Exception as e:
             logger.error(f"LLM call failed ({purpose}): {e}")
