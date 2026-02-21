@@ -61,6 +61,9 @@ def run(target_date):
     # Dedup via SimHash
     _dedup_articles(cutoff)
 
+    # Idempotent rerun safety: replace all clusters for this date.
+    _delete_clusters_for_date(target_date)
+
     # Cluster per section
     total_clusters = 0
     for section_key, section_values in SECTION_MAPPING.items():
@@ -88,6 +91,19 @@ def run(target_date):
 
     logger.info(f"[Compress] Complete: {total_clusters} clusters created")
     return {'clusters_created': total_clusters}
+
+
+def _delete_clusters_for_date(target_date):
+    """Delete existing clusters for date before re-clustering."""
+    existing = Cluster.query.filter_by(date=target_date).all()
+    if not existing:
+        return
+
+    for cluster in existing:
+        db.session.delete(cluster)
+
+    db.session.commit()
+    logger.info(f"[Compress] Cleared {len(existing)} existing clusters for idempotent rerun")
 
 
 def _dedup_articles(cutoff):

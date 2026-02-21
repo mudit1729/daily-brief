@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 OPEN_METEO_BASE = 'https://api.open-meteo.com/v1/forecast'
 
 DEFAULT_LOCATIONS = [
-    {'name': 'San Diego', 'lat': 32.7157, 'lon': -117.1611},
     {'name': 'New York', 'lat': 40.7128, 'lon': -74.0060},
+    {'name': 'San Francisco', 'lat': 37.7749, 'lon': -122.4194},
     {'name': 'New Delhi', 'lat': 28.6139, 'lon': 77.2090},
 ]
 
@@ -24,9 +24,10 @@ WMO_CODES = {
 
 
 class WeatherService:
-    def fetch_weather(self, locations=None):
+    def fetch_weather(self, locations=None, target_date=None):
         """Fetch daily weather for each location. Returns list of dicts."""
         locations = locations or DEFAULT_LOCATIONS
+        target_date = target_date or date.today()
         results = []
 
         for loc in locations:
@@ -47,7 +48,7 @@ class WeatherService:
                     'location_name': loc['name'],
                     'latitude': loc['lat'],
                     'longitude': loc['lon'],
-                    'date': date.today(),
+                    'date': target_date,
                     'data_json': data,
                 })
             except Exception as e:

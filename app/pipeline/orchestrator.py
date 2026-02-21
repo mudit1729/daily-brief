@@ -1,12 +1,54 @@
 import logging
-from datetime import date, datetime, timezone
-from flask import current_app
+from datetime import date
+from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.brief import DailyBrief
 from app.pipeline import acquire, normalize, compress, rank, synthesize
 from app.services.cost_service import CostService
+from flask import current_app
 
 logger = logging.getLogger(__name__)
+
+
+def _claim_pipeline_brief(target_date):
+    """
+    Claim a brief for execution using status transitions.
+    Returns DailyBrief if this worker should run pipeline, else None.
+    """
+    brief = DailyBrief.query.filter_by(date=target_date).first()
+    if brief and brief.status == 'complete':
+        logger.info(f"Brief for {target_date} already complete, skipping")
+        return None
+
+    if not brief:
+        brief = DailyBrief(date=target_date, status='running')
+        db.session.add(brief)
+        try:
+            db.session.commit()
+            return brief
+        except IntegrityError:
+            db.session.rollback()
+            brief = DailyBrief.query.filter_by(date=target_date).first()
+
+    if brief.status in ('running', 'generating'):
+        logger.info(f"Pipeline already running for {target_date}, skipping duplicate run")
+        return None
+
+    claimed = DailyBrief.query.filter(
+        DailyBrief.id == brief.id,
+        DailyBrief.status.in_(('pending', 'failed')),
+    ).update({'status': 'running'}, synchronize_session=False)
+    db.session.commit()
+
+    if claimed == 0:
+        latest = DailyBrief.query.filter_by(date=target_date).first()
+        logger.info(
+            f"Could not claim brief for {target_date}; current status is "
+            f"{latest.status if latest else 'missing'}"
+        )
+        return None
+
+    return DailyBrief.query.filter_by(id=brief.id).first()
 
 
 def run_daily_pipeline(target_date=None):
@@ -17,16 +59,9 @@ def run_daily_pipeline(target_date=None):
     target_date = target_date or date.today()
     logger.info(f"=== Pipeline starting for {target_date} ===")
 
-    # Create or get today's brief
-    brief = DailyBrief.query.filter_by(date=target_date).first()
-    if brief and brief.status == 'complete':
-        logger.info(f"Brief for {target_date} already complete, skipping")
-        return brief
-
+    brief = _claim_pipeline_brief(target_date)
     if not brief:
-        brief = DailyBrief(date=target_date, status='pending')
-        db.session.add(brief)
-        db.session.commit()
+        return DailyBrief.query.filter_by(date=target_date).first()
 
     results = {}
 
@@ -36,6 +71,7 @@ def run_daily_pipeline(target_date=None):
         results['acquire'] = acquire.run(target_date)
     except Exception as e:
         logger.error(f"Step 1 (Acquire) failed: {e}", exc_info=True)
+        db.session.rollback()
         results['acquire'] = {'error': str(e)}
 
     # Step 2: Normalize
@@ -44,6 +80,7 @@ def run_daily_pipeline(target_date=None):
         results['normalize'] = normalize.run(target_date)
     except Exception as e:
         logger.error(f"Step 2 (Normalize) failed: {e}", exc_info=True)
+        db.session.rollback()
         results['normalize'] = {'error': str(e)}
 
     # Step 3: Compress
@@ -52,8 +89,8 @@ def run_daily_pipeline(target_date=None):
         results['compress'] = compress.run(target_date)
     except Exception as e:
         logger.error(f"Step 3 (Compress) failed: {e}", exc_info=True)
-        results['compress'] = {'error': str(e)}
         db.session.rollback()
+        results['compress'] = {'error': str(e)}
 
     # Step 4: Rank
     try:
@@ -61,6 +98,7 @@ def run_daily_pipeline(target_date=None):
         results['rank'] = rank.run(target_date)
     except Exception as e:
         logger.error(f"Step 4 (Rank) failed: {e}", exc_info=True)
+        db.session.rollback()
         results['rank'] = {'error': str(e)}
 
     # Step 5: Synthesize
@@ -69,15 +107,12 @@ def run_daily_pipeline(target_date=None):
         results['synthesize'] = synthesize.run(target_date, brief.id)
     except Exception as e:
         logger.error(f"Step 5 (Synthesize) failed: {e}", exc_info=True)
+        db.session.rollback()
         results['synthesize'] = {'error': str(e)}
-        try:
-            db.session.rollback()
-            brief = DailyBrief.query.filter_by(date=target_date).first()
-            if brief:
-                brief.status = 'failed'
-                db.session.commit()
-        except Exception:
-            db.session.rollback()
+        brief = DailyBrief.query.filter_by(date=target_date).first()
+        if brief:
+            brief.status = 'failed'
+            db.session.commit()
 
     # Final cost summary
     try:
@@ -90,4 +125,4 @@ def run_daily_pipeline(target_date=None):
 
     logger.info(f"=== Pipeline complete for {target_date} ===")
     logger.info(f"Results: {results}")
-    return brief
+    return DailyBrief.query.filter_by(date=target_date).first()

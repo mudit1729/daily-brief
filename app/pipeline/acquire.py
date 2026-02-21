@@ -107,7 +107,7 @@ def _fetch_weather(target_date):
     """Fetch and cache weather data."""
     try:
         service = WeatherService()
-        entries = service.fetch_weather()
+        entries = service.fetch_weather(target_date=target_date)
         added = 0
         for entry_data in entries:
             existing = WeatherCache.query.filter_by(
