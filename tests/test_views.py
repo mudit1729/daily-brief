@@ -230,6 +230,23 @@ class TestSettingsPage:
         assert b'triggerPipeline' in resp.data
 
 
+class TestTimelinesPage:
+    def test_timelines_returns_200(self, client):
+        """GET /timelines should return 200."""
+        resp = client.get('/timelines')
+        assert resp.status_code == 200
+
+    def test_timelines_contains_title(self, client):
+        """Timelines page should contain the page title."""
+        resp = client.get('/timelines')
+        assert b'Timelines' in resp.data
+
+    def test_timeline_detail_404(self, client):
+        """Non-existent timeline should return 404."""
+        resp = client.get('/timelines/9999')
+        assert resp.status_code == 404
+
+
 class TestHistoryPage:
     def test_history_returns_200(self, client):
         """GET /history should return 200."""

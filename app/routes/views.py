@@ -14,7 +14,9 @@ from app.models.investment import InvestmentThesis
 from app.models.source import Source
 from app.models.cost import DailyCostSummary
 from app.models.user import DailyInsight, FeedbackAction
+from app.models.timeline import Timeline, TimelineEvent
 from app.services.cost_service import CostService
+from app.services.timeline_service import TimelineService
 
 logger = logging.getLogger(__name__)
 
@@ -327,6 +329,73 @@ def settings_page():
         cost_today=cost_today,
         cost_history=summaries,
         sources_by_section=sources_by_section,
+    )
+
+
+@views_bp.route('/timelines')
+def timelines_page():
+    """Timelines — curated chronological event views."""
+    timelines = Timeline.query.filter_by(is_active=True).order_by(
+        Timeline.created_at.desc()
+    ).all()
+
+    # Enrich with event counts and latest event
+    timelines_data = []
+    for t in timelines:
+        events = TimelineEvent.query.filter_by(timeline_id=t.id).order_by(
+            TimelineEvent.event_date.desc()
+        ).all()
+
+        # Date range
+        first_date = events[-1].event_date if events else None
+        last_date = events[0].event_date if events else None
+
+        # Entity color assignments
+        ts = TimelineService()
+        entity_colors = ts.get_entity_colors(t)
+
+        timelines_data.append({
+            'timeline': t,
+            'event_count': len(events),
+            'first_date': first_date,
+            'last_date': last_date,
+            'entity_colors': entity_colors,
+        })
+
+    return render_template(
+        'pages/timelines.html',
+        active_tab='timelines',
+        timelines_data=timelines_data,
+        brief=_get_brief(),
+    )
+
+
+@views_bp.route('/timelines/<int:timeline_id>')
+def timeline_detail(timeline_id):
+    """Detailed view of a single timeline."""
+    timeline = Timeline.query.get_or_404(timeline_id)
+
+    ts = TimelineService()
+    months = ts.get_timeline_events_grouped(timeline_id)
+    entity_colors = ts.get_entity_colors(timeline)
+
+    # Entity filter
+    entity_filter = request.args.get('entity')
+    if entity_filter:
+        for month in months:
+            month['events'] = [
+                e for e in month['events'] if e.entity == entity_filter
+            ]
+        months = [m for m in months if m['events']]
+
+    return render_template(
+        'pages/timeline_detail.html',
+        active_tab='timelines',
+        timeline=timeline,
+        months=months,
+        entity_colors=entity_colors,
+        entity_filter=entity_filter,
+        brief=_get_brief(),
     )
 
 
