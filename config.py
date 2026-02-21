@@ -6,6 +6,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-change-me')
+    ADMIN_API_KEY = os.getenv('ADMIN_API_KEY')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://localhost/daily_brief')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True, 'pool_size': 5}
@@ -40,6 +41,7 @@ class Config:
 
 class TestConfig(Config):
     TESTING = True
+    ADMIN_API_KEY = 'test-admin-key'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     SQLALCHEMY_ENGINE_OPTIONS = {}  # SQLite doesn't support pool_size
     SCHEDULER_ENABLED = False

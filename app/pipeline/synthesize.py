@@ -4,6 +4,7 @@ from flask import current_app
 from app.extensions import db
 from app.models.cluster import Cluster, ClusterMembership
 from app.models.article import Article
+from app.models.source import Source
 from app.models.brief import DailyBrief, BriefSection
 from app.models.market import MarketSnapshot
 from app.models.weather import WeatherCache
@@ -41,6 +42,10 @@ def run(target_date, brief_id):
     brief.status = 'generating'
     db.session.commit()
 
+    # Idempotent rerun safety: regenerate sections from scratch.
+    BriefSection.query.filter_by(brief_id=brief_id).delete(synchronize_session=False)
+    db.session.commit()
+
     total_tokens = 0
     total_cost = 0.0
 
@@ -60,7 +65,7 @@ def run(target_date, brief_id):
             if section:
                 db.session.add(section)
                 total_tokens += section.tokens_used or 0
-                total_cost += section.cost_usd or 0
+                total_cost += section.cost_usd or 0.0
 
         except Exception as e:
             logger.error(f"[Synthesize] Failed to build section {section_def['key']}: {e}")
@@ -92,10 +97,11 @@ def _build_news_section(target_date, brief_id, llm, section_def):
     section_key = section_def['key']
     cluster_section = section_def.get('cluster_section', section_key)
 
-    clusters = Cluster.query.filter_by(
-        date=target_date,
+    clusters = _query_clusters(
+        target_date=target_date,
         section=cluster_section,
-    ).order_by(Cluster.rank_score.desc()).all()
+        region_filter=section_def.get('region_filter'),
+    )
 
     if not clusters:
         return BriefSection(
@@ -242,7 +248,7 @@ def _build_investment_section(target_date, brief_id, llm, section_def):
     ).limit(5).all()
 
     investment_service = InvestmentService()
-    thesis = investment_service.generate_thesis(
+    thesis, usage = investment_service.generate_thesis(
         target_date, brief_id, snapshot_dicts, top_clusters, llm
     )
 
@@ -261,6 +267,8 @@ def _build_investment_section(target_date, brief_id, llm, section_def):
         title=section_def['title'],
         content_json=content,
         display_order=section_def['order'],
+        tokens_used=usage.get('total_tokens', 0),
+        cost_usd=round(float(usage.get('cost_usd', 0.0)), 6),
     )
 
 
@@ -269,6 +277,27 @@ def _get_cluster_articles(cluster):
     memberships = ClusterMembership.query.filter_by(cluster_id=cluster.id).all()
     article_ids = [m.article_id for m in memberships]
     return Article.query.filter(Article.id.in_(article_ids)).all() if article_ids else []
+
+
+def _query_clusters(target_date, section, region_filter=None):
+    """Query clusters with optional source-region filtering."""
+    query = Cluster.query.filter_by(
+        date=target_date,
+        section=section,
+    )
+
+    if region_filter:
+        query = query.join(
+            ClusterMembership, ClusterMembership.cluster_id == Cluster.id
+        ).join(
+            Article, Article.id == ClusterMembership.article_id
+        ).join(
+            Source, Source.id == Article.source_id
+        ).filter(
+            db.func.lower(Source.region) == region_filter.lower()
+        ).distinct()
+
+    return query.order_by(Cluster.rank_score.desc()).all()
 
 
 def _extractive_summary(articles):
@@ -348,8 +377,6 @@ def _format_cluster(cluster, articles, summary):
                 'url': a.url,
                 'source': a.source.name if a.source else None,
                 'og_image_url': a.og_image_url,
-                'bias_label': a.source.bias_label if a.source else 'center',
-                'trust_score': a.source.trust_score if a.source else 50,
             }
             for a in articles[:5]
         ],

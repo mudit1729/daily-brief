@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from app.extensions import db
 from app.models.brief import DailyBrief, BriefSection
 from app.models.source import Source
+from app.models.user import DailyInsight
 
 
 class TestHealthRoutes:
@@ -102,48 +103,83 @@ class TestFeedbackRoutes:
         assert resp.status_code == 200
         assert len(resp.json) >= 1
 
+    def test_promote_insight_sets_pref_id(self, client):
+        created = client.post('/api/feedback/insight', json={'text': 'long-term preference'})
+        insight_id = created.json['id']
+
+        promoted = client.post(f'/api/feedback/insight/{insight_id}/promote')
+        assert promoted.status_code == 200
+
+        insight = DailyInsight.query.filter_by(id=insight_id).first()
+        assert insight.promoted_to_pref is True
+        assert insight.pref_id is not None
+
 
 class TestAdminRoutes:
-    def test_list_sources(self, client, sample_sources):
-        resp = client.get('/api/admin/sources')
+    def test_list_sources(self, client, sample_sources, admin_headers):
+        resp = client.get('/api/admin/sources', headers=admin_headers)
         assert resp.status_code == 200
         assert len(resp.json) == 3
 
-    def test_add_source(self, client):
+    def test_add_source(self, client, admin_headers):
         resp = client.post('/api/admin/sources', json={
             'name': 'New Source',
             'url': 'https://newsource.com/feed.xml',
             'section': 'ai_news',
             'trust_score': 75,
-        })
+        }, headers=admin_headers)
         assert resp.status_code == 201
         assert resp.json['name'] == 'New Source'
 
-    def test_update_source(self, client, sample_sources):
+    def test_update_source(self, client, sample_sources, admin_headers):
         source_id = sample_sources[0].id
         resp = client.put(f'/api/admin/sources/{source_id}', json={
             'trust_score': 95,
-        })
+        }, headers=admin_headers)
         assert resp.status_code == 200
         assert resp.json['trust_score'] == 95
 
-    def test_delete_source(self, client, sample_sources):
+    def test_delete_source(self, client, sample_sources, admin_headers):
         source_id = sample_sources[0].id
-        resp = client.delete(f'/api/admin/sources/{source_id}')
+        resp = client.delete(f'/api/admin/sources/{source_id}', headers=admin_headers)
         assert resp.status_code == 200
         assert resp.json['status'] == 'deactivated'
 
-    def test_list_flags(self, client):
-        resp = client.get('/api/admin/flags')
+    def test_list_flags(self, client, admin_headers):
+        resp = client.get('/api/admin/flags', headers=admin_headers)
         assert resp.status_code == 200
         assert isinstance(resp.json, dict)
 
-    def test_add_watchlist(self, client):
+    def test_add_watchlist(self, client, admin_headers):
         resp = client.post('/api/admin/watchlists', json={
             'name': 'Test Topic',
             'description': 'A test tracked topic',
-        })
+        }, headers=admin_headers)
         assert resp.status_code == 201
+
+    def test_admin_requires_auth(self, client):
+        resp = client.get('/api/admin/sources')
+        assert resp.status_code == 401
+
+    def test_duplicate_source_returns_409(self, client, admin_headers):
+        payload = {
+            'name': 'Source One',
+            'url': 'https://dupe-source.com/feed.xml',
+            'section': 'ai_news',
+        }
+        first = client.post('/api/admin/sources', json=payload, headers=admin_headers)
+        assert first.status_code == 201
+
+        second = client.post('/api/admin/sources', json=payload, headers=admin_headers)
+        assert second.status_code == 409
+
+    def test_duplicate_watchlist_returns_409(self, client, admin_headers):
+        payload = {'name': 'Duplicate Topic', 'description': 'x'}
+        first = client.post('/api/admin/watchlists', json=payload, headers=admin_headers)
+        assert first.status_code == 201
+
+        second = client.post('/api/admin/watchlists', json=payload, headers=admin_headers)
+        assert second.status_code == 409
 
 
 class TestCostRoutes:

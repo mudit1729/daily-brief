@@ -41,17 +41,25 @@ class FeedbackService:
 
     def promote_insight(self, insight_id):
         """Promote a daily insight to a persistent user preference."""
-        insight = DailyInsight.query.get(insight_id)
+        insight = db.session.get(DailyInsight, insight_id)
         if not insight:
             raise ValueError(f"Insight {insight_id} not found")
 
+        if insight.promoted_to_pref and insight.pref_id:
+            existing_pref = db.session.get(UserPreference, insight.pref_id)
+            if existing_pref:
+                return existing_pref
+
         pref_key = f"insight.promoted.{insight_id}"
-        pref = UserPreference(
-            key=pref_key,
-            value_json={'text': insight.text, 'source': 'promoted_insight'},
-            is_persistent=True,
-        )
-        db.session.add(pref)
+        pref = UserPreference.query.filter_by(key=pref_key).first()
+        if not pref:
+            pref = UserPreference(
+                key=pref_key,
+                value_json={'text': insight.text, 'source': 'promoted_insight'},
+                is_persistent=True,
+            )
+            db.session.add(pref)
+            db.session.flush()
 
         insight.promoted_to_pref = True
         insight.pref_id = pref.id
