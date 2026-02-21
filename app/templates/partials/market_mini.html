@@ -1,0 +1,23 @@
+{# Market mini strip — expects `market` section dict with `content.market_data` #}
+<div class="sb-market-strip">
+  <div class="sb-market-strip__title">Markets</div>
+  {% if market and market.get('market_data') %}
+  <div class="sb-market-strip__grid">
+    {% for item in market.market_data %}
+    <div class="sb-market-item">
+      <div class="sb-market-item__symbol">{{ item.get('name', item.get('symbol', '')) | truncate(12, true, '..') }}</div>
+      <div class="sb-market-item__price">
+        {% if item.price %}{{ "{:,.2f}".format(item.price) }}{% else %}--{% endif %}
+      </div>
+      {% if item.change_pct is not none %}
+      <div class="sb-market-item__change sb-market-item__change--{{ item.change_pct | change_class }}">
+        {{ item.change_pct | change_sign }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);">Markets closed or no data</div>
+  {% endif %}
+</div>

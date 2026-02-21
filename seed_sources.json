@@ -1,0 +1,227 @@
+[
+  {
+    "name": "Reuters - World",
+    "url": "https://feeds.reuters.com/Reuters/worldNews",
+    "section": "general_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 90,
+    "source_type": "primary"
+  },
+  {
+    "name": "AP News - Top Stories",
+    "url": "https://rsshub.app/apnews/topics/apf-topnews",
+    "section": "general_news",
+    "region": "us",
+    "bias_label": "center",
+    "trust_score": 92,
+    "source_type": "primary"
+  },
+  {
+    "name": "BBC News - World",
+    "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "section": "general_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 85,
+    "source_type": "reporting"
+  },
+  {
+    "name": "NPR News",
+    "url": "https://feeds.npr.org/1001/rss.xml",
+    "section": "general_news",
+    "region": "us",
+    "bias_label": "center",
+    "trust_score": 82,
+    "source_type": "reporting"
+  },
+  {
+    "name": "The Guardian - World",
+    "url": "https://www.theguardian.com/world/rss",
+    "section": "general_news",
+    "region": "global",
+    "bias_label": "left",
+    "trust_score": 78,
+    "source_type": "reporting"
+  },
+  {
+    "name": "The Hindu - National",
+    "url": "https://www.thehindu.com/news/national/feeder/default.rss",
+    "section": "general_news",
+    "region": "india",
+    "bias_label": "center",
+    "trust_score": 78,
+    "source_type": "reporting"
+  },
+  {
+    "name": "NDTV - India",
+    "url": "https://feeds.feedburner.com/ndtvnews-india-news",
+    "section": "general_news",
+    "region": "india",
+    "bias_label": "center",
+    "trust_score": 72,
+    "source_type": "reporting"
+  },
+  {
+    "name": "Times of India - Top Stories",
+    "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "section": "general_news",
+    "region": "india",
+    "bias_label": "center",
+    "trust_score": 68,
+    "source_type": "reporting"
+  },
+  {
+    "name": "Al Jazeera",
+    "url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "section": "general_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 72,
+    "source_type": "reporting"
+  },
+  {
+    "name": "TechCrunch - AI",
+    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "section": "ai_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 70,
+    "source_type": "reporting"
+  },
+  {
+    "name": "The Verge - AI",
+    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+    "section": "ai_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 72,
+    "source_type": "reporting"
+  },
+  {
+    "name": "Simon Willison's Weblog",
+    "url": "https://simonwillison.net/atom/everything/",
+    "section": "ai_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 80,
+    "source_type": "analysis"
+  },
+  {
+    "name": "MIT Technology Review - AI",
+    "url": "https://www.technologyreview.com/feed/",
+    "section": "ai_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 85,
+    "source_type": "analysis"
+  },
+  {
+    "name": "Ars Technica - AI",
+    "url": "https://feeds.arstechnica.com/arstechnica/features",
+    "section": "ai_news",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 78,
+    "source_type": "analysis"
+  },
+  {
+    "name": "Nature - Latest Research",
+    "url": "https://www.nature.com/nature.rss",
+    "section": "science",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 95,
+    "source_type": "primary"
+  },
+  {
+    "name": "Science Magazine",
+    "url": "https://www.science.org/rss/news_current.xml",
+    "section": "science",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 93,
+    "source_type": "primary"
+  },
+  {
+    "name": "New Scientist",
+    "url": "https://www.newscientist.com/feed/home/",
+    "section": "science",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 80,
+    "source_type": "reporting"
+  },
+  {
+    "name": "WHO News",
+    "url": "https://www.who.int/rss-feeds/news-english.xml",
+    "section": "health",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 88,
+    "source_type": "primary"
+  },
+  {
+    "name": "STAT News",
+    "url": "https://www.statnews.com/feed/",
+    "section": "health",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 82,
+    "source_type": "reporting"
+  },
+  {
+    "name": "Reuters - Business",
+    "url": "https://feeds.reuters.com/reuters/businessNews",
+    "section": "market",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 88,
+    "source_type": "reporting"
+  },
+  {
+    "name": "CNBC - Top News",
+    "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114",
+    "section": "market",
+    "region": "us",
+    "bias_label": "center",
+    "trust_score": 75,
+    "source_type": "reporting"
+  },
+  {
+    "name": "Bloomberg Markets",
+    "url": "https://feeds.bloomberg.com/markets/news.rss",
+    "section": "market",
+    "region": "global",
+    "bias_label": "center",
+    "trust_score": 85,
+    "source_type": "analysis"
+  },
+  {
+    "name": "Economic Times - Markets",
+    "url": "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+    "section": "market",
+    "region": "india",
+    "bias_label": "center",
+    "trust_score": 72,
+    "source_type": "reporting"
+  },
+  {
+    "name": "Fox News - Politics",
+    "url": "https://moxie.foxnews.com/google-publisher/politics.xml",
+    "section": "general_news",
+    "region": "us",
+    "bias_label": "right",
+    "trust_score": 55,
+    "source_type": "opinion"
+  },
+  {
+    "name": "Wall Street Journal",
+    "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+    "section": "general_news",
+    "region": "us",
+    "bias_label": "right",
+    "trust_score": 82,
+    "source_type": "reporting"
+  }
+]

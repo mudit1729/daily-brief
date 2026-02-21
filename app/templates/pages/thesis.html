@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Signal Brief — Investment Thesis{% endblock %}
+
+{% block content %}
+<div class="sb-brief-header">
+  <h1 class="sb-brief-header__date">Investment Thesis</h1>
+  <div class="sb-brief-header__meta">
+    <span>{{ today_date.strftime('%B %d, %Y') }}</span>
+  </div>
+</div>
+
+{% if thesis_section and thesis_section.get('content') %}
+  {% set thesis = thesis_section.content %}
+  {% include "partials/thesis_card.html" %}
+
+  <!-- Extended detail if thesis model is available -->
+  {% if thesis_model %}
+  <div style="margin-top:var(--sb-space-6);">
+    <div class="sb-weather">
+      <div class="sb-weather__title">Signal Detail</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sb-space-4);margin-top:var(--sb-space-3);">
+        <div>
+          <div style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin-bottom:var(--sb-space-1);">Momentum Signal</div>
+          {% if thesis_model.momentum_signal %}
+          <pre style="font-family:var(--sb-font-mono);font-size:var(--sb-text-xs);color:var(--sb-text-secondary);margin:0;white-space:pre-wrap;">{{ thesis_model.momentum_signal | tojson(indent=2) }}</pre>
+          {% else %}
+          <span style="color:var(--sb-text-muted);font-size:var(--sb-text-sm);">Not available</span>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin-bottom:var(--sb-space-1);">Value Signal</div>
+          {% if thesis_model.value_signal %}
+          <pre style="font-family:var(--sb-font-mono);font-size:var(--sb-text-xs);color:var(--sb-text-secondary);margin:0;white-space:pre-wrap;">{{ thesis_model.value_signal | tojson(indent=2) }}</pre>
+          {% else %}
+          <span style="color:var(--sb-text-muted);font-size:var(--sb-text-sm);">Not available</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+{% else %}
+  <div class="sb-thesis" style="text-align:center;padding:var(--sb-space-12);">
+    <div class="sb-thesis__header" style="justify-content:center;">
+      <h2 class="sb-thesis__title">No Thesis Today</h2>
+      <span class="sb-thesis__gate sb-thesis__gate--fail">Gate Not Met</span>
+    </div>
+    <p class="sb-thesis__text" style="max-width:480px;margin:var(--sb-space-4) auto 0;">
+      The momentum and value gate conditions were not met today.
+      A thesis is generated when at least 2 of 3 US indices are up &gt;0.3% and gold is up &lt;2%.
+    </p>
+  </div>
+{% endif %}
+{% endblock %}

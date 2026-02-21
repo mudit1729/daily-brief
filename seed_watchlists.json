@@ -1,0 +1,42 @@
+[
+  {
+    "name": "AI Regulation",
+    "description": "Government regulation of artificial intelligence worldwide, EU AI Act, US executive orders"
+  },
+  {
+    "name": "US-China Trade",
+    "description": "Trade relations, tariffs, semiconductor restrictions, economic competition"
+  },
+  {
+    "name": "Climate Policy",
+    "description": "Climate change legislation, international agreements, COP summits, carbon markets"
+  },
+  {
+    "name": "Fed Interest Rates",
+    "description": "Federal Reserve monetary policy decisions, rate hikes/cuts, inflation targets"
+  },
+  {
+    "name": "India Tech Sector",
+    "description": "Indian technology industry developments, startup ecosystem, digital infrastructure"
+  },
+  {
+    "name": "Ukraine-Russia Conflict",
+    "description": "Ongoing conflict developments, peace negotiations, international response"
+  },
+  {
+    "name": "Middle East Geopolitics",
+    "description": "Israel-Palestine, Iran nuclear program, Gulf state relations, regional security"
+  },
+  {
+    "name": "Semiconductor Industry",
+    "description": "Chip manufacturing, supply chains, TSMC, NVIDIA, global capacity expansion"
+  },
+  {
+    "name": "LLM and Foundation Models",
+    "description": "Large language model developments, new releases, benchmarks, safety research"
+  },
+  {
+    "name": "Renewable Energy Transition",
+    "description": "Solar, wind, battery storage adoption, grid modernization, energy policy"
+  }
+]

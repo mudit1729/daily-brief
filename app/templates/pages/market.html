@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Signal Brief — Market{% endblock %}
+
+{% block content %}
+<div class="sb-brief-header">
+  <h1 class="sb-brief-header__date">Market Overview</h1>
+  <div class="sb-brief-header__meta">
+    <span>{{ today_date.strftime('%B %d, %Y') }}</span>
+  </div>
+</div>
+
+{% if market and market.get('content') %}
+  {% set data = market.content %}
+
+  <!-- Market indices grid -->
+  {% if data.get('market_data') %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--sb-space-3);margin-bottom:var(--sb-space-8);">
+    {% for item in data.market_data %}
+    <div class="sb-weather" style="text-align:center;">
+      <div style="font-size:var(--sb-text-xs);font-weight:var(--sb-weight-medium);color:var(--sb-text-muted);margin-bottom:var(--sb-space-1);">
+        {{ item.get('name', item.get('symbol', '')) }}
+      </div>
+      <div style="font-size:var(--sb-text-xl);font-weight:var(--sb-weight-bold);letter-spacing:-0.02em;">
+        {% if item.price %}{{ "{:,.2f}".format(item.price) }}{% else %}--{% endif %}
+      </div>
+      {% if item.change_pct is not none %}
+      <div class="sb-market-item__change sb-market-item__change--{{ item.change_pct | change_class }}"
+           style="font-size:var(--sb-text-sm);font-weight:var(--sb-weight-semibold);">
+        {{ item.change_pct | change_sign }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Market news clusters -->
+  {% if data.get('clusters') %}
+  <section class="sb-section">
+    <h2 class="sb-section__title">
+      Top Drivers
+      <span class="sb-section__badge">{{ data.clusters | length }}</span>
+    </h2>
+    {% for cluster in data.clusters %}
+      {% include "partials/cluster_card.html" %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+{% else %}
+  {% set empty_title = 'No market data' %}
+  {% set empty_text = 'Market data will be available after the next pipeline run during market hours.' %}
+  {% include "partials/empty_state.html" %}
+{% endif %}
+{% endblock %}

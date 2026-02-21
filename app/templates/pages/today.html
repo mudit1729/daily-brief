@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Signal Brief — {{ brief.date.strftime('%B %d, %Y') if brief else 'Today' }}{% endblock %}
+
+{% block content %}
+{% if not brief %}
+  {% include "partials/empty_state.html" %}
+{% else %}
+
+  <!-- Brief header -->
+  <div class="sb-brief-header">
+    <h1 class="sb-brief-header__date">{{ brief.date.strftime('%A, %B %d') }}</h1>
+    <div class="sb-brief-header__meta">
+      <span>{{ brief.date.strftime('%Y') }}</span>
+      <span>{{ brief.sections | length }} sections</span>
+      {% if brief.total_tokens %}
+      <span>{{ brief.total_tokens | int }} tokens</span>
+      {% endif %}
+      {% if brief.total_cost_usd %}
+      <span>${{ "%.4f" | format(brief.total_cost_usd) }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Overview tile -->
+  {% if overview %}
+  <div class="sb-overview">
+    <div class="sb-overview__stats">
+      <div class="sb-overview__stat">
+        <div class="sb-overview__stat-value">{{ overview.total_clusters }}</div>
+        <div class="sb-overview__stat-label">Stories</div>
+      </div>
+      <div class="sb-overview__stat">
+        <div class="sb-overview__stat-value">{{ overview.total_sources }}</div>
+        <div class="sb-overview__stat-label">Sources</div>
+      </div>
+      <div class="sb-overview__stat">
+        <div class="sb-overview__stat-value">{{ overview.section_count }}</div>
+        <div class="sb-overview__stat-label">Sections</div>
+      </div>
+    </div>
+    <div class="sb-overview__highlights">
+      {% for story in overview.top_stories %}
+      <div class="sb-overview__highlight">
+        <span class="sb-overview__highlight-dot" style="background:var(--sb-accent);"></span>
+        <span class="sb-truncate-1" style="flex:1;">{{ story.label }}</span>
+      </div>
+      {% endfor %}
+      {% if overview.market_highlight %}
+      <div class="sb-overview__highlight">
+        <span class="sb-overview__highlight-dot" style="background:var(--sb-{{ overview.market_highlight.change_pct | change_class }});"></span>
+        <span>{{ overview.market_highlight.name }} {{ overview.market_highlight.change_pct | change_sign }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Top strip: Weather + Market -->
+  <div class="sb-top-strip">
+    {% set weather = sections.get('weather', {}).get('content', {}) %}
+    {% include "partials/weather_card.html" %}
+
+    {% set market = sections.get('market', {}).get('content', {}) %}
+    {% include "partials/market_mini.html" %}
+  </div>
+
+  <!-- Section nav -->
+  {% include "partials/section_nav.html" %}
+
+  <!-- News sections -->
+  {% for section_key in news_sections %}
+    {% set sec = sections.get(section_key) %}
+    {% if sec and sec.content.get('clusters') %}
+    <section id="section-{{ section_key }}" class="sb-section">
+      <h2 class="sb-section__title">
+        {{ sec.title }}
+        <span class="sb-section__badge">{{ sec.content.clusters | length }}</span>
+        {% if sec.degradation and sec.degradation > 0 %}
+        <span class="sb-badge sb-badge--warning" title="Degradation level {{ sec.degradation }}: budget constrained">D{{ sec.degradation }}</span>
+        {% endif %}
+      </h2>
+
+      {% for cluster in sec.content.clusters %}
+        {% include "partials/cluster_card.html" %}
+      {% endfor %}
+    </section>
+    {% endif %}
+  {% endfor %}
+
+  <!-- Investment thesis -->
+  {% set thesis_content = sections.get('investment_thesis', {}).get('content', {}) %}
+  {% if thesis_content %}
+    {% set thesis = thesis_content %}
+    {% include "partials/thesis_card.html" %}
+  {% endif %}
+
+{% endif %}
+{% endblock %}

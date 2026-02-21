@@ -1,0 +1,63 @@
+{# Cluster card partial — expects `cluster` dict in context #}
+{% set lead_bias = cluster.articles[0].bias_label | default('center') if cluster.articles else 'center' %}
+{% set lead_image = cluster.articles[0].og_image_url if cluster.articles and cluster.articles[0].og_image_url else None %}
+
+<article class="sb-card sb-card--bias-{{ lead_bias | bias_class }}"
+         data-cluster-id="{{ cluster.cluster_id }}"
+         tabindex="0"
+         aria-label="{{ cluster.label }}">
+
+  <!-- Large image on the left -->
+  {% if lead_image %}
+  <img class="sb-card__image"
+       src="{{ lead_image }}"
+       alt="" loading="lazy"
+       onerror="this.closest('.sb-card').style.gridTemplateColumns='1fr';this.remove()">
+  {% else %}
+  <div class="sb-card__image sb-card__image--placeholder">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+  </div>
+  {% endif %}
+
+  <!-- Content on the right -->
+  <div class="sb-card__content">
+    <!-- Header: title + indicators -->
+    <div class="sb-card__header">
+      <div class="sb-card__meta">
+        <h3 class="sb-card__title sb-truncate-2">{{ cluster.label or 'Untitled cluster' }}</h3>
+        <div class="sb-card__indicators">
+          <span class="sb-trust sb-trust--{{ cluster.avg_trust | trust_level }}"
+                title="Average trust score: {{ cluster.avg_trust | round(0) | int }}">
+            {{ cluster.avg_trust | round(0) | int }}
+          </span>
+          <span>{{ cluster.article_count }} source{{ 's' if cluster.article_count != 1 }}</span>
+          {% if cluster.rank_score %}
+          <span title="Rank score">{{ "%.1f" | format(cluster.rank_score) }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Body: summary (visible without JS, collapsible with JS) -->
+    <div class="sb-card__body">
+      <p class="sb-card__summary">{{ cluster.summary or 'No summary available.' }}</p>
+    </div>
+
+    <!-- Sources row — deduplicated -->
+    {% if cluster.articles %}
+    <div class="sb-card__sources">
+      {% for article in cluster.articles | unique_sources %}
+      <a href="{{ article.url }}"
+         class="sb-source-badge sb-source-badge--{{ (article.bias_label | default('center')) | bias_class }}"
+         target="_blank" rel="noopener"
+         title="{{ article.title }}">
+        {{ article.source | default('Unknown') }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Actions row -->
+    {% include "partials/feedback_actions.html" %}
+  </div>
+</article>

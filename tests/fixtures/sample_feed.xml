@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test News Feed</title>
+    <link>https://example.com</link>
+    <description>A test RSS feed</description>
+    <item>
+      <title>Breaking: Major Policy Change Announced</title>
+      <link>https://example.com/article-1</link>
+      <description>A significant policy change was announced today affecting markets worldwide.</description>
+      <pubDate>Mon, 20 Jan 2025 10:00:00 GMT</pubDate>
+      <author>John Doe</author>
+    </item>
+    <item>
+      <title>Tech Giant Reports Record Earnings</title>
+      <link>https://example.com/article-2</link>
+      <description>The company beat analyst expectations with strong AI-driven growth.</description>
+      <pubDate>Mon, 20 Jan 2025 11:00:00 GMT</pubDate>
+      <author>Jane Smith</author>
+    </item>
+    <item>
+      <title>Climate Summit Reaches Historic Agreement</title>
+      <link>https://example.com/article-3</link>
+      <description>World leaders agreed on new emission reduction targets.</description>
+      <pubDate>Mon, 20 Jan 2025 12:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Central Bank Holds Interest Rates Steady</title>
+      <link>https://example.com/article-4</link>
+      <description>The Federal Reserve decided to maintain current interest rate levels.</description>
+      <pubDate>Mon, 20 Jan 2025 13:00:00 GMT</pubDate>
+      <author>Market Reporter</author>
+    </item>
+    <item>
+      <title>New AI Model Achieves Breakthrough Performance</title>
+      <link>https://example.com/article-5</link>
+      <description>Researchers demonstrate significant improvements in language understanding.</description>
+      <pubDate>Mon, 20 Jan 2025 14:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
