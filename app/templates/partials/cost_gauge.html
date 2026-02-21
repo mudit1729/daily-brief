@@ -1,0 +1,25 @@
+{# Cost gauge — expects `cost_today` dict with total_cost_usd, budget #}
+{% set spent = cost_today.get('total_cost_usd', 0) if cost_today else 0 %}
+{% set budget = 0.10 %}
+{% set pct = ((spent / budget) * 100) | round(1) if budget > 0 else 0 %}
+{% set gauge_class = 'danger' if pct > 90 else ('warning' if pct > 60 else '') %}
+
+<div style="margin-bottom:var(--sb-space-4);">
+  <div style="display:flex;justify-content:space-between;font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin-bottom:var(--sb-space-1);">
+    <span>Budget: ${{ "%.4f" | format(spent) }} / ${{ "%.2f" | format(budget) }}</span>
+    <span>{{ pct }}%</span>
+  </div>
+  <div class="sb-gauge">
+    <div class="sb-gauge__fill {{ 'sb-gauge__fill--' + gauge_class if gauge_class }}"
+         style="width:{{ [pct, 100] | min }}%">
+  </div>
+  {% if cost_today %}
+  <div style="display:flex;gap:var(--sb-space-4);font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin-top:var(--sb-space-2);">
+    <span>{{ cost_today.get('total_tokens', 0) | int }} tokens</span>
+    <span>{{ cost_today.get('calls_count', 0) | int }} calls</span>
+    {% if cost_today.get('idiot_index') is not none %}
+    <span>II: {{ "%.4f" | format(cost_today.idiot_index) }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

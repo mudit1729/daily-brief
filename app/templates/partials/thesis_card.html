@@ -1,0 +1,53 @@
+{# Investment thesis card — expects `thesis` section content dict #}
+{% set content = thesis if thesis is mapping else {} %}
+{% set gate = content.get('gate_passed', false) %}
+{% set signals = content.get('signals', {}) %}
+
+<div class="sb-thesis" id="section-thesis">
+  <div class="sb-thesis__header">
+    <h2 class="sb-thesis__title">Investment Thesis</h2>
+    <span class="sb-thesis__gate sb-thesis__gate--{{ 'pass' if gate else 'fail' }}">
+      {% if gate %}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Gate Passed
+      {% else %}
+        Gate Not Met
+      {% endif %}
+    </span>
+  </div>
+
+  {% if content.get('thesis') %}
+  <p class="sb-thesis__text">{{ content.thesis }}</p>
+  {% else %}
+  <p class="sb-thesis__text" style="color:var(--sb-text-muted);font-style:italic;">
+    No thesis generated today. The momentum and value gate conditions were not met.
+  </p>
+  {% endif %}
+
+  {% if signals %}
+  <div class="sb-thesis__signals">
+    {% if signals.get('momentum') %}
+    <div class="sb-thesis__signal">
+      {% if signals.momentum is mapping %}
+      <span class="sb-trust sb-trust--{{ 'high' if signals.momentum.get('pass') else 'low' }}"></span>
+      Momentum: {{ signals.momentum.get('count', 0) }}/3 indices up &gt;0.3%
+      {% else %}
+      <span class="sb-trust sb-trust--mid"></span>
+      Momentum: {{ signals.momentum }}
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if signals.get('value') %}
+    <div class="sb-thesis__signal">
+      {% if signals.value is mapping %}
+      <span class="sb-trust sb-trust--{{ 'high' if signals.value.get('pass') else 'low' }}"></span>
+      Value: Gold {{ signals.value.get('gold_change_pct', 0) | round(2) }}%
+      {% else %}
+      <span class="sb-trust sb-trust--mid"></span>
+      Value: {{ signals.value }}
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

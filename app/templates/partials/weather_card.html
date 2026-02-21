@@ -1,0 +1,82 @@
+{# Weather card — animated icons, 3-day forecast, expects `weather` dict with `locations` key #}
+{# WMO codes → emoji mapping for animated display #}
+{% macro weather_icon(condition) -%}
+  {%- if 'clear' in condition|lower or 'sunny' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation-delay: 0s;">&#9728;&#65039;</span>
+  {%- elif 'partly' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation: sb-weather-pulse 3s ease-in-out infinite;">&#9925;</span>
+  {%- elif 'cloud' in condition|lower or 'overcast' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation: sb-weather-float 4s ease-in-out infinite;">&#9729;&#65039;</span>
+  {%- elif 'rain' in condition|lower or 'drizzle' in condition|lower or 'shower' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation: sb-weather-float 2s ease-in-out infinite;">&#127783;&#65039;</span>
+  {%- elif 'snow' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation: sb-weather-float 3.5s ease-in-out infinite;">&#127784;&#65039;</span>
+  {%- elif 'thunder' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation: sb-weather-pulse 1.5s ease-in-out infinite;">&#9889;</span>
+  {%- elif 'fog' in condition|lower -%}
+    <span class="sb-weather__icon" style="animation: sb-weather-pulse 4s ease-in-out infinite;">&#127787;&#65039;</span>
+  {%- else -%}
+    <span class="sb-weather__icon">&#9728;&#65039;</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro mini_icon(condition) -%}
+  {%- if 'clear' in condition|lower or 'sunny' in condition|lower -%}&#9728;&#65039;
+  {%- elif 'partly' in condition|lower -%}&#9925;
+  {%- elif 'cloud' in condition|lower or 'overcast' in condition|lower -%}&#9729;&#65039;
+  {%- elif 'rain' in condition|lower or 'drizzle' in condition|lower or 'shower' in condition|lower -%}&#127783;&#65039;
+  {%- elif 'snow' in condition|lower -%}&#127784;&#65039;
+  {%- elif 'thunder' in condition|lower -%}&#9889;
+  {%- elif 'fog' in condition|lower -%}&#127787;&#65039;
+  {%- else -%}&#9728;&#65039;
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro day_name(date_str) -%}
+  {%- if date_str -%}
+    {%- set parts = date_str.split('-') -%}
+    {%- set d = parts[2]|int -%}
+    {{- d -}}
+  {%- endif -%}
+{%- endmacro %}
+
+<div class="sb-weather">
+  <div class="sb-weather__title">Weather</div>
+  {% if weather and weather.get('locations') %}
+  <div class="sb-weather__grid">
+    {% for loc in weather.locations[:3] %}
+    <div class="sb-weather__location">
+      <div class="sb-weather__city">
+        {{ loc.get('location', loc.get('location_name', 'Unknown')) }}
+      </div>
+      {% if loc.get('forecasts') and loc.forecasts | length > 0 %}
+        {% set today = loc.forecasts[0] %}
+        {{ weather_icon(today.condition) }}
+        <div class="sb-weather__temp">
+          <span class="sb-weather__temp-hi">{{ today.high_f | round(0) | int }}&#176;</span>
+          <span class="sb-weather__temp-lo">/ {{ today.low_f | round(0) | int }}&#176;</span>
+        </div>
+        <div class="sb-weather__condition">{{ today.condition }}</div>
+
+        {# 3-day mini forecast #}
+        {% if loc.forecasts | length > 1 %}
+        <div class="sb-weather__forecast">
+          {% for day in loc.forecasts[1:] %}
+          <div class="sb-weather__forecast-day">
+            <div class="sb-weather__forecast-day-icon">{{ mini_icon(day.condition) }}</div>
+            <div class="sb-weather__forecast-day-temp">{{ day.high_f | round(0) | int }}&#176;</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="sb-weather__icon">&#9728;&#65039;</div>
+        <div class="sb-weather__condition">No data</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="font-size:var(--sb-text-base);color:var(--sb-text-muted);padding:var(--sb-space-4) 0;">No weather data</div>
+  {% endif %}
+</div>

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Signal Brief — Settings{% endblock %}
+
+{% block content %}
+<div class="sb-brief-header">
+  <h1 class="sb-brief-header__date">Settings</h1>
+</div>
+
+<!-- Tab navigation -->
+<div class="sb-settings-tabs">
+  <a href="#cost" class="sb-settings-tabs__item is-active" data-tab="cost">Cost</a>
+  <a href="#insights" class="sb-settings-tabs__item" data-tab="insights">Insights</a>
+  <a href="#sources" class="sb-settings-tabs__item" data-tab="sources">Sources</a>
+  <a href="#actions" class="sb-settings-tabs__item" data-tab="actions">Actions</a>
+</div>
+
+<!-- Cost tab -->
+<div class="sb-tab-panel" id="panel-cost">
+  <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-4) 0;">Today's Budget</h3>
+  {% include "partials/cost_gauge.html" %}
+
+  {% if cost_history %}
+  <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:var(--sb-space-8) 0 var(--sb-space-4) 0;">30-Day History</h3>
+  <table class="sb-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Cost</th>
+        <th>Tokens</th>
+        <th>Calls</th>
+        <th>II</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in cost_history %}
+      <tr>
+        <td>{{ s.date.strftime('%b %d') }}</td>
+        <td>${{ "%.4f" | format(s.total_cost_usd or 0) }}</td>
+        <td>{{ s.total_tokens or 0 }}</td>
+        <td>{{ s.calls_count or 0 }}</td>
+        <td>{{ "%.4f" | format(s.idiot_index or 0) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Pipeline trigger -->
+  <div style="margin-top:var(--sb-space-8);padding-top:var(--sb-space-6);border-top:1px solid var(--sb-border);">
+    <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-2) 0;">Pipeline</h3>
+    <p style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);margin:0 0 var(--sb-space-3) 0;">
+      Manually trigger a full pipeline run.
+    </p>
+    <button class="sb-action-btn" id="triggerPipeline" style="padding:var(--sb-space-2) var(--sb-space-4);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Run Pipeline
+    </button>
+    <span id="pipelineStatus" style="margin-left:var(--sb-space-2);font-size:var(--sb-text-xs);color:var(--sb-text-muted);"></span>
+  </div>
+</div>
+
+<!-- Insights tab -->
+<div class="sb-tab-panel" id="panel-insights" style="display:none;">
+  <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-4) 0;">Active Insights</h3>
+  <p style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);margin:0 0 var(--sb-space-4) 0;">
+    Insights boost ranking for 10 days, then expire. Promote to make permanent.
+  </p>
+
+  <!-- Submit insight form -->
+  <form id="insightForm" style="display:flex;gap:var(--sb-space-2);margin-bottom:var(--sb-space-6);">
+    <input type="text" id="insightText" placeholder="e.g., Show more AI regulation news"
+           style="flex:1;background:var(--sb-bg-surface);border:1px solid var(--sb-border);border-radius:var(--sb-radius-md);padding:var(--sb-space-2) var(--sb-space-3);color:var(--sb-text-primary);font-size:var(--sb-text-sm);font-family:var(--sb-font-ui);">
+    <button type="submit" class="sb-action-btn" style="padding:var(--sb-space-2) var(--sb-space-4);">Add</button>
+  </form>
+
+  {% if insights %}
+  {% for insight in insights %}
+  <div class="sb-source-row">
+    <span class="sb-source-row__name">{{ insight.text }}</span>
+    <span class="sb-source-row__section">
+      {% if insight.expires_at %}expires {{ insight.expires_at.strftime('%b %d') }}{% endif %}
+    </span>
+    {% if not insight.promoted_to_pref %}
+    <button class="sb-action-btn" data-promote-id="{{ insight.id }}" style="font-size:var(--sb-text-xs);">Promote</button>
+    {% else %}
+    <span class="sb-badge sb-badge--success">Permanent</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);">No active insights.</div>
+  {% endif %}
+</div>
+
+<!-- Sources tab -->
+<div class="sb-tab-panel" id="panel-sources" style="display:none;">
+  <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-4) 0;">Active Sources</h3>
+
+  {% for section, sources in sources_by_section.items() %}
+  <div style="margin-bottom:var(--sb-space-6);">
+    <h4 style="font-size:var(--sb-text-sm);font-weight:var(--sb-weight-semibold);color:var(--sb-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 var(--sb-space-2) 0;">
+      {{ section_labels.get(section, section) }}
+    </h4>
+    {% for source in sources %}
+    <div class="sb-source-row">
+      <span class="sb-source-badge sb-source-badge--{{ source.bias_label | bias_class }}" style="flex-shrink:0;">
+        {{ source.bias_label | upper | truncate(1, true, '') }}
+      </span>
+      <span class="sb-source-row__name">{{ source.name }}</span>
+      <span class="sb-trust sb-trust--{{ source.trust_score | trust_level }}">{{ source.trust_score }}</span>
+      <span class="sb-source-row__section">{{ source.source_type }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Actions tab -->
+<div class="sb-tab-panel" id="panel-actions" style="display:none;">
+  <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-4) 0;">Recent Actions</h3>
+  <p style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);">
+    Your feedback actions (follows, mutes, votes) appear here.
+    <a href="{{ url_for('views.history_page') }}" style="color:var(--sb-accent);">View brief history &rarr;</a>
+  </p>
+</div>
+{% endblock %}

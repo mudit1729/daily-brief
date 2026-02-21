@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Signal Brief — Stories{% endblock %}
+
+{% block content %}
+<div class="sb-brief-header">
+  <h1 class="sb-brief-header__date">Tracked Stories</h1>
+  <div class="sb-brief-header__meta">
+    <span>{{ topics_data | length }} topics tracked</span>
+  </div>
+</div>
+
+{% if topics_data %}
+  {% for td in topics_data %}
+  <section class="sb-section">
+    <h2 class="sb-section__title">
+      {{ td.topic.name }}
+      {% if td.topic.description %}
+      <span class="sb-section__badge" title="{{ td.topic.description }}">{{ td.stories | length }} stories</span>
+      {% endif %}
+    </h2>
+
+    {% if td.stories %}
+      {% for sd in td.stories %}
+      <div style="margin-bottom:var(--sb-space-6);">
+        <div style="display:flex;align-items:center;gap:var(--sb-space-2);margin-bottom:var(--sb-space-3);">
+          <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0;">
+            {{ sd.story.title }}
+          </h3>
+          <span class="sb-badge sb-badge--{{ 'success' if sd.story.status == 'developing' else 'warning' }}">
+            {{ sd.story.status }}
+          </span>
+        </div>
+
+        {% if sd.events %}
+        <div class="sb-timeline">
+          {% for event in sd.events %}
+          <div class="sb-timeline__item">
+            <div class="sb-timeline__dot"></div>
+            <div class="sb-timeline__content">
+              <div class="sb-timeline__date">{{ event.event_date.strftime('%b %d, %Y') if event.event_date else 'Unknown date' }}</div>
+              <div style="font-size:var(--sb-text-sm);color:var(--sb-text-secondary);margin-top:var(--sb-space-1);">
+                {{ event.description }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);padding-left:var(--sb-space-6);">
+          No events tracked yet.
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <div style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);">
+      No stories developing for this topic yet.
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+{% else %}
+  {% set empty_title = 'No tracked stories' %}
+  {% set empty_text = 'Story tracking is populated as the pipeline runs. Enable FF_STORY_TRACKING for full functionality.' %}
+  {% include "partials/empty_state.html" %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Signal Brief{% endblock %}</title>
+  <meta name="description" content="Daily intelligence brief — high signal, low noise.">
+
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+
+  <!-- Bootstrap 5.3 (CSS only) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet" crossorigin="anonymous">
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="sb-nav" role="navigation" aria-label="Main navigation">
+    <div class="sb-nav__inner">
+      <a class="sb-nav__brand" href="{{ url_for('views.index') }}">Signal Brief</a>
+      <ul class="sb-nav__tabs" role="tablist">
+        <li><a href="{{ url_for('views.index') }}" {% if active_tab == 'today' %}class="active" aria-current="page"{% endif %}>Today</a></li>
+        <li><a href="{{ url_for('views.stories_page') }}" {% if active_tab == 'stories' %}class="active" aria-current="page"{% endif %}>Stories</a></li>
+        <li><a href="{{ url_for('views.market_page') }}" {% if active_tab == 'market' %}class="active" aria-current="page"{% endif %}>Market</a></li>
+        <li><a href="{{ url_for('views.thesis_page') }}" {% if active_tab == 'thesis' %}class="active" aria-current="page"{% endif %}>Thesis</a></li>
+        <li><a href="{{ url_for('views.settings_page') }}" {% if active_tab == 'settings' %}class="active" aria-current="page"{% endif %}>Settings</a></li>
+      </ul>
+      <div class="sb-nav__right">
+        <button class="sb-theme-toggle" id="themeToggle" aria-label="Toggle dark/light theme" title="Toggle theme">
+          <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="sb-main" role="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="sb-footer" role="contentinfo">
+    {% block footer %}
+    {% if brief and brief.generated_at %}
+    <span>Generated {{ brief.generated_at.strftime('%b %d, %H:%M UTC') }}</span>
+    <span>&middot;</span>
+    <span>${{ "%.4f"|format(brief.total_cost_usd or 0) }}</span>
+    <span>&middot;</span>
+    <span>{{ brief.total_tokens or 0 }} tokens</span>
+    {% if brief.idiot_index is not none %}
+    <span>&middot;</span>
+    <span title="Idiot Index: cost efficiency metric">II: {{ "%.4f"|format(brief.idiot_index) }}</span>
+    {% endif %}
+    {% else %}
+    <span>Signal Brief Engine</span>
+    {% endif %}
+    {% endblock %}
+  </footer>
+
+  <!-- App JS -->
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

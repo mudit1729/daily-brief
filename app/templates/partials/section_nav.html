@@ -1,0 +1,14 @@
+<nav class="sb-section-nav" aria-label="Brief sections">
+  {% for key in news_sections %}
+    {% set sec = sections.get(key) %}
+    {% if sec and sec.content.get('clusters') %}
+    <a class="sb-section-nav__item" href="#section-{{ key }}" data-section="{{ key }}">
+      {{ section_labels.get(key, key) }}
+      <span class="sb-badge" style="margin-left:4px;">{{ sec.content.clusters | length }}</span>
+    </a>
+    {% endif %}
+  {% endfor %}
+  {% if sections.get('investment_thesis') %}
+  <a class="sb-section-nav__item" href="#section-thesis" data-section="thesis">Thesis</a>
+  {% endif %}
+</nav>

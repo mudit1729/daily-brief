@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Signal Brief — History{% endblock %}
+
+{% block content %}
+<div class="sb-brief-header">
+  <h1 class="sb-brief-header__date">Brief Archive</h1>
+  <div class="sb-brief-header__meta">
+    <span>{{ pagination.total if pagination else 0 }} briefs</span>
+  </div>
+</div>
+
+{% if briefs %}
+<table class="sb-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Status</th>
+      <th>Sections</th>
+      <th>Tokens</th>
+      <th>Cost</th>
+      <th>Idiot Index</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for b in briefs %}
+    <tr>
+      <td>
+        <a href="{{ url_for('views.brief_by_date', brief_date=b.date.strftime('%Y-%m-%d')) }}">
+          {{ b.date.strftime('%b %d, %Y') }}
+        </a>
+      </td>
+      <td>
+        <span class="sb-badge sb-badge--{{ 'success' if b.status == 'complete' else 'warning' }}">
+          {{ b.status }}
+        </span>
+      </td>
+      <td>{{ b.sections | length }}</td>
+      <td>{{ b.total_tokens or 0 }}</td>
+      <td>${{ "%.4f" | format(b.total_cost_usd or 0) }}</td>
+      <td>{{ "%.4f" | format(b.idiot_index or 0) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if pagination and pagination.pages > 1 %}
+<div style="display:flex;justify-content:center;gap:var(--sb-space-2);margin-top:var(--sb-space-6);">
+  {% if pagination.has_prev %}
+  <a href="?page={{ pagination.prev_num }}" class="sb-action-btn">&larr; Prev</a>
+  {% endif %}
+  <span style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);padding:var(--sb-space-2);">
+    Page {{ pagination.page }} of {{ pagination.pages }}
+  </span>
+  {% if pagination.has_next %}
+  <a href="?page={{ pagination.next_num }}" class="sb-action-btn">Next &rarr;</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+  {% set empty_title = 'No briefs yet' %}
+  {% set empty_text = 'Briefs will appear here after the pipeline runs.' %}
+  {% include "partials/empty_state.html" %}
+{% endif %}
+{% endblock %}

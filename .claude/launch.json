@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "flask-dev",
+      "runtimeExecutable": "/Users/muditj/Desktop/Projects/daily-brief/venv/bin/python",
+      "runtimeArgs": ["-m", "flask", "--app", "wsgi", "run", "--debug", "--port", "5005"],
+      "port": 5005
+    }
+  ]
+}
