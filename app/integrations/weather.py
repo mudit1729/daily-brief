@@ -38,7 +38,7 @@ class WeatherService:
                     'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
                     'timezone': 'auto',
                     'forecast_days': 3,
-                    'temperature_unit': 'fahrenheit',
+                    'temperature_unit': 'celsius',
                 }
                 resp = requests.get(OPEN_METEO_BASE, params=params, timeout=10)
                 resp.raise_for_status()
@@ -78,6 +78,9 @@ class WeatherService:
                 forecasts.append({
                     'date': dates[i] if i < len(dates) else '',
                     'condition': condition,
+                    'high_c': high,
+                    'low_c': low,
+                    # Keep legacy keys for backwards compat
                     'high_f': high,
                     'low_f': low,
                 })

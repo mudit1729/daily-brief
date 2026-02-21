@@ -46,32 +46,36 @@
   <div class="sb-weather__grid">
     {% for loc in weather.locations[:3] %}
     <div class="sb-weather__location">
-      <div class="sb-weather__city">
-        {{ loc.get('location', loc.get('location_name', 'Unknown')) }}
-      </div>
       {% if loc.get('forecasts') and loc.forecasts | length > 0 %}
         {% set today = loc.forecasts[0] %}
         {{ weather_icon(today.condition) }}
-        <div class="sb-weather__temp">
-          <span class="sb-weather__temp-hi">{{ today.high_f | round(0) | int }}&#176;</span>
-          <span class="sb-weather__temp-lo">/ {{ today.low_f | round(0) | int }}&#176;</span>
-        </div>
-        <div class="sb-weather__condition">{{ today.condition }}</div>
-
-        {# 3-day mini forecast #}
-        {% if loc.forecasts | length > 1 %}
-        <div class="sb-weather__forecast">
-          {% for day in loc.forecasts[1:] %}
-          <div class="sb-weather__forecast-day">
-            <div class="sb-weather__forecast-day-icon">{{ mini_icon(day.condition) }}</div>
-            <div class="sb-weather__forecast-day-temp">{{ day.high_f | round(0) | int }}&#176;</div>
+        <div class="sb-weather__info">
+          <div class="sb-weather__city">
+            {{ loc.get('location', loc.get('location_name', 'Unknown')) }}
           </div>
-          {% endfor %}
+          <div class="sb-weather__temp">
+            <span class="sb-weather__temp-hi">{{ today.high_c | round(0) | int }}&#176;</span>
+            <span class="sb-weather__temp-lo">/ {{ today.low_c | round(0) | int }}&#176;</span>
+          </div>
+          <div class="sb-weather__condition">{{ today.condition }}</div>
+          {# Mini forecast #}
+          {% if loc.forecasts | length > 1 %}
+          <div class="sb-weather__forecast">
+            {% for day in loc.forecasts[1:] %}
+            <div class="sb-weather__forecast-day">
+              <span class="sb-weather__forecast-day-icon">{{ mini_icon(day.condition) }}</span>
+              <span class="sb-weather__forecast-day-temp">{{ day.high_c | round(0) | int }}&#176;</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
       {% else %}
         <div class="sb-weather__icon">&#9728;&#65039;</div>
-        <div class="sb-weather__condition">No data</div>
+        <div class="sb-weather__info">
+          <div class="sb-weather__city">{{ loc.get('location', loc.get('location_name', 'Unknown')) }}</div>
+          <div class="sb-weather__condition">No data</div>
+        </div>
       {% endif %}
     </div>
     {% endfor %}

@@ -17,11 +17,14 @@ logger = logging.getLogger(__name__)
 DEDUP_HAMMING_THRESHOLD = 3
 
 SECTION_MAPPING = {
-    'general_news': ['general_news'],
-    'ai_news': ['ai_news'],
-    'market': ['market'],
-    'science': ['science'],
-    'health': ['health'],
+    'ai_news': {'source_sections': ['ai_news']},
+    'market': {'source_sections': ['market']},
+    'science': {'source_sections': ['science']},
+    'health': {'source_sections': ['health']},
+    # general_news split by region for proper segregation
+    'general_news_us': {'source_sections': ['general_news'], 'region': 'us'},
+    'general_news_india': {'source_sections': ['general_news'], 'region': 'india'},
+    'general_news_geopolitics': {'source_sections': ['general_news'], 'region': 'global'},
 }
 
 
@@ -64,15 +67,20 @@ def run(target_date):
     # Idempotent rerun safety: replace all clusters for this date.
     _delete_clusters_for_date(target_date)
 
-    # Cluster per section
+    # Cluster per section (with region filtering for general_news)
     total_clusters = 0
-    for section_key, section_values in SECTION_MAPPING.items():
-        source_ids = [
-            s.id for s in Source.query.filter(
-                Source.section.in_(section_values),
-                Source.is_active == True,
-            ).all()
-        ]
+    for section_key, section_config in SECTION_MAPPING.items():
+        source_sections = section_config['source_sections']
+        region = section_config.get('region')
+
+        query = Source.query.filter(
+            Source.section.in_(source_sections),
+            Source.is_active == True,
+        )
+        if region:
+            query = query.filter(Source.region == region)
+
+        source_ids = [s.id for s in query.all()]
         if not source_ids:
             continue
 
