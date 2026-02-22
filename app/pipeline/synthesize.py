@@ -101,6 +101,17 @@ def run(target_date, brief_id):
                 )
                 db.session.flush()
 
+            # Clean up orphaned stories (developing, 0 events remaining)
+            orphaned = Story.query.filter(
+                Story.status == 'developing',
+                ~Story.id.in_(db.session.query(Event.story_id).distinct()),
+            ).all()
+            if orphaned:
+                for s in orphaned:
+                    db.session.delete(s)
+                logger.info(f"[Synthesize] Cleaned up {len(orphaned)} orphaned stories (0 events)")
+                db.session.flush()
+
             today_clusters = Cluster.query.filter_by(date=target_date).all()
             stories_linked = 0
             for cluster in today_clusters:
