@@ -88,8 +88,19 @@ def run(target_date, brief_id):
     try:
         from app.services.story_tracker import StoryTracker
         from app.models.cluster import Cluster, ClusterMembership
+        from app.models.topic import Story, Event
         tracker = StoryTracker()
         if tracker.is_enabled():
+            # Idempotent: clean up today's story events before re-linking
+            today_cluster_ids = [
+                c.id for c in Cluster.query.filter_by(date=target_date).all()
+            ]
+            if today_cluster_ids:
+                Event.query.filter(Event.cluster_id.in_(today_cluster_ids)).delete(
+                    synchronize_session=False
+                )
+                db.session.flush()
+
             today_clusters = Cluster.query.filter_by(date=target_date).all()
             stories_linked = 0
             for cluster in today_clusters:
