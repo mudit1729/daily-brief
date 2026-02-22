@@ -12,7 +12,7 @@
   <img class="sb-card__image"
        src="{{ lead_image }}"
        alt="" loading="lazy"
-       onerror="this.closest('.sb-card').style.gridTemplateColumns='1fr';this.remove()">
+       onerror="var p=document.createElement('div');p.className='sb-card__image sb-card__image--placeholder';p.innerHTML='<svg width=&quot;32&quot; height=&quot;32&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.5&quot;><rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;2&quot;/><circle cx=&quot;8.5&quot; cy=&quot;8.5&quot; r=&quot;1.5&quot;/><path d=&quot;M21 15l-5-5L5 21&quot;/></svg>';this.parentNode.replaceChild(p,this)">
   {% else %}
   <div class="sb-card__image sb-card__image--placeholder">
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -34,6 +34,10 @@
           {% if cluster.rank_score %}
           <span title="Rank score">{{ "%.1f" | format(cluster.rank_score) }}</span>
           {% endif %}
+          <button class="sb-deep-dive-btn" data-deep-dive="{{ cluster.cluster_id }}" title="Deep dive with AI">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Dive
+          </button>
         </div>
       </div>
     </div>
@@ -42,6 +46,17 @@
     <div class="sb-card__body">
       <p class="sb-card__summary">{{ cluster.summary or 'No summary available.' }}</p>
     </div>
+
+    <!-- Grok take (xAI secondary analysis) -->
+    {% if cluster.grok_take %}
+    <div class="sb-grok-take">
+      <div class="sb-grok-take__header">
+        <span class="sb-grok-take__label">Grok</span>
+        <span class="sb-grok-take__badge">real-time</span>
+      </div>
+      <span class="sb-grok-take__text">{{ cluster.grok_take }}</span>
+    </div>
+    {% endif %}
 
     <!-- Sources row — deduplicated -->
     {% if cluster.articles %}

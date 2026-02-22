@@ -244,5 +244,9 @@
 
   {"name": "Foreign Policy", "url": "https://foreignpolicy.com/feed/", "section": "general_news", "region": "global", "bias_label": "center", "trust_score": 82, "source_type": "analysis"},
   {"name": "The Diplomat", "url": "https://thediplomat.com/feed/", "section": "general_news", "region": "global", "bias_label": "center", "trust_score": 78, "source_type": "analysis"},
-  {"name": "Defense One", "url": "https://www.defenseone.com/rss/", "section": "general_news", "region": "us", "bias_label": "center", "trust_score": 76, "source_type": "reporting"}
+  {"name": "Defense One", "url": "https://www.defenseone.com/rss/", "section": "general_news", "region": "us", "bias_label": "center", "trust_score": 76, "source_type": "reporting"},
+
+  {"name": "Good News Network", "url": "https://www.goodnewsnetwork.org/feed/", "section": "feel_good", "region": "global", "bias_label": "center", "trust_score": 65, "source_type": "reporting"},
+  {"name": "Positive News", "url": "https://www.positive.news/feed/", "section": "feel_good", "region": "global", "bias_label": "center", "trust_score": 65, "source_type": "reporting"},
+  {"name": "Reasons to be Cheerful", "url": "https://reasonstobecheerful.world/feed/", "section": "feel_good", "region": "global", "bias_label": "center", "trust_score": 65, "source_type": "reporting"}
 ]

@@ -4,7 +4,7 @@ Queries the database directly (same models as API routes).
 """
 import logging
 from datetime import date, timedelta, datetime, timezone
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, jsonify, current_app
 
 from app.extensions import db, scheduler
 from app.models.brief import DailyBrief, BriefSection
@@ -15,6 +15,8 @@ from app.models.source import Source
 from app.models.cost import DailyCostSummary
 from app.models.user import DailyInsight, FeedbackAction
 from app.models.timeline import Timeline, TimelineEvent
+from app.models.cluster import Cluster, ClusterMembership
+from app.models.article import Article
 from app.services.cost_service import CostService
 from app.services.timeline_service import TimelineService
 from app.services.scheduler_config_service import SchedulerConfigService
@@ -372,12 +374,13 @@ def inject_common():
             'market': 'Market',
             'science': 'Science',
             'health': 'Health',
+            'feel_good': 'Feel Good',
             'weather': 'Weather',
             'investment_thesis': 'Thesis',
         },
         'news_sections': [
             'general_news_us', 'ai_news', 'general_news_india',
-            'general_news_geopolitics', 'science', 'health',
+            'general_news_geopolitics', 'science', 'health', 'feel_good',
         ],
     }
 
@@ -499,10 +502,24 @@ def brief_by_date(brief_date):
 
 @views_bp.route('/market')
 def market_page():
-    """Full market page with indices and clusters."""
+    """Full market page with live indices and brief clusters."""
     brief = _get_brief()
     sections = _sections_dict(brief)
     market_section = sections.get('market', {})
+
+    # Fetch live market data (with multi-period performance)
+    try:
+        from app.integrations.market_data import MarketDataService
+        live_snapshots = MarketDataService().fetch_snapshots()
+    except Exception as e:
+        logger.warning(f"Failed to fetch live market data: {e}")
+        live_snapshots = None
+
+    # Use live data if available, fall back to brief data
+    if live_snapshots:
+        content = dict(market_section.get('content', {}))
+        content['market_data'] = live_snapshots
+        market_section = dict(market_section, content=content)
 
     return render_template(
         'pages/market.html',
@@ -548,10 +565,16 @@ def stories_page():
             ).limit(20).all()
 
             source_urls = set()
+            source_labels = set()
             for event in events:
-                for url in (event.source_urls_json or []):
-                    if url:
-                        source_urls.add(url)
+                for src in (event.source_urls_json or []):
+                    if not src:
+                        continue
+                    s = str(src).strip()
+                    if s.startswith('http://') or s.startswith('https://'):
+                        source_urls.add(s)
+                    else:
+                        source_labels.add(s)
 
             last_activity = _to_utc(story.last_updated or story.first_seen)
             quiet_days = 0
@@ -574,8 +597,9 @@ def stories_page():
                 'story': story,
                 'events': events,
                 'event_count': len(events),
-                'source_count': len(source_urls),
+                'source_count': len(source_urls) + len(source_labels),
                 'source_urls': sorted(source_urls)[:3],
+                'source_labels': sorted(source_labels)[:5],
                 'last_activity': last_activity,
                 'quiet_days': quiet_days,
                 'age_days': age_days,
@@ -776,3 +800,75 @@ def history_page():
         briefs=pagination.items,
         pagination=pagination,
     )
+
+
+@views_bp.route('/api/deep-dive/<int:cluster_id>', methods=['POST'])
+def deep_dive(cluster_id):
+    """Generate a deep-dive analysis of a cluster using LLM."""
+    from app.integrations.llm_gateway import LLMGateway
+
+    cluster = Cluster.query.get_or_404(cluster_id)
+
+    # Get all articles in this cluster
+    memberships = ClusterMembership.query.filter_by(cluster_id=cluster_id).all()
+    article_ids = [m.article_id for m in memberships]
+    articles = Article.query.filter(Article.id.in_(article_ids)).all() if article_ids else []
+
+    # Build context from articles
+    article_texts = []
+    for a in articles[:5]:
+        text = a.extracted_text or ''
+        if len(text) > 1500:
+            text = text[:1500] + '...'
+        source_name = a.source.name if a.source else 'Unknown'
+        article_texts.append(
+            f"Source: {source_name}\nTitle: {a.title}\nURL: {a.url}\n\n{text}"
+        )
+
+    combined = '\n\n---\n\n'.join(article_texts)
+    label = cluster.headline or cluster.label or 'this story'
+
+    config = current_app.config
+    llm = LLMGateway(config)
+
+    # Try Grok first for real-time context, fall back to OpenAI
+    provider = 'xai' if llm.xai_available else 'openai'
+
+    messages = [
+        {
+            'role': 'system',
+            'content': (
+                'You are an expert news analyst providing a comprehensive deep-dive '
+                'on a news story. Given multiple source articles, provide:\n\n'
+                '1. **Summary**: A clear 3-4 sentence overview of what is happening\n'
+                '2. **Key Facts**: Bullet points of the most important facts\n'
+                '3. **Context**: Historical context and why this matters\n'
+                '4. **Different Perspectives**: How different sources frame this story\n'
+                '5. **What to Watch**: What developments to expect next\n'
+                '6. **Sources**: Key sources and their reliability\n\n'
+                'Be thorough but concise. Use markdown formatting.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': f'Story: {label}\n\nArticles:\n{combined}\n\nProvide a deep-dive analysis.',
+        },
+    ]
+
+    try:
+        result = llm.call(
+            messages=messages,
+            purpose=f'deep_dive.{cluster_id}',
+            section='grok_analysis' if provider == 'xai' else 'general_news_us',
+            max_tokens=1000,
+            provider=provider,
+        )
+        return jsonify({
+            'content': result['content'],
+            'provider': provider,
+            'model': result.get('model', ''),
+            'tokens': result.get('total_tokens', 0),
+        })
+    except Exception as e:
+        logger.error(f"Deep dive failed for cluster {cluster_id}: {e}")
+        return jsonify({'error': str(e)}), 500

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Signal Brief — Market{% endblock %}
+{% block title %}Pulse — Market{% endblock %}
 
 {% block content %}
 <div class="sb-brief-header">
@@ -12,25 +12,74 @@
 {% if market and market.get('content') %}
   {% set data = market.content %}
 
-  <!-- Market indices grid -->
+  <!-- Market performance table -->
   {% if data.get('market_data') %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--sb-space-3);margin-bottom:var(--sb-space-8);">
-    {% for item in data.market_data %}
-    <div class="sb-weather" style="text-align:center;">
-      <div style="font-size:var(--sb-text-xs);font-weight:var(--sb-weight-medium);color:var(--sb-text-muted);margin-bottom:var(--sb-space-1);">
-        {{ item.get('name', item.get('symbol', '')) }}
-      </div>
-      <div style="font-size:var(--sb-text-xl);font-weight:var(--sb-weight-bold);letter-spacing:-0.02em;">
-        {% if item.price %}{{ "{:,.2f}".format(item.price) }}{% else %}--{% endif %}
-      </div>
-      {% if item.change_pct is not none %}
-      <div class="sb-market-item__change sb-market-item__change--{{ item.change_pct | change_class }}"
-           style="font-size:var(--sb-text-sm);font-weight:var(--sb-weight-semibold);">
-        {{ item.change_pct | change_sign }}
-      </div>
-      {% endif %}
-    </div>
-    {% endfor %}
+  <div class="sb-market-table-wrap">
+    <table class="sb-market-table">
+      <thead>
+        <tr>
+          <th class="sb-market-table__name-col">Asset</th>
+          <th class="sb-market-table__price-col">Price</th>
+          <th class="sb-market-table__change-col">1 Day</th>
+          <th class="sb-market-table__change-col">1 Month</th>
+          <th class="sb-market-table__change-col">3 Months</th>
+          <th class="sb-market-table__change-col">1 Year</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data.market_data %}
+        <tr class="sb-market-table__row">
+          <td class="sb-market-table__name">
+            <span class="sb-market-table__symbol-icon">{{ item.get('name', '')[0] if item.get('name') else '?' }}</span>
+            {{ item.get('name', item.get('symbol', '')) }}
+          </td>
+          <td class="sb-market-table__price">
+            {% if item.price %}{{ "{:,.2f}".format(item.price) }}{% else %}--{% endif %}
+          </td>
+          <td class="sb-market-table__change">
+            {% set d = item.change_pct or 0 %}
+            <div class="sb-perf-cell sb-perf-cell--{{ 'positive' if d > 0 else ('negative' if d < 0 else 'neutral') }}">
+              <span class="sb-perf-cell__value">{{ d | change_sign }}</span>
+              <div class="sb-perf-bar-track">
+                <div class="sb-perf-bar sb-perf-bar--{{ 'positive' if d > 0 else ('negative' if d < 0 else 'neutral') }}"
+                     style="width:{{ [([d|abs, 0.1]|max), 20]|min / 20 * 100 }}%"></div>
+              </div>
+            </div>
+          </td>
+          <td class="sb-market-table__change">
+            {% set m = item.change_1m_pct if item.change_1m_pct is defined else 0 %}
+            <div class="sb-perf-cell sb-perf-cell--{{ 'positive' if m > 0 else ('negative' if m < 0 else 'neutral') }}">
+              <span class="sb-perf-cell__value">{{ m | change_sign }}</span>
+              <div class="sb-perf-bar-track">
+                <div class="sb-perf-bar sb-perf-bar--{{ 'positive' if m > 0 else ('negative' if m < 0 else 'neutral') }}"
+                     style="width:{{ [([m|abs, 0.1]|max), 30]|min / 30 * 100 }}%"></div>
+              </div>
+            </div>
+          </td>
+          <td class="sb-market-table__change">
+            {% set q = item.change_3m_pct if item.change_3m_pct is defined else 0 %}
+            <div class="sb-perf-cell sb-perf-cell--{{ 'positive' if q > 0 else ('negative' if q < 0 else 'neutral') }}">
+              <span class="sb-perf-cell__value">{{ q | change_sign }}</span>
+              <div class="sb-perf-bar-track">
+                <div class="sb-perf-bar sb-perf-bar--{{ 'positive' if q > 0 else ('negative' if q < 0 else 'neutral') }}"
+                     style="width:{{ [([q|abs, 0.1]|max), 50]|min / 50 * 100 }}%"></div>
+              </div>
+            </div>
+          </td>
+          <td class="sb-market-table__change">
+            {% set y = item.change_1y_pct if item.change_1y_pct is defined else 0 %}
+            <div class="sb-perf-cell sb-perf-cell--{{ 'positive' if y > 0 else ('negative' if y < 0 else 'neutral') }}">
+              <span class="sb-perf-cell__value">{{ y | change_sign }}</span>
+              <div class="sb-perf-bar-track">
+                <div class="sb-perf-bar sb-perf-bar--{{ 'positive' if y > 0 else ('negative' if y < 0 else 'neutral') }}"
+                     style="width:{{ [([y|abs, 0.1]|max), 80]|min / 80 * 100 }}%"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   {% endif %}
 

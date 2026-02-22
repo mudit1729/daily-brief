@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Signal Brief — Investment Thesis{% endblock %}
+{% block title %}Pulse — Investment Thesis{% endblock %}
 
 {% block content %}
 <div class="sb-brief-header">
@@ -51,6 +51,105 @@
       A thesis is generated when at least 2 of 3 US indices are up &gt;0.3% and gold is up &lt;2%.
     </p>
   </div>
+{% endif %}
+
+<!-- Stock Fundamentals (Grok-powered) -->
+{% set fundamentals = thesis_section.content.get('stock_fundamentals', []) if thesis_section and thesis_section.get('content') else [] %}
+{% if fundamentals %}
+<section class="sb-section" style="margin-top:var(--sb-space-6);">
+  <h2 class="sb-section__title">
+    Stock Fundamentals
+    <span class="sb-section__badge">{{ fundamentals | length }} tickers</span>
+    <span class="sb-grok-take__badge" style="font-size:10px;color:var(--sb-text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-left:var(--sb-space-2);">via Grok</span>
+  </h2>
+
+  <div class="sb-fundamentals-grid">
+    {% for stock in fundamentals %}
+    <div class="sb-fundamental-card">
+      <div class="sb-fundamental-card__header" onclick="this.parentElement.classList.toggle('sb-fundamental-card--expanded')">
+        <div class="sb-fundamental-card__ticker">{{ stock.ticker }}</div>
+        <div class="sb-fundamental-card__company">{{ stock.company }}</div>
+        <div class="sb-fundamental-card__metrics">
+          {% if stock.current_price %}
+          <span class="sb-fundamental-metric">${{ "%.2f" | format(stock.current_price) }}</span>
+          {% endif %}
+          {% if stock.pe_ratio %}
+          <span class="sb-fundamental-metric" title="P/E Ratio">PE {{ "%.1f" | format(stock.pe_ratio) }}</span>
+          {% endif %}
+          {% if stock.eps_ttm %}
+          <span class="sb-fundamental-metric" title="EPS (TTM)">EPS ${{ "%.2f" | format(stock.eps_ttm) }}</span>
+          {% endif %}
+          {% if stock.roce_pct %}
+          <span class="sb-fundamental-metric" title="Return on Capital Employed">ROCE {{ "%.1f" | format(stock.roce_pct) }}%</span>
+          {% endif %}
+        </div>
+        <svg class="sb-hf-card__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <div class="sb-fundamental-card__body">
+        {% if stock.quarterly_summary %}
+        <div class="sb-fundamental-row">
+          <span class="sb-fundamental-row__label">Quarterly</span>
+          <span>{{ stock.quarterly_summary }}</span>
+        </div>
+        {% endif %}
+        {% if stock.revenue_trend %}
+        <div class="sb-fundamental-row">
+          <span class="sb-fundamental-row__label">Revenue</span>
+          <span>{{ stock.revenue_trend }}</span>
+        </div>
+        {% endif %}
+        {% if stock.focus_areas %}
+        <div class="sb-fundamental-row">
+          <span class="sb-fundamental-row__label">Focus</span>
+          <span>{{ stock.focus_areas | join(', ') }}</span>
+        </div>
+        {% endif %}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sb-space-3);margin-top:var(--sb-space-3);">
+          {% if stock.bull_case %}
+          <div class="sb-fundamental-case sb-fundamental-case--bull">
+            <div class="sb-fundamental-case__title">Bull Case</div>
+            {% if stock.bull_case is string %}
+              <p>{{ stock.bull_case }}</p>
+            {% else %}
+              <ul>
+              {% for reason in stock.bull_case %}
+                <li>{{ reason }}</li>
+              {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if stock.bear_case %}
+          <div class="sb-fundamental-case sb-fundamental-case--bear">
+            <div class="sb-fundamental-case__title">Bear Case</div>
+            {% if stock.bear_case is string %}
+              <p>{{ stock.bear_case }}</p>
+            {% else %}
+              <ul>
+              {% for reason in stock.bear_case %}
+                <li>{{ reason }}</li>
+              {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if stock.sources %}
+        <div style="margin-top:var(--sb-space-2);font-size:var(--sb-text-xs);color:var(--sb-text-muted);">
+          Sources: {{ stock.sources | join(', ') }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
 
 <!-- AI Analyst Signals (from hedge fund analysis) -->

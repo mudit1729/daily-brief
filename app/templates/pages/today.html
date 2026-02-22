@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Signal Brief — {{ brief.date.strftime('%B %d, %Y') if brief else 'Today' }}{% endblock %}
+{% block title %}Pulse — {{ brief.date.strftime('%B %d, %Y') if brief else 'Today' }}{% endblock %}
 
 {% block content %}
 {% if not brief %}
@@ -8,52 +8,54 @@
 
   <!-- Brief header -->
   <div class="sb-brief-header">
-    <h1 class="sb-brief-header__date">{{ brief.date.strftime('%A, %B %d') }}</h1>
+    <div style="display:flex;align-items:center;gap:var(--sb-space-3);">
+      <h1 class="sb-brief-header__date">{{ brief.date.strftime('%A, %B %d') }}</h1>
+      <div class="sb-time-travel">
+        <button class="sb-time-travel__btn" data-time-travel-toggle title="Go back in time">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>&raquo;</span>
+        </button>
+      </div>
+    </div>
     <div class="sb-brief-header__meta">
       <span>{{ brief.date.strftime('%Y') }}</span>
-      <span>{{ brief.sections | length }} sections</span>
-      {% if brief.total_tokens %}
-      <span>{{ brief.total_tokens | int }} tokens</span>
+      {% if overview %}
+      <span>{{ overview.total_clusters }} Stories</span>
+      <span>{{ overview.total_sources }} Sources</span>
+      <span>{{ overview.section_count }} Sections</span>
       {% endif %}
-      {% if brief.total_cost_usd %}
-      <span>${{ "%.4f" | format(brief.total_cost_usd) }}</span>
-      {% endif %}
+      <span class="sb-clock" data-tz="America/Los_Angeles" data-label="SD"></span>
+      <span class="sb-clock" data-tz="Asia/Kolkata" data-label="HYD"></span>
     </div>
-  </div>
-
-  <!-- Overview tile -->
-  {% if overview %}
-  <div class="sb-overview">
-    <div class="sb-overview__stats">
-      <div class="sb-overview__stat">
-        <div class="sb-overview__stat-value">{{ overview.total_clusters }}</div>
-        <div class="sb-overview__stat-label">Stories</div>
-      </div>
-      <div class="sb-overview__stat">
-        <div class="sb-overview__stat-value">{{ overview.total_sources }}</div>
-        <div class="sb-overview__stat-label">Sources</div>
-      </div>
-      <div class="sb-overview__stat">
-        <div class="sb-overview__stat-value">{{ overview.section_count }}</div>
-        <div class="sb-overview__stat-label">Sections</div>
-      </div>
-    </div>
-    <div class="sb-overview__highlights">
+    {% if overview and overview.top_stories %}
+    <div class="sb-brief-header__headlines">
       {% for story in overview.top_stories %}
-      <div class="sb-overview__highlight">
-        <span class="sb-overview__highlight-dot" style="background:var(--sb-accent);"></span>
-        <span class="sb-truncate-1" style="flex:1;">{{ story.label }}</span>
-      </div>
+      <span class="sb-brief-header__headline">
+        <span class="sb-brief-header__headline-dot"></span>
+        {{ story.label }}
+      </span>
       {% endfor %}
       {% if overview.market_highlight %}
-      <div class="sb-overview__highlight">
-        <span class="sb-overview__highlight-dot" style="background:var(--sb-{{ overview.market_highlight.change_pct | change_class }});"></span>
-        <span>{{ overview.market_highlight.name }} {{ overview.market_highlight.change_pct | change_sign }}</span>
-      </div>
+      <span class="sb-brief-header__headline">
+        <span class="sb-brief-header__headline-dot sb-brief-header__headline-dot--{{ overview.market_highlight.change_pct | change_class }}"></span>
+        {{ overview.market_highlight.name }} {{ overview.market_highlight.change_pct | change_sign }}
+      </span>
       {% endif %}
     </div>
+    {% endif %}
+    <!-- Time travel wheel -->
+    <div class="sb-time-travel__panel" data-time-travel-panel>
+      <div class="sb-time-travel__wheel-row">
+        <div class="sb-time-travel__wheel-wrapper">
+          <div class="sb-time-travel__center-mark"></div>
+          <div class="sb-time-travel__wheel" data-time-travel-wheel
+               data-base-date="{{ today_date.isoformat() }}"></div>
+        </div>
+        <button class="sb-time-travel__go" data-time-travel-go>Go</button>
+        <button class="sb-time-travel__close" data-time-travel-toggle>&times;</button>
+      </div>
+    </div>
   </div>
-  {% endif %}
 
   <!-- Top strip: Weather + Market -->
   <div class="sb-top-strip">

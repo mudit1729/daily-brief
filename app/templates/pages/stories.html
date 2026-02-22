@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Signal Brief — Stories{% endblock %}
+{% block title %}Pulse — Stories{% endblock %}
 
 {% block content %}
 <div class="sb-brief-header">
@@ -26,49 +26,58 @@
 
     {% if td.stories %}
       {% for sd in td.stories %}
-      <div style="margin-bottom:var(--sb-space-6);">
+      <div style="margin-bottom:var(--sb-space-4);">
         {% set status_class = 'success' if sd.story.status in ['developing', 'ongoing'] else ('danger' if sd.story.status == 'stale' else 'warning') %}
-        <div style="display:flex;align-items:center;gap:var(--sb-space-2);margin-bottom:var(--sb-space-2);flex-wrap:wrap;">
-          <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0;">
+        <div class="sb-story-toggle" data-story-toggle>
+          <svg class="sb-story-toggle__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0;flex:1;min-width:0;">
             {{ sd.story.title }}
           </h3>
           <span class="sb-badge sb-badge--{{ status_class }}">
             {{ sd.story.status }}
           </span>
           <span class="sb-badge">{{ sd.event_count }} events</span>
-          <span class="sb-badge">{{ sd.source_count }} sources</span>
-          <span class="sb-source-row__section">updated {{ sd.quiet_days }}d ago</span>
-          <span class="sb-source-row__section">age {{ sd.age_days }}d</span>
+          <span class="sb-source-row__section">{{ sd.quiet_days }}d ago</span>
         </div>
-        {% if sd.source_urls %}
-        <div style="display:flex;flex-wrap:wrap;gap:var(--sb-space-2);margin-bottom:var(--sb-space-3);">
-          {% for url in sd.source_urls %}
-          <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="sb-source-badge">
-            source {{ loop.index }}
-          </a>
-          {% endfor %}
-        </div>
-        {% endif %}
 
-        {% if sd.events %}
-        <div class="sb-timeline">
-          {% for event in sd.events %}
-          <div class="sb-timeline__item">
-            <div class="sb-timeline__dot"></div>
-            <div class="sb-timeline__content">
-              <div class="sb-timeline__date">{{ event.event_date.strftime('%b %d, %Y') if event.event_date else 'Unknown date' }}</div>
-              <div style="font-size:var(--sb-text-sm);color:var(--sb-text-secondary);margin-top:var(--sb-space-1);">
-                {{ event.description }}
+        <div class="sb-story-content" data-story-content>
+          <div style="display:flex;align-items:center;gap:var(--sb-space-3);margin-bottom:var(--sb-space-3);flex-wrap:wrap;">
+            <span class="sb-badge">{{ sd.source_count }} sources</span>
+            <span class="sb-source-row__section">age {{ sd.age_days }}d</span>
+            {% if sd.source_urls %}
+              {% for url in sd.source_urls %}
+              <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="sb-source-badge">
+                {{ url | truncate(40, true) }}
+              </a>
+              {% endfor %}
+            {% endif %}
+            {% if sd.source_labels %}
+              {% for label in sd.source_labels %}
+              <span class="sb-badge" title="{{ label }}">{{ label | truncate(30, true) }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          {% if sd.events %}
+          <div class="sb-timeline">
+            {% for event in sd.events %}
+            <div class="sb-timeline__item">
+              <div class="sb-timeline__dot"></div>
+              <div class="sb-timeline__content">
+                <div class="sb-timeline__date">{{ event.event_date.strftime('%b %d, %Y') if event.event_date else 'Unknown date' }}</div>
+                <div style="font-size:var(--sb-text-sm);color:var(--sb-text-secondary);margin-top:var(--sb-space-1);">
+                  {{ event.description }}
+                </div>
               </div>
             </div>
+            {% endfor %}
           </div>
-          {% endfor %}
+          {% else %}
+          <div style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);padding-left:var(--sb-space-6);">
+            No events tracked yet.
+          </div>
+          {% endif %}
         </div>
-        {% else %}
-        <div style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);padding-left:var(--sb-space-6);">
-          No events tracked yet.
-        </div>
-        {% endif %}
       </div>
       {% endfor %}
     {% else %}
