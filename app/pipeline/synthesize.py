@@ -84,6 +84,31 @@ def run(target_date, brief_id):
             )
             db.session.add(section)
 
+    # ── Story tracking: link today's clusters to tracked topics ──
+    try:
+        from app.services.story_tracker import StoryTracker
+        from app.models.cluster import Cluster, ClusterMembership
+        tracker = StoryTracker()
+        if tracker.is_enabled():
+            today_clusters = Cluster.query.filter_by(date=target_date).all()
+            stories_linked = 0
+            for cluster in today_clusters:
+                if not cluster.label:
+                    continue
+                # Get articles in this cluster
+                memberships = ClusterMembership.query.filter_by(cluster_id=cluster.id).all()
+                articles = [Article.query.get(m.article_id) for m in memberships]
+                articles = [a for a in articles if a]
+                story = tracker.link_cluster_to_story(cluster, articles)
+                if story:
+                    stories_linked += 1
+            db.session.commit()
+            logger.info(f"[Synthesize] Story tracking: {stories_linked} clusters linked to tracked stories")
+        else:
+            logger.info("[Synthesize] Story tracking disabled (FF_STORY_TRACKING)")
+    except Exception as e:
+        logger.error(f"[Synthesize] Story tracking failed (non-fatal): {e}")
+
     # ── Grok analysis pass (secondary LLM enrichment) ────────
     try:
         grok_result = _grok_analysis_pass(brief_id, llm)
