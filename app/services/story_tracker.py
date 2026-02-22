@@ -51,16 +51,25 @@ class StoryTracker:
         # Check active topics
         topics = TrackedTopic.query.filter_by(is_active=True).all()
         for topic in topics:
-            topic_terms = _significant_terms(topic.name.lower().split())
+            # Use _extract_words to handle hyphens (e.g. "US-China" → {"us", "china"})
+            topic_terms = _significant_terms(list(_extract_words(topic.name)))
             if not topic_terms:
                 continue
 
-            # Require ALL significant topic terms to appear as whole words
-            if all(term in cluster_words for term in topic_terms):
-                # Check existing stories for this topic
+            # Count how many topic terms appear in the cluster label
+            matching = sum(1 for term in topic_terms if term in cluster_words)
+
+            # Threshold: 1-2 terms → require all; 3+ terms → require at least 2
+            required = len(topic_terms) if len(topic_terms) <= 2 else 2
+
+            if matching >= required:
                 story = self._find_or_create_story(topic, cluster, cluster_words)
                 if story:
                     self._add_event(story, cluster, articles)
+                    logger.info(
+                        f"[StoryTracker] Linked '{cluster.label[:60]}' → "
+                        f"topic '{topic.name}' ({matching}/{len(topic_terms)} terms)"
+                    )
                     return story
 
         return None
@@ -73,7 +82,7 @@ class StoryTracker:
         ).all()
 
         for story in stories:
-            story_terms = _significant_terms(story.title.lower().split())
+            story_terms = _significant_terms(list(_extract_words(story.title)))
             # Require at least 2 significant story terms to match as whole words
             matching = sum(1 for term in story_terms if term in cluster_words)
             if story_terms and matching >= min(2, len(story_terms)):
