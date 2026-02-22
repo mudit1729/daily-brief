@@ -65,6 +65,7 @@ class StoryTracker:
             last_updated=datetime.now(timezone.utc),
         )
         db.session.add(story)
+        db.session.flush()  # Assign story.id before creating events
         return story
 
     def _add_event(self, story, cluster, articles):
