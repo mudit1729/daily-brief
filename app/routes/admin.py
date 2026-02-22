@@ -255,12 +255,13 @@ def trigger_pipeline():
 
     global _pipeline_thread
 
+    force = request.json.get('force', False) if request.is_json else False
     target = date.today()
     app = current_app._get_current_object()
 
     def run_in_thread():
         with app.app_context():
-            run_daily_pipeline(target)
+            run_daily_pipeline(target, force=force)
 
     with _pipeline_trigger_lock:
         if _pipeline_thread and _pipeline_thread.is_alive():
