@@ -14,7 +14,12 @@ STOPWORDS = {
     'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does', 'did',
     'not', 'no', 'nor', 'so', 'if', 'up', 'out', 'about', 'into',
     'than', 'then', 'that', 'this', 'these', 'those', 'what', 'which',
-    'who', 'how', 'will', 'can', 'may', 'vs',
+    'who', 'how', 'will', 'can', 'may', 'vs', 'new', 'says', 'said',
+    'get', 'got', 'set', 'now', 'just', 'also', 'here', 'more', 'most',
+    'after', 'before', 'over', 'under', 'between', 'through', 'during',
+    'while', 'where', 'when', 'why', 'all', 'any', 'each', 'every',
+    'other', 'some', 'such', 'only', 'own', 'same', 'our', 'your',
+    'his', 'her', 'their', 'my', 'us', 'we', 'you', 'he', 'she', 'they',
 }
 
 
@@ -28,6 +33,28 @@ def _significant_terms(terms):
     return [t for t in terms if t.lower() not in STOPWORDS and len(t) > 1]
 
 
+def _fuzzy_match(term, word_set):
+    """Check if a term matches any word in the set.
+    Exact match, or prefix match for words >= 4 chars (handles plurals).
+    """
+    if term in word_set:
+        return True
+    if len(term) >= 4:
+        for w in word_set:
+            if len(w) >= 4 and (w.startswith(term) or term.startswith(w)):
+                return True
+    return False
+
+
+def _build_cluster_words(cluster, articles):
+    """Build word set from cluster label AND all article titles."""
+    texts = [cluster.label or '']
+    for a in articles:
+        if a.title:
+            texts.append(a.title)
+    return _extract_words(' '.join(texts))
+
+
 class StoryTracker:
     """Track topics -> stories -> events over time. Gated by FF_STORY_TRACKING."""
 
@@ -37,7 +64,8 @@ class StoryTracker:
     def link_cluster_to_story(self, cluster, articles):
         """
         Try to match a cluster to an existing story by title/topic overlap.
-        If no match found, optionally create a new story if cluster is significant.
+        Uses cluster label + all article titles for broader matching.
+        Uses topic name + description keywords for topic identification.
         """
         if not self.is_enabled():
             return None
@@ -46,29 +74,44 @@ class StoryTracker:
         if not cluster_text:
             return None
 
-        cluster_words = _extract_words(cluster_text)
+        # Build words from cluster label + ALL article titles
+        cluster_words = _build_cluster_words(cluster, articles)
 
         # Check active topics
         topics = TrackedTopic.query.filter_by(is_active=True).all()
         for topic in topics:
-            # Use _extract_words to handle hyphens (e.g. "US-China" → {"us", "china"})
-            topic_terms = _significant_terms(list(_extract_words(topic.name)))
-            if not topic_terms:
+            # Primary terms from topic name (must match at least 1)
+            primary_terms = _significant_terms(list(_extract_words(topic.name)))
+            if not primary_terms:
                 continue
 
-            # Count how many topic terms appear in the cluster label
-            matching = sum(1 for term in topic_terms if term in cluster_words)
+            # Extended terms from description (for broader matching)
+            desc_terms = []
+            if topic.description:
+                desc_terms = _significant_terms(list(_extract_words(topic.description)))
 
-            # Threshold: 1-2 terms → require all; 3+ terms → require at least 2
-            required = len(topic_terms) if len(topic_terms) <= 2 else 2
+            # Count primary matches (from topic name)
+            primary_matches = sum(1 for t in primary_terms if _fuzzy_match(t, cluster_words))
 
-            if matching >= required:
+            # Count extended matches (from description, excluding already-counted primary terms)
+            primary_set = set(primary_terms)
+            extra_desc_terms = [t for t in desc_terms if t not in primary_set]
+            extended_matches = sum(1 for t in extra_desc_terms if _fuzzy_match(t, cluster_words))
+
+            total_matches = primary_matches + extended_matches
+
+            # Matching rules:
+            # - Must have at least 1 primary term match (from topic name)
+            # - Must have at least 2 total matches (primary + extended)
+            if primary_matches >= 1 and total_matches >= 2:
                 story = self._find_or_create_story(topic, cluster, cluster_words)
                 if story:
                     self._add_event(story, cluster, articles)
                     logger.info(
                         f"[StoryTracker] Linked '{cluster.label[:60]}' → "
-                        f"topic '{topic.name}' ({matching}/{len(topic_terms)} terms)"
+                        f"topic '{topic.name}' "
+                        f"(primary={primary_matches}/{len(primary_terms)}, "
+                        f"extended={extended_matches}, total={total_matches})"
                     )
                     return story
 
@@ -83,8 +126,8 @@ class StoryTracker:
 
         for story in stories:
             story_terms = _significant_terms(list(_extract_words(story.title)))
-            # Require at least 2 significant story terms to match as whole words
-            matching = sum(1 for term in story_terms if term in cluster_words)
+            # Require at least 2 significant story terms to fuzzy-match
+            matching = sum(1 for term in story_terms if _fuzzy_match(term, cluster_words))
             if story_terms and matching >= min(2, len(story_terms)):
                 story.last_updated = datetime.now(timezone.utc)
                 # Append cluster ID to tracking
