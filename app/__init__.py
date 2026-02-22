@@ -35,9 +35,14 @@ def create_app(config_class=None):
     # Scheduler
     if app.config.get('SCHEDULER_ENABLED') and not app.config.get('TESTING'):
         scheduler.init_app(app)
-        with app.app_context():
-            from app.jobs.scheduled import register_jobs
-            register_jobs(scheduler, app)
-        scheduler.start()
+        try:
+            with app.app_context():
+                from app.jobs.scheduled import register_jobs
+                register_jobs(scheduler, app)
+            scheduler.start()
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                "Scheduler startup deferred (DB may not be ready): %s", e
+            )
 
     return app
