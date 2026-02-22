@@ -74,6 +74,7 @@ def run_daily_pipeline(target_date=None, force=False):
     try:
         logger.info("--- Step 1: Acquire ---")
         results['acquire'] = acquire.run(target_date)
+        logger.info(f"--- Step 1 Result: {results['acquire']} ---")
     except Exception as e:
         logger.error(f"Step 1 (Acquire) failed: {e}", exc_info=True)
         db.session.rollback()
@@ -83,6 +84,7 @@ def run_daily_pipeline(target_date=None, force=False):
     try:
         logger.info("--- Step 2: Normalize ---")
         results['normalize'] = normalize.run(target_date)
+        logger.info(f"--- Step 2 Result: {results['normalize']} ---")
     except Exception as e:
         logger.error(f"Step 2 (Normalize) failed: {e}", exc_info=True)
         db.session.rollback()
@@ -92,6 +94,7 @@ def run_daily_pipeline(target_date=None, force=False):
     try:
         logger.info("--- Step 3: Compress ---")
         results['compress'] = compress.run(target_date)
+        logger.info(f"--- Step 3 Result: {results['compress']} ---")
     except Exception as e:
         logger.error(f"Step 3 (Compress) failed: {e}", exc_info=True)
         db.session.rollback()
@@ -101,6 +104,7 @@ def run_daily_pipeline(target_date=None, force=False):
     try:
         logger.info("--- Step 4: Rank ---")
         results['rank'] = rank.run(target_date)
+        logger.info(f"--- Step 4 Result: {results['rank']} ---")
     except Exception as e:
         logger.error(f"Step 4 (Rank) failed: {e}", exc_info=True)
         db.session.rollback()
@@ -110,6 +114,7 @@ def run_daily_pipeline(target_date=None, force=False):
     try:
         logger.info("--- Step 5: Synthesize ---")
         results['synthesize'] = synthesize.run(target_date, brief.id)
+        logger.info(f"--- Step 5 Result: {results['synthesize']} ---")
     except Exception as e:
         logger.error(f"Step 5 (Synthesize) failed: {e}", exc_info=True)
         db.session.rollback()

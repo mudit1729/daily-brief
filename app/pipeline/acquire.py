@@ -37,6 +37,7 @@ def run(target_date):
 def _fetch_all_rss():
     """Fetch RSS feeds from all active sources."""
     sources = Source.query.filter_by(is_active=True).all()
+    logger.info(f"[Acquire] Found {len(sources)} active sources to fetch")
     total_added = 0
     now = datetime.now(timezone.utc)
 
