@@ -1,6 +1,5 @@
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import func
 from app.extensions import db
@@ -13,7 +12,6 @@ from app import feature_flags
 logger = logging.getLogger(__name__)
 
 MAX_ARTICLES_PER_RUN = 200
-FETCH_WORKERS = 5
 BATCH_SIZE = 30          # commit after each batch to free memory
 MIN_PER_SECTION = 30     # guarantee every section gets at least this many slots
 
@@ -92,49 +90,42 @@ def run(target_date):
         total_batches = (len(articles) + BATCH_SIZE - 1) // BATCH_SIZE
         logger.info(f"[Normalize] Processing batch {batch_num}/{total_batches} ({len(batch)} articles)")
 
-        article_map = {a.id: a for a in batch}
+        # Process sequentially - lxml/readability are NOT thread-safe
+        # Using threads causes free()/SIGABRT crashes from memory corruption
+        for article in batch:
+            article_id, result, error = _fetch_one(article.id, article.url)
 
-        with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as executor:
-            futures = {
-                executor.submit(_fetch_one, a.id, a.url): a.id
-                for a in batch
-            }
-            for future in as_completed(futures):
-                article_id, result, error = future.result()
-                article = article_map[article_id]
+            if error:
+                logger.debug(f"Failed to normalize article {article_id}: {error}")
+                failed += 1
+                continue
 
-                if error:
-                    logger.debug(f"Failed to normalize article {article_id}: {error}")
-                    failed += 1
-                    continue
+            if not result:
+                failed += 1
+                continue
 
-                if not result:
-                    failed += 1
-                    continue
+            try:
+                article.extracted_text = clean_text(result.get('text', ''))
+                article.word_count = word_count(article.extracted_text)
 
-                try:
-                    article.extracted_text = clean_text(result.get('text', ''))
-                    article.word_count = word_count(article.extracted_text)
+                if result.get('title') and not article.title:
+                    article.title = result['title']
+                if result.get('og_image_url'):
+                    article.og_image_url = result['og_image_url']
+                if result.get('author') and not article.author:
+                    article.author = result['author']
 
-                    if result.get('title') and not article.title:
-                        article.title = result['title']
-                    if result.get('og_image_url'):
-                        article.og_image_url = result['og_image_url']
-                    if result.get('author') and not article.author:
-                        article.author = result['author']
+                if feature_flags.is_enabled('store_raw_html') and result.get('raw_html'):
+                    article.raw_html = result['raw_html']
 
-                    if feature_flags.is_enabled('store_raw_html') and result.get('raw_html'):
-                        article.raw_html = result['raw_html']
-
-                    article.entities_json = _extract_entities(article.extracted_text)
-                    processed += 1
-                except Exception as e:
-                    logger.error(f"Failed to normalize article {article_id}: {e}")
-                    failed += 1
+                article.entities_json = _extract_entities(article.extracted_text)
+                processed += 1
+            except Exception as e:
+                logger.error(f"Failed to normalize article {article_id}: {e}")
+                failed += 1
 
         # Commit each batch and free memory
         db.session.commit()
-        del article_map
         gc.collect()
         logger.info(f"[Normalize] Batch {batch_num} committed: {processed} processed so far")
 
