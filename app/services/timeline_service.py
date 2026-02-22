@@ -200,7 +200,7 @@ Be precise with dates. If you're unsure of the exact date, use the closest known
         if entities:
             matching_clusters = []
             for cluster in clusters:
-                headline = (cluster.headline or '').lower()
+                headline = (cluster.label or '').lower()
                 # Check if any tracked entity appears in cluster headline
                 if any(ent in headline for ent in entities):
                     matching_clusters.append(cluster)
@@ -242,7 +242,7 @@ Be precise with dates. If you're unsure of the exact date, use the closest known
             source_urls = [a.url for a in articles if a.url][:2]
             cluster_texts.append({
                 'cluster_id': c.id,
-                'headline': c.headline or titles[0] if titles else 'Unknown',
+                'headline': c.label or titles[0] if titles else 'Unknown',
                 'titles': titles[:3],
                 'section': c.section,
                 'source_urls': source_urls,
@@ -371,7 +371,7 @@ Convert relevant clusters into timeline events for this timeline."""
 
         # Build cluster overview
         cluster_overview = '\n'.join(
-            f"- [{c.section}] {c.headline or 'Untitled'} (score: {c.rank_score:.1f})"
+            f"- [{c.section}] {c.label or 'Untitled'} (score: {c.rank_score:.1f})"
             for c in clusters
         )
 

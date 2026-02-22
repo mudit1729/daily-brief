@@ -1,9 +1,24 @@
 /**
- * Signal Brief Engine — Client-side progressive enhancement
+ * Pulse Engine — Client-side progressive enhancement
  * No dependencies. Vanilla JS. ES2020+.
  */
 (function () {
   'use strict';
+
+  // ────────────────────────────────────────────────
+  // 0. Welcome Note
+  // ────────────────────────────────────────────────
+  const welcomeNote = document.getElementById('welcomeNote');
+  const dismissBtn = document.getElementById('dismissWelcome');
+  if (welcomeNote && !localStorage.getItem('pulse-welcome-dismissed')) {
+    welcomeNote.style.display = 'flex';
+  }
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      localStorage.setItem('pulse-welcome-dismissed', '1');
+      welcomeNote.style.display = 'none';
+    });
+  }
 
   // ────────────────────────────────────────────────
   // 1. Theme Toggle
@@ -597,5 +612,257 @@
 
   // Initialize all stacks on the page
   initCardStacks();
+
+  // ────────────────────────────────────────────────
+  // 11. Story Accordion Toggle
+  // ────────────────────────────────────────────────
+  document.addEventListener('click', (e) => {
+    const toggle = e.target.closest('[data-story-toggle]');
+    if (!toggle) return;
+
+    e.preventDefault();
+    const content = toggle.nextElementSibling;
+    if (!content || !content.hasAttribute('data-story-content')) return;
+
+    const isOpen = toggle.classList.contains('is-open');
+    toggle.classList.toggle('is-open', !isOpen);
+    content.classList.toggle('is-open', !isOpen);
+  });
+
+  // ────────────────────────────────────────────────
+  // 12. Time Travel (rolling date wheel)
+  // ────────────────────────────────────────────────
+  const ttWheel = document.querySelector('[data-time-travel-wheel]');
+  let ttSelectedDate = null;
+  let ttInitialized = false;
+
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function ttIsoDate(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function ttInitWheel() {
+    if (!ttWheel || ttInitialized) return;
+    ttInitialized = true;
+
+    const baseDate = ttWheel.dataset.baseDate;
+    if (!baseDate) return;
+
+    // Generate 31 date cells (oldest on left → today on right)
+    const frag = document.createDocumentFragment();
+    // Add spacers so first/last cells can reach center
+    const spacerL = document.createElement('div');
+    spacerL.style.minWidth = '50%'; spacerL.style.flexShrink = '0';
+    frag.appendChild(spacerL);
+
+    for (let i = 30; i >= 0; i--) {
+      const d = new Date(baseDate + 'T00:00:00');
+      d.setDate(d.getDate() - i);
+
+      const cell = document.createElement('div');
+      cell.className = 'sb-time-travel__date-cell' + (i === 0 ? ' is-today is-selected' : '');
+      cell.dataset.date = ttIsoDate(d);
+      cell.dataset.daysAgo = i;
+
+      const dayLabel = document.createElement('div');
+      dayLabel.className = 'sb-time-travel__date-day';
+      dayLabel.textContent = i === 0 ? 'Today' : DAYS[d.getDay()];
+
+      const numLabel = document.createElement('div');
+      numLabel.className = 'sb-time-travel__date-num';
+      numLabel.textContent = MONTHS[d.getMonth()] + ' ' + d.getDate();
+
+      cell.appendChild(dayLabel);
+      cell.appendChild(numLabel);
+      frag.appendChild(cell);
+    }
+
+    const spacerR = document.createElement('div');
+    spacerR.style.minWidth = '50%'; spacerR.style.flexShrink = '0';
+    frag.appendChild(spacerR);
+
+    ttWheel.appendChild(frag);
+    ttSelectedDate = baseDate;
+
+    // Scroll "Today" (last real cell) to center after render — horizontal only
+    requestAnimationFrame(() => {
+      const todayCell = ttWheel.querySelector('.is-today');
+      if (todayCell) {
+        const wheelRect = ttWheel.getBoundingClientRect();
+        const cellRect = todayCell.getBoundingClientRect();
+        const offset = cellRect.left - wheelRect.left - (wheelRect.width / 2) + (cellRect.width / 2);
+        ttWheel.scrollLeft += offset;
+      }
+    });
+
+    // Detect centered cell on scroll
+    let scrollTimer = null;
+    ttWheel.addEventListener('scroll', () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => ttUpdateSelection(), 80);
+    });
+
+    // Click to select — horizontal scroll only (no page jump)
+    ttWheel.addEventListener('click', (e) => {
+      const cell = e.target.closest('.sb-time-travel__date-cell');
+      if (cell) {
+        const wheelRect = ttWheel.getBoundingClientRect();
+        const cellRect = cell.getBoundingClientRect();
+        const offset = cellRect.left - wheelRect.left - (wheelRect.width / 2) + (cellRect.width / 2);
+        ttWheel.scrollTo({ left: ttWheel.scrollLeft + offset, behavior: 'smooth' });
+        setTimeout(() => ttUpdateSelection(), 350);
+      }
+    });
+  }
+
+  function ttUpdateSelection() {
+    if (!ttWheel) return;
+    const cells = ttWheel.querySelectorAll('.sb-time-travel__date-cell');
+    const wrapperRect = ttWheel.parentElement.getBoundingClientRect();
+    const centerX = wrapperRect.left + wrapperRect.width / 2;
+
+    let closest = null;
+    let closestDist = Infinity;
+    cells.forEach(cell => {
+      const rect = cell.getBoundingClientRect();
+      const cellCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(cellCenter - centerX);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = cell;
+      }
+    });
+
+    if (closest) {
+      cells.forEach(c => c.classList.remove('is-selected'));
+      closest.classList.add('is-selected');
+      ttSelectedDate = closest.dataset.date;
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('[data-time-travel-toggle]');
+    if (toggleBtn) {
+      const panel = document.querySelector('[data-time-travel-panel]');
+      if (panel) {
+        panel.classList.toggle('is-open');
+        if (panel.classList.contains('is-open')) ttInitWheel();
+      }
+      return;
+    }
+
+    const goBtn = e.target.closest('[data-time-travel-go]');
+    if (goBtn) {
+      if (ttSelectedDate) {
+        window.location.href = '/brief/' + ttSelectedDate;
+      }
+      return;
+    }
+  });
+
+  // ────────────────────────────────────────────────
+  // 13. Live Clocks (multi-timezone)
+  // ────────────────────────────────────────────────
+  function updateClocks() {
+    document.querySelectorAll('.sb-clock[data-tz]').forEach(el => {
+      const tz = el.dataset.tz;
+      const label = el.dataset.label || '';
+      try {
+        const time = new Date().toLocaleTimeString('en-US', {
+          timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: true
+        });
+        el.textContent = label + ' ' + time;
+      } catch (e) { /* skip invalid tz */ }
+    });
+  }
+  updateClocks();
+  setInterval(updateClocks, 30000); // update every 30s
+
+  // ────────────────────────────────────────────────
+  // 14. Deep Dive Modal
+  // ────────────────────────────────────────────────
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-deep-dive]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const clusterId = btn.dataset.deepDive;
+    const card = btn.closest('.sb-card');
+    const title = card ? card.querySelector('.sb-card__title')?.textContent?.trim() : 'Story';
+
+    // Create modal
+    const overlay = document.createElement('div');
+    overlay.className = 'sb-deep-dive-overlay';
+    overlay.innerHTML = `
+      <div class="sb-deep-dive-modal">
+        <button class="sb-deep-dive-modal__close">&times;</button>
+        <div class="sb-deep-dive-modal__title">${title}</div>
+        <div class="sb-deep-dive-modal__content">
+          <div class="sb-deep-dive-modal__loading">
+            <div class="sb-deep-dive-spinner"></div>
+            <span>Generating deep dive analysis...</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Close on click outside or close button
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target === overlay || ev.target.closest('.sb-deep-dive-modal__close')) {
+        overlay.remove();
+      }
+    });
+
+    // Close on Escape
+    const escHandler = (ev) => {
+      if (ev.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    // Fetch deep dive
+    fetch(`/api/deep-dive/${clusterId}`, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        const contentEl = overlay.querySelector('.sb-deep-dive-modal__content');
+        if (data.error) {
+          contentEl.innerHTML = `<p style="color:var(--sb-danger);">Error: ${data.error}</p>`;
+        } else {
+          // Simple markdown-ish rendering
+          let html = data.content
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/^### (.+)$/gm, '<h4 style="margin-top:1em;margin-bottom:0.3em;">$1</h4>')
+            .replace(/^## (.+)$/gm, '<h3 style="margin-top:1em;margin-bottom:0.3em;">$1</h3>')
+            .replace(/^- (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+            .replace(/<\/ul>\s*<ul>/g, '')
+            .replace(/\n\n/g, '<br><br>');
+
+          const providerBadge = data.provider === 'xai'
+            ? '<span class="sb-grok-take__label" style="margin-left:var(--sb-space-2);">Grok</span>'
+            : '<span class="sb-badge" style="margin-left:var(--sb-space-2);">OpenAI</span>';
+
+          contentEl.innerHTML = `
+            <div style="margin-bottom:var(--sb-space-3);font-size:var(--sb-text-xs);color:var(--sb-text-muted);">
+              Powered by ${providerBadge}
+              <span style="margin-left:var(--sb-space-2);">${data.tokens} tokens</span>
+            </div>
+            <div style="font-size:var(--sb-text-sm);line-height:1.8;color:var(--sb-text-secondary);">${html}</div>
+          `;
+        }
+      })
+      .catch(err => {
+        const contentEl = overlay.querySelector('.sb-deep-dive-modal__content');
+        contentEl.innerHTML = `<p style="color:var(--sb-danger);">Failed to load analysis. Please try again.</p>`;
+      });
+  });
 
 })();

@@ -9,13 +9,17 @@ TRACKED_SYMBOLS = {
     '^IXIC': 'NASDAQ Composite',
     '^NSEI': 'NIFTY 50',
     '^BSESN': 'SENSEX',
+    '^KS11': 'KOSPI',
+    '000001.SS': 'Shanghai Composite',
+    'QQQ': 'QQQ (Nasdaq 100)',
     'GC=F': 'Gold Futures',
+    'BTC-USD': 'Bitcoin',
 }
 
 
 class MarketDataService:
     def fetch_snapshots(self, target_date=None):
-        """Fetch latest price data for all tracked symbols."""
+        """Fetch latest price data with multi-period performance for all tracked symbols."""
         import yfinance as yf
 
         target_date = target_date or date.today()
@@ -24,21 +28,43 @@ class MarketDataService:
         for symbol, name in TRACKED_SYMBOLS.items():
             try:
                 ticker = yf.Ticker(symbol)
-                hist = ticker.history(period='5d')
+                # Fetch 13 months to reliably compute 1-year change
+                hist = ticker.history(period='13mo')
                 if len(hist) < 1:
                     logger.warning(f"No data for {symbol}")
                     continue
 
                 latest = hist.iloc[-1]
+                close_now = float(latest['Close'])
+
+                # 1-day change
                 prev = hist.iloc[-2] if len(hist) >= 2 else latest
-                change_pct = ((latest['Close'] - prev['Close']) / prev['Close']) * 100 if prev['Close'] else 0
+                day_change = ((close_now - float(prev['Close'])) / float(prev['Close'])) * 100 if float(prev['Close']) else 0
+
+                # 1-month change (~21 trading days)
+                month_idx = max(0, len(hist) - 22)
+                close_1m = float(hist.iloc[month_idx]['Close'])
+                month_change = ((close_now - close_1m) / close_1m) * 100 if close_1m else 0
+
+                # 3-month change (~63 trading days)
+                quarter_idx = max(0, len(hist) - 64)
+                close_3m = float(hist.iloc[quarter_idx]['Close'])
+                quarter_change = ((close_now - close_3m) / close_3m) * 100 if close_3m else 0
+
+                # 1-year change (~252 trading days)
+                year_idx = max(0, len(hist) - 253)
+                close_1y = float(hist.iloc[year_idx]['Close'])
+                year_change = ((close_now - close_1y) / close_1y) * 100 if close_1y else 0
 
                 snapshots.append({
                     'symbol': symbol,
                     'name': name,
-                    'price': round(float(latest['Close']), 2),
-                    'change_pct': round(float(change_pct), 2),
-                    'change_abs': round(float(latest['Close'] - prev['Close']), 2),
+                    'price': round(close_now, 2),
+                    'change_pct': round(float(day_change), 2),
+                    'change_abs': round(close_now - float(prev['Close']), 2),
+                    'change_1m_pct': round(float(month_change), 2),
+                    'change_3m_pct': round(float(quarter_change), 2),
+                    'change_1y_pct': round(float(year_change), 2),
                     'volume': int(latest['Volume']) if latest['Volume'] else None,
                     'snapshot_date': target_date,
                 })

@@ -14,7 +14,14 @@ MODEL_PRICING = {
     'gpt-4.1-mini': {'input': 0.40, 'output': 1.60},
     'gpt-4.1-nano': {'input': 0.10, 'output': 0.40},
     'gpt-5.2': {'input': 1.75, 'output': 14.00},
+    # xAI Grok models
+    'grok-3-mini-fast': {'input': 0.30, 'output': 0.50},
+    'grok-3-mini': {'input': 0.30, 'output': 0.50},
+    'grok-3': {'input': 3.00, 'output': 15.00},
+    'grok-3-fast': {'input': 5.00, 'output': 25.00},
 }
+
+XAI_BASE_URL = 'https://api.x.ai/v1'
 
 
 class BudgetExhaustedError(Exception):
@@ -32,9 +39,20 @@ class LLMGateway:
         self.section_budgets = config.get('LLM_SECTION_BUDGETS', {})
         self.api_key = config.get('OPENAI_API_KEY')
 
-    def call(self, messages, purpose, section=None, brief_id=None, max_tokens=None):
+        # xAI / Grok secondary provider
+        self.xai_api_key = config.get('XAI_API_KEY')
+        self.xai_model = config.get('XAI_MODEL', 'grok-3-mini-fast')
+
+    @property
+    def xai_available(self):
+        """Check if xAI/Grok is configured."""
+        return bool(self.xai_api_key)
+
+    def call(self, messages, purpose, section=None, brief_id=None,
+             max_tokens=None, provider='openai'):
         """
         Central LLM call. Checks budget, makes call, logs cost.
+        provider: 'openai' (default) or 'xai' for Grok.
         Returns: {content, prompt_tokens, completion_tokens, total_tokens, cost_usd}
         """
         remaining = self._get_remaining_budget(section)
@@ -43,6 +61,31 @@ class LLMGateway:
 
         effective_max = min(max_tokens or 2000, max(remaining, 100))
 
+        if provider == 'xai':
+            model, result = self._call_xai(messages, effective_max, purpose)
+        else:
+            model, result = self._call_openai(messages, effective_max, purpose)
+
+        latency_ms = result['latency_ms']
+        usage = result['usage']
+        cost = self._compute_cost(
+            usage.prompt_tokens, usage.completion_tokens, model
+        )
+
+        self._log_call(purpose, section, brief_id, usage, cost, latency_ms, model)
+
+        return {
+            'content': result['content'],
+            'prompt_tokens': usage.prompt_tokens,
+            'completion_tokens': usage.completion_tokens,
+            'total_tokens': usage.total_tokens,
+            'cost_usd': cost,
+            'provider': provider,
+            'model': model,
+        }
+
+    def _call_openai(self, messages, max_tokens, purpose):
+        """Make an OpenAI API call."""
         import openai
         client = openai.OpenAI(api_key=self.api_key)
 
@@ -51,29 +94,50 @@ class LLMGateway:
             response = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                max_completion_tokens=effective_max,
+                max_completion_tokens=max_tokens,
             )
         except Exception as e:
-            logger.error(f"LLM call failed ({purpose}): {e}")
+            logger.error(f"OpenAI call failed ({purpose}): {e}")
             raise
 
-        latency_ms = int(time.time() * 1000) - start_ms
-        usage = response.usage
-        cost = self._compute_cost(usage.prompt_tokens, usage.completion_tokens)
-
-        self._log_call(purpose, section, brief_id, usage, cost, latency_ms)
-
-        return {
+        return self.model, {
             'content': response.choices[0].message.content,
-            'prompt_tokens': usage.prompt_tokens,
-            'completion_tokens': usage.completion_tokens,
-            'total_tokens': usage.total_tokens,
-            'cost_usd': cost,
+            'usage': response.usage,
+            'latency_ms': int(time.time() * 1000) - start_ms,
         }
 
-    def _compute_cost(self, prompt_tokens, completion_tokens):
+    def _call_xai(self, messages, max_tokens, purpose):
+        """Make an xAI/Grok API call (OpenAI-compatible endpoint)."""
+        if not self.xai_api_key:
+            raise ValueError("XAI_API_KEY not configured")
+
+        import openai
+        client = openai.OpenAI(
+            api_key=self.xai_api_key,
+            base_url=XAI_BASE_URL,
+        )
+
+        start_ms = int(time.time() * 1000)
+        try:
+            response = client.chat.completions.create(
+                model=self.xai_model,
+                messages=messages,
+                max_tokens=max_tokens,
+            )
+        except Exception as e:
+            logger.error(f"xAI/Grok call failed ({purpose}): {e}")
+            raise
+
+        return self.xai_model, {
+            'content': response.choices[0].message.content,
+            'usage': response.usage,
+            'latency_ms': int(time.time() * 1000) - start_ms,
+        }
+
+    def _compute_cost(self, prompt_tokens, completion_tokens, model=None):
         """Compute USD cost based on model pricing."""
-        pricing = MODEL_PRICING.get(self.model, MODEL_PRICING['gpt-5.2'])
+        model = model or self.model
+        pricing = MODEL_PRICING.get(model, MODEL_PRICING.get('gpt-5.2', {'input': 2.0, 'output': 10.0}))
         input_cost = (prompt_tokens / 1_000_000) * pricing['input']
         output_cost = (completion_tokens / 1_000_000) * pricing['output']
         return round(input_cost + output_cost, 6)
@@ -97,11 +161,11 @@ class LLMGateway:
         used = query.scalar()
         return budget - used
 
-    def _log_call(self, purpose, section, brief_id, usage, cost, latency_ms):
+    def _log_call(self, purpose, section, brief_id, usage, cost, latency_ms, model=None):
         """Insert LLMCallLog row."""
         log = LLMCallLog(
             call_purpose=purpose,
-            model=self.model,
+            model=model or self.model,
             prompt_tokens=usage.prompt_tokens,
             completion_tokens=usage.completion_tokens,
             total_tokens=usage.total_tokens,
@@ -113,7 +177,8 @@ class LLMGateway:
         db.session.add(log)
         db.session.commit()
         logger.info(
-            f"LLM call: {purpose} | {usage.total_tokens} tokens | ${cost:.4f} | {latency_ms}ms"
+            f"LLM call: {purpose} | {model or self.model} | "
+            f"{usage.total_tokens} tokens | ${cost:.4f} | {latency_ms}ms"
         )
 
     def determine_degradation_level(self, section):

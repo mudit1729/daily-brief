@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 OPEN_METEO_BASE = 'https://api.open-meteo.com/v1/forecast'
 
 DEFAULT_LOCATIONS = [
-    {'name': 'New York', 'lat': 40.7128, 'lon': -74.0060},
-    {'name': 'San Francisco', 'lat': 37.7749, 'lon': -122.4194},
-    {'name': 'New Delhi', 'lat': 28.6139, 'lon': 77.2090},
+    {'name': 'San Diego', 'lat': 32.7157, 'lon': -117.1611},
+    {'name': 'Hyderabad', 'lat': 17.3850, 'lon': 78.4867},
+    {'name': 'Pune', 'lat': 18.5204, 'lon': 73.8567},
 ]
 
 # WMO Weather interpretation codes

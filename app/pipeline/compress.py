@@ -25,6 +25,7 @@ SECTION_MAPPING = {
     'general_news_us': {'source_sections': ['general_news'], 'region': 'us'},
     'general_news_india': {'source_sections': ['general_news'], 'region': 'india'},
     'general_news_geopolitics': {'source_sections': ['general_news'], 'region': 'global'},
+    'feel_good': {'source_sections': ['feel_good']},
 }
 
 

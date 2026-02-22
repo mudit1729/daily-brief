@@ -144,7 +144,7 @@ class TestTodayPage:
         resp = client.get('/')
         assert resp.status_code == 200
         # Should show empty state, not crash
-        assert b'Signal Brief' in resp.data
+        assert b'Pulse' in resp.data
 
     def test_index_contains_nav(self, client, sample_brief):
         """Page should contain navigation tabs."""
@@ -226,8 +226,8 @@ class TestStoriesPage:
         resp = client.get('/stories')
         assert resp.status_code == 200
         assert b'1 stories / 1 events' in resp.data
-        assert b'source 1' in resp.data
-        assert b'updated 1d ago' in resp.data
+        assert b'example.com' in resp.data
+        assert b'1d ago' in resp.data
 
 
 class TestThesisPage:

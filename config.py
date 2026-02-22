@@ -17,16 +17,22 @@ class Config:
     LLM_DAILY_TOKEN_BUDGET = int(os.getenv('LLM_DAILY_TOKEN_BUDGET', '100000'))
     LLM_DAILY_BUDGET_USD = float(os.getenv('LLM_DAILY_BUDGET_USD', '1.00'))
     LLM_SECTION_BUDGETS = {
-        'general_news_us': 0.15,
-        'market': 0.15,
-        'ai_news': 0.12,
+        'general_news_us': 0.12,
+        'feel_good': 0.04,
+        'market': 0.14,
+        'ai_news': 0.11,
         'general_news_india': 0.08,
         'general_news_geopolitics': 0.08,
         'science': 0.07,
         'health': 0.06,
         'investment_thesis': 0.11,   # includes hedge fund analysis
         'timelines': 0.10,           # auto-update + auto-discover timelines
+        'grok_analysis': 0.10,       # xAI Grok: news takes + timeline + stories enrichment
     }
+
+    # xAI / Grok (secondary LLM provider)
+    XAI_API_KEY = os.getenv('XAI_API_KEY')
+    XAI_MODEL = os.getenv('XAI_MODEL', 'grok-3-mini-fast')
 
     # Hedge Fund Analysis
     HEDGE_FUND_TICKERS = os.getenv('HEDGE_FUND_TICKERS', 'AAPL,MSFT,NVDA,GOOGL,AMZN')
@@ -58,3 +64,4 @@ class TestConfig(Config):
     LLM_DAILY_TOKEN_BUDGET = 1000
     LLM_DAILY_BUDGET_USD = 0.10
     OPENAI_API_KEY = 'test-key'
+    XAI_API_KEY = None  # Disable xAI in tests by default

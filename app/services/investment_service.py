@@ -63,7 +63,11 @@ class InvestmentService:
                             hedge_fund_signals=None):
         """Generate thesis text using LLM, enriched with hedge fund signals when available."""
         market_summary = '\n'.join(
-            f"- {s['name']} ({s['symbol']}): ${s['price']:.2f} ({s['change_pct']:+.2f}%)"
+            f"- {s['name']} ({s['symbol']}): ${s['price']:.2f} "
+            f"(1D: {s['change_pct']:+.2f}%, "
+            f"1M: {s.get('change_1m_pct', 0):+.2f}%, "
+            f"3M: {s.get('change_3m_pct', 0):+.2f}%, "
+            f"1Y: {s.get('change_1y_pct', 0):+.2f}%)"
             for s in snapshots
         )
 
