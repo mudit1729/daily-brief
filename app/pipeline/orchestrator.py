@@ -10,13 +10,18 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 
-def _claim_pipeline_brief(target_date):
+def _claim_pipeline_brief(target_date, force=False):
     """
     Claim a brief for execution using status transitions.
     Returns DailyBrief if this worker should run pipeline, else None.
     """
     brief = DailyBrief.query.filter_by(date=target_date).first()
     if brief and brief.status == 'complete':
+        if force:
+            logger.info(f"Force re-running pipeline for {target_date}")
+            brief.status = 'running'
+            db.session.commit()
+            return brief
         logger.info(f"Brief for {target_date} already complete, skipping")
         return None
 
@@ -51,7 +56,7 @@ def _claim_pipeline_brief(target_date):
     return DailyBrief.query.filter_by(id=brief.id).first()
 
 
-def run_daily_pipeline(target_date=None):
+def run_daily_pipeline(target_date=None, force=False):
     """
     Master pipeline runner. Executes steps 1-5 sequentially.
     Creates DailyBrief, handles partial failures, computes final metrics.
@@ -59,7 +64,7 @@ def run_daily_pipeline(target_date=None):
     target_date = target_date or date.today()
     logger.info(f"=== Pipeline starting for {target_date} ===")
 
-    brief = _claim_pipeline_brief(target_date)
+    brief = _claim_pipeline_brief(target_date, force=force)
     if not brief:
         return DailyBrief.query.filter_by(date=target_date).first()
 

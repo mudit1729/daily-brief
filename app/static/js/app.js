@@ -383,9 +383,12 @@
       setStatus(pipelineStatus, 'Triggering...');
 
       try {
+        const hdrs = adminHeaders();
+        hdrs['Content-Type'] = 'application/json';
         const response = await fetch('/api/admin/pipeline/trigger', {
           method: 'POST',
-          headers: adminHeaders(),
+          headers: hdrs,
+          body: JSON.stringify({ force: true }),
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Failed to trigger');
