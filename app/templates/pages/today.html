@@ -17,6 +17,10 @@
         </button>
       </div>
     </div>
+    <div class="sb-brief-header__clocks">
+      <span class="sb-clock" data-tz="America/Los_Angeles" data-label="SD"></span>
+      <span class="sb-clock" data-tz="Asia/Kolkata" data-label="HYD"></span>
+    </div>
     <div class="sb-brief-header__meta">
       <span>{{ brief.date.strftime('%Y') }}</span>
       {% if overview %}
@@ -24,8 +28,6 @@
       <span>{{ overview.total_sources }} Sources</span>
       <span>{{ overview.section_count }} Sections</span>
       {% endif %}
-      <span class="sb-clock" data-tz="America/Los_Angeles" data-label="SD"></span>
-      <span class="sb-clock" data-tz="Asia/Kolkata" data-label="HYD"></span>
     </div>
     <!-- Time travel wheel -->
     <div class="sb-time-travel__panel" data-time-travel-panel>

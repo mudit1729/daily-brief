@@ -1,42 +1,43 @@
-{# Weather card — animated icons, 3-day forecast, expects `weather` dict with `locations` key #}
-{# WMO codes → emoji mapping for animated display #}
-{% macro weather_icon(condition) -%}
-  {%- if 'clear' in condition|lower or 'sunny' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation-delay: 0s;">&#9728;&#65039;</span>
-  {%- elif 'partly' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation: sb-weather-pulse 3s ease-in-out infinite;">&#9925;</span>
-  {%- elif 'cloud' in condition|lower or 'overcast' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation: sb-weather-float 4s ease-in-out infinite;">&#9729;&#65039;</span>
-  {%- elif 'rain' in condition|lower or 'drizzle' in condition|lower or 'shower' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation: sb-weather-float 2s ease-in-out infinite;">&#127783;&#65039;</span>
-  {%- elif 'snow' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation: sb-weather-float 3.5s ease-in-out infinite;">&#127784;&#65039;</span>
-  {%- elif 'thunder' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation: sb-weather-pulse 1.5s ease-in-out infinite;">&#9889;</span>
-  {%- elif 'fog' in condition|lower -%}
-    <span class="sb-weather__icon" style="animation: sb-weather-pulse 4s ease-in-out infinite;">&#127787;&#65039;</span>
+{# Weather card — SVG icons, 3-day forecast #}
+{% macro weather_svg(condition) -%}
+  {%- set c = condition|lower -%}
+  {%- if 'clear' in c or 'sunny' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--sun" viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#FBBF24"/><g stroke="#FBBF24" stroke-width="3" stroke-linecap="round"><line x1="54" y1="32" x2="60" y2="32"/><line x1="48" y1="16" x2="52" y2="12"/><line x1="32" y1="10" x2="32" y2="4"/><line x1="16" y1="16" x2="12" y2="12"/><line x1="10" y1="32" x2="4" y2="32"/><line x1="16" y1="48" x2="12" y2="52"/><line x1="32" y1="54" x2="32" y2="60"/><line x1="48" y1="48" x2="52" y2="52"/></g></svg>
+  {%- elif 'partly' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--partial" viewBox="0 0 64 64"><circle cx="26" cy="24" r="10" fill="#FBBF24"/><g stroke="#FBBF24" stroke-width="2" stroke-linecap="round"><line x1="26" y1="8" x2="26" y2="12"/><line x1="26" y1="36" x2="26" y2="40"/><line x1="10" y1="24" x2="14" y2="24"/><line x1="38" y1="24" x2="42" y2="24"/></g><path d="M20 38a12 12 0 0 1 24 0 8 8 0 0 1 8 8H12a8 8 0 0 1 8-8z" fill="#94A3B8" opacity="0.9"/></svg>
+  {%- elif 'cloud' in c or 'overcast' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--cloud" viewBox="0 0 64 64"><path d="M18 44a10 10 0 0 1 0-20 14 14 0 0 1 28 0 10 10 0 0 1 0 20z" fill="#94A3B8"/><path d="M14 48a8 8 0 0 1 0-16h4a12 12 0 0 1 24 0h4a8 8 0 0 1 0 16z" fill="#CBD5E1"/></svg>
+  {%- elif 'rain' in c or 'drizzle' in c or 'shower' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--rain" viewBox="0 0 64 64"><path d="M14 36a8 8 0 0 1 0-16h4a12 12 0 0 1 24 0h4a8 8 0 0 1 0 16z" fill="#94A3B8"/><g stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round" class="sb-weather__raindrops"><line x1="22" y1="40" x2="20" y2="48"/><line x1="32" y1="40" x2="30" y2="48"/><line x1="42" y1="40" x2="40" y2="48"/></g></svg>
+  {%- elif 'snow' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--snow" viewBox="0 0 64 64"><path d="M14 36a8 8 0 0 1 0-16h4a12 12 0 0 1 24 0h4a8 8 0 0 1 0 16z" fill="#94A3B8"/><g fill="#E2E8F0" class="sb-weather__snowflakes"><circle cx="22" cy="44" r="2.5"/><circle cx="32" cy="48" r="2.5"/><circle cx="42" cy="43" r="2.5"/></g></svg>
+  {%- elif 'thunder' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--thunder" viewBox="0 0 64 64"><path d="M14 32a8 8 0 0 1 0-16h4a12 12 0 0 1 24 0h4a8 8 0 0 1 0 16z" fill="#64748B"/><polygon points="30,34 34,34 28,50 32,42 28,42 34,28" fill="#FBBF24" class="sb-weather__bolt"/></svg>
+  {%- elif 'fog' in c -%}
+    <svg class="sb-weather__svg sb-weather__svg--fog" viewBox="0 0 64 64"><g stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.7"><line x1="10" y1="24" x2="54" y2="24"/><line x1="14" y1="32" x2="50" y2="32"/><line x1="10" y1="40" x2="54" y2="40"/><line x1="16" y1="48" x2="48" y2="48"/></g></svg>
   {%- else -%}
-    <span class="sb-weather__icon">&#9728;&#65039;</span>
+    <svg class="sb-weather__svg sb-weather__svg--sun" viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#FBBF24"/></svg>
   {%- endif -%}
 {%- endmacro %}
 
-{% macro mini_icon(condition) -%}
-  {%- if 'clear' in condition|lower or 'sunny' in condition|lower -%}&#9728;&#65039;
-  {%- elif 'partly' in condition|lower -%}&#9925;
-  {%- elif 'cloud' in condition|lower or 'overcast' in condition|lower -%}&#9729;&#65039;
-  {%- elif 'rain' in condition|lower or 'drizzle' in condition|lower or 'shower' in condition|lower -%}&#127783;&#65039;
-  {%- elif 'snow' in condition|lower -%}&#127784;&#65039;
-  {%- elif 'thunder' in condition|lower -%}&#9889;
-  {%- elif 'fog' in condition|lower -%}&#127787;&#65039;
-  {%- else -%}&#9728;&#65039;
-  {%- endif -%}
-{%- endmacro %}
-
-{% macro day_name(date_str) -%}
-  {%- if date_str -%}
-    {%- set parts = date_str.split('-') -%}
-    {%- set d = parts[2]|int -%}
-    {{- d -}}
+{% macro mini_svg(condition) -%}
+  {%- set c = condition|lower -%}
+  {%- if 'clear' in c or 'sunny' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#FBBF24"/><g stroke="#FBBF24" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></g></svg>
+  {%- elif 'partly' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><circle cx="10" cy="9" r="4" fill="#FBBF24"/><path d="M8 16a5 5 0 0 1 10 0 3.5 3.5 0 0 1 0 7H5a3.5 3.5 0 0 1 3-6z" fill="#94A3B8" opacity="0.9"/></svg>
+  {%- elif 'cloud' in c or 'overcast' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><path d="M6 18a4 4 0 0 1 0-8h2a6 6 0 0 1 12 0h2a4 4 0 0 1 0 8z" fill="#CBD5E1"/></svg>
+  {%- elif 'rain' in c or 'drizzle' in c or 'shower' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><path d="M6 14a4 4 0 0 1 0-8h2a6 6 0 0 1 12 0h2a4 4 0 0 1 0 8z" fill="#94A3B8"/><g stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"><line x1="9" y1="17" x2="8" y2="21"/><line x1="15" y1="17" x2="14" y2="21"/></g></svg>
+  {%- elif 'snow' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><path d="M6 14a4 4 0 0 1 0-8h2a6 6 0 0 1 12 0h2a4 4 0 0 1 0 8z" fill="#94A3B8"/><g fill="#E2E8F0"><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="19" r="1.5"/></g></svg>
+  {%- elif 'thunder' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><path d="M6 12a4 4 0 0 1 0-8h2a6 6 0 0 1 12 0h2a4 4 0 0 1 0 8z" fill="#64748B"/><polygon points="12,13 14,13 11,21 13,17 11,17 14,11" fill="#FBBF24"/></svg>
+  {%- elif 'fog' in c -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><g stroke="#94A3B8" stroke-width="2" stroke-linecap="round" opacity="0.7"><line x1="4" y1="9" x2="20" y2="9"/><line x1="6" y1="13" x2="18" y2="13"/><line x1="4" y1="17" x2="20" y2="17"/></g></svg>
+  {%- else -%}
+    <svg class="sb-weather__mini-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#FBBF24"/></svg>
   {%- endif -%}
 {%- endmacro %}
 
@@ -45,36 +46,41 @@
   {% if weather and weather.get('locations') %}
   <div class="sb-weather__grid">
     {% for loc in weather.locations[:3] %}
-    <div class="sb-weather__location">
+    <div class="sb-weather__location{% if loop.first %} sb-weather__location--primary{% endif %}">
       {% if loc.get('forecasts') and loc.forecasts | length > 0 %}
         {% set today = loc.forecasts[0] %}
-        {{ weather_icon(today.condition) }}
-        <div class="sb-weather__info">
-          <div class="sb-weather__city">
-            {{ loc.get('location', loc.get('location_name', 'Unknown')) }}
+        <div class="sb-weather__main">
+          <div class="sb-weather__icon-wrap">
+            {{ weather_svg(today.condition) }}
           </div>
-          <div class="sb-weather__temp">
-            <span class="sb-weather__temp-hi">{{ today.high_c | round(0) | int }}&#176;</span>
-            <span class="sb-weather__temp-lo">/ {{ today.low_c | round(0) | int }}&#176;</span>
-          </div>
-          <div class="sb-weather__condition">{{ today.condition }}</div>
-          {# Mini forecast #}
-          {% if loc.forecasts | length > 1 %}
-          <div class="sb-weather__forecast">
-            {% for day in loc.forecasts[1:] %}
-            <div class="sb-weather__forecast-day">
-              <span class="sb-weather__forecast-day-icon">{{ mini_icon(day.condition) }}</span>
-              <span class="sb-weather__forecast-day-temp">{{ day.high_c | round(0) | int }}&#176;</span>
+          <div class="sb-weather__info">
+            <div class="sb-weather__city">{{ loc.get('location', loc.get('location_name', 'Unknown')) }}</div>
+            <div class="sb-weather__temp">
+              <span class="sb-weather__temp-hi">{{ today.high_c | round(0) | int }}°</span>
+              <span class="sb-weather__temp-lo">/ {{ today.low_c | round(0) | int }}°</span>
             </div>
-            {% endfor %}
+            <div class="sb-weather__condition">{{ today.condition }}</div>
           </div>
-          {% endif %}
         </div>
+        {% if loc.forecasts | length > 1 %}
+        <div class="sb-weather__forecast">
+          {% for day in loc.forecasts[1:] %}
+          <div class="sb-weather__forecast-day">
+            {{ mini_svg(day.condition) }}
+            <span class="sb-weather__forecast-day-temp">{{ day.high_c | round(0) | int }}°</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       {% else %}
-        <div class="sb-weather__icon">&#9728;&#65039;</div>
-        <div class="sb-weather__info">
-          <div class="sb-weather__city">{{ loc.get('location', loc.get('location_name', 'Unknown')) }}</div>
-          <div class="sb-weather__condition">No data</div>
+        <div class="sb-weather__main">
+          <div class="sb-weather__icon-wrap">
+            <svg class="sb-weather__svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#FBBF24"/></svg>
+          </div>
+          <div class="sb-weather__info">
+            <div class="sb-weather__city">{{ loc.get('location', loc.get('location_name', 'Unknown')) }}</div>
+            <div class="sb-weather__condition">No data</div>
+          </div>
         </div>
       {% endif %}
     </div>
