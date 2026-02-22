@@ -6,20 +6,29 @@ from time import mktime
 logger = logging.getLogger(__name__)
 
 
-def fetch_feed(source):
+def fetch_feed(source, include_meta=False):
     """
     Fetch and parse an RSS feed for a given Source object.
     Returns list of dicts ready to become Article rows.
     """
+    meta = {
+        'ok': True,
+        'error': None,
+    }
+
     try:
         feed = feedparser.parse(source.url)
     except Exception as e:
         logger.error(f"Failed to parse feed {source.url}: {e}")
-        return []
+        meta['ok'] = False
+        meta['error'] = str(e)
+        return ([], meta) if include_meta else []
 
     if feed.bozo and not feed.entries:
         logger.warning(f"Malformed feed {source.url}: {feed.bozo_exception}")
-        return []
+        meta['ok'] = False
+        meta['error'] = str(feed.bozo_exception)
+        return ([], meta) if include_meta else []
 
     articles = []
     for entry in feed.entries:
@@ -53,4 +62,4 @@ def fetch_feed(source):
         })
 
     logger.info(f"Fetched {len(articles)} entries from {source.name}")
-    return articles
+    return (articles, meta) if include_meta else articles

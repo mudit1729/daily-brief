@@ -49,13 +49,58 @@
   <div style="margin-top:var(--sb-space-8);padding-top:var(--sb-space-6);border-top:1px solid var(--sb-border);">
     <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-2) 0;">Pipeline</h3>
     <p style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);margin:0 0 var(--sb-space-3) 0;">
-      Manually trigger a full pipeline run.
+      Manual trigger and scheduler controls.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--sb-space-2);margin-bottom:var(--sb-space-3);">
+      <input type="password" id="adminApiKey" placeholder="Admin API key"
+             style="min-width:260px;background:var(--sb-bg-surface);border:1px solid var(--sb-border);border-radius:var(--sb-radius-md);padding:var(--sb-space-2) var(--sb-space-3);color:var(--sb-text-primary);font-size:var(--sb-text-sm);font-family:var(--sb-font-ui);">
+      <button class="sb-action-btn" id="saveAdminKey" style="padding:var(--sb-space-2) var(--sb-space-4);">
+        Save Key
+      </button>
+      <span id="adminKeyStatus" style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);"></span>
+    </div>
+    <p style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin:0 0 var(--sb-space-3) 0;">
+      Key is stored only in this browser (localStorage).
     </p>
     <button class="sb-action-btn" id="triggerPipeline" style="padding:var(--sb-space-2) var(--sb-space-4);">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Run Pipeline
     </button>
     <span id="pipelineStatus" style="margin-left:var(--sb-space-2);font-size:var(--sb-text-xs);color:var(--sb-text-muted);"></span>
+
+    <div style="margin-top:var(--sb-space-6);padding-top:var(--sb-space-5);border-top:1px solid var(--sb-border-subtle);">
+      <h4 style="font-size:var(--sb-text-sm);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-2) 0;">Scheduled Runs</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--sb-space-3);align-items:flex-end;">
+        <label style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);display:flex;align-items:center;gap:var(--sb-space-2);">
+          <input type="checkbox" id="scheduleEnabled" {% if pipeline_schedule.enabled %}checked{% endif %}>
+          Enabled
+        </label>
+        <label style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);display:flex;flex-direction:column;gap:var(--sb-space-1);">
+          Time (24h)
+          <input type="time" id="scheduleTime"
+                 value="{{ '%02d:%02d' | format(pipeline_schedule.hour, pipeline_schedule.minute) }}"
+                 style="background:var(--sb-bg-surface);border:1px solid var(--sb-border);border-radius:var(--sb-radius-md);padding:var(--sb-space-2);color:var(--sb-text-primary);font-size:var(--sb-text-sm);">
+        </label>
+        <label style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);display:flex;flex-direction:column;gap:var(--sb-space-1);">
+          Timezone
+          <input type="text" id="scheduleTimezone" value="{{ pipeline_schedule.timezone }}"
+                 style="min-width:140px;background:var(--sb-bg-surface);border:1px solid var(--sb-border);border-radius:var(--sb-radius-md);padding:var(--sb-space-2);color:var(--sb-text-primary);font-size:var(--sb-text-sm);">
+        </label>
+        <button class="sb-action-btn" id="savePipelineSchedule" style="padding:var(--sb-space-2) var(--sb-space-4);">
+          Save Schedule
+        </button>
+      </div>
+      <div style="margin-top:var(--sb-space-2);display:flex;flex-wrap:wrap;gap:var(--sb-space-3);font-size:var(--sb-text-xs);color:var(--sb-text-muted);">
+        <span id="scheduleStatus"></span>
+        <span id="scheduleNextRun">
+          {% if pipeline_next_run_at %}
+            Next run: {{ pipeline_next_run_at.strftime('%b %d, %H:%M %Z') }}
+          {% else %}
+            Next run: not scheduled
+          {% endif %}
+        </span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -95,6 +140,13 @@
 <!-- Sources tab -->
 <div class="sb-tab-panel" id="panel-sources" style="display:none;">
   <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-4) 0;">Active Sources</h3>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--sb-space-2);margin-bottom:var(--sb-space-4);">
+    <span class="sb-badge sb-badge--success"><span id="sourceHealthHealthy">{{ source_health_summary.healthy }}</span> healthy</span>
+    <span class="sb-badge sb-badge--warning"><span id="sourceHealthDegraded">{{ source_health_summary.degraded }}</span> degraded</span>
+    <span class="sb-badge sb-badge--danger"><span id="sourceHealthCooldown">{{ source_health_summary.cooldown }}</span> cooldown</span>
+    <button class="sb-action-btn" id="refreshSourceHealth" style="padding:var(--sb-space-1) var(--sb-space-3);">Refresh Health</button>
+    <span id="sourceHealthStatus" style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);"></span>
+  </div>
 
   {% for section, sources in sources_by_section.items() %}
   <div style="margin-bottom:var(--sb-space-6);">
@@ -102,6 +154,7 @@
       {{ section_labels.get(section, section) }}
     </h4>
     {% for source in sources %}
+    {% set state = source.health_state() %}
     <div class="sb-source-row">
       <span class="sb-source-badge sb-source-badge--{{ source.bias_label | bias_class }}" style="flex-shrink:0;">
         {{ source.bias_label | upper | truncate(1, true, '') }}
@@ -109,7 +162,21 @@
       <span class="sb-source-row__name">{{ source.name }}</span>
       <span class="sb-trust sb-trust--{{ source.trust_score | trust_level }}">{{ source.trust_score }}</span>
       <span class="sb-source-row__section">{{ source.source_type }}</span>
+      <span class="sb-badge sb-badge--{{ 'success' if state == 'healthy' else ('warning' if state == 'degraded' else 'danger') }}">
+        {{ state }}
+      </span>
+      {% if source.consecutive_failures %}
+      <span class="sb-source-row__section">{{ source.consecutive_failures }} fail streak</span>
+      {% endif %}
+      {% if source.auto_disabled_until %}
+      <span class="sb-source-row__section">until {{ source.auto_disabled_until.strftime('%b %d %H:%M') }}</span>
+      {% endif %}
     </div>
+    {% if source.last_error %}
+    <div style="font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin-top:calc(-1 * var(--sb-space-2));margin-bottom:var(--sb-space-2);padding-left:42px;">
+      Last error: {{ source.last_error }}
+    </div>
+    {% endif %}
     {% endfor %}
   </div>
   {% endfor %}

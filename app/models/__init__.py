@@ -10,7 +10,9 @@ from app.models.user import UserPreference, FeedbackAction, DailyInsight
 from app.models.cost import LLMCallLog, DailyCostSummary
 from app.models.claim import ClaimLedger
 from app.models.investment import InvestmentThesis
+from app.models.hedge_fund import HedgeFundAnalysis
 from app.models.timeline import Timeline, TimelineEvent
+from app.models.system_setting import SystemSetting
 
 __all__ = [
     'Source', 'Article', 'ArticleEmbedding',
@@ -21,6 +23,7 @@ __all__ = [
     'WeatherCache',
     'UserPreference', 'FeedbackAction', 'DailyInsight',
     'LLMCallLog', 'DailyCostSummary',
-    'ClaimLedger', 'InvestmentThesis',
+    'ClaimLedger', 'InvestmentThesis', 'HedgeFundAnalysis',
     'Timeline', 'TimelineEvent',
+    'SystemSetting',
 ]

@@ -11,10 +11,11 @@ class InvestmentService:
     def __init__(self):
         self.market_service = MarketDataService()
 
-    def generate_thesis(self, target_date, brief_id, snapshots, top_clusters, llm_gateway):
+    def generate_thesis(self, target_date, brief_id, snapshots, top_clusters, llm_gateway,
+                         hedge_fund_signals=None):
         """
         Generate investment thesis if momentum x value gate passes.
-        Otherwise returns "No thesis today".
+        Optionally enriched with hedge fund analysis signals.
         """
         if not feature_flags.is_enabled('investment_thesis'):
             return None, {'total_tokens': 0, 'cost_usd': 0.0}
@@ -45,7 +46,8 @@ class InvestmentService:
             thesis.supporting_clusters_json = []
         else:
             thesis_result = self._generate_with_llm(
-                snapshots, top_clusters, signals, llm_gateway, brief_id
+                snapshots, top_clusters, signals, llm_gateway, brief_id,
+                hedge_fund_signals=hedge_fund_signals,
             )
             thesis.thesis_text = thesis_result['content']
             usage = {
@@ -57,8 +59,9 @@ class InvestmentService:
         db.session.commit()
         return thesis, usage
 
-    def _generate_with_llm(self, snapshots, clusters, signals, llm_gateway, brief_id):
-        """Generate thesis text using LLM."""
+    def _generate_with_llm(self, snapshots, clusters, signals, llm_gateway, brief_id,
+                            hedge_fund_signals=None):
+        """Generate thesis text using LLM, enriched with hedge fund signals when available."""
         market_summary = '\n'.join(
             f"- {s['name']} ({s['symbol']}): ${s['price']:.2f} ({s['change_pct']:+.2f}%)"
             for s in snapshots
@@ -70,26 +73,45 @@ class InvestmentService:
             if c.label
         )
 
+        # Build hedge fund signals context
+        hf_context = ''
+        if hedge_fund_signals:
+            lines = []
+            for sig in hedge_fund_signals:
+                ticker = sig.get('ticker', '?')
+                consensus = sig.get('consensus', 'neutral')
+                confidence = sig.get('confidence', 0)
+                lines.append(f"- {ticker}: {consensus} (confidence {confidence:.0f}%)")
+
+                # Include top analyst reasoning snippets
+                analysts = sig.get('analysts', {})
+                for agent_name, agent_data in list(analysts.items())[:2]:
+                    if isinstance(agent_data, dict) and agent_data.get('reasoning'):
+                        reasoning = str(agent_data['reasoning'])[:150]
+                        lines.append(f"  [{agent_name}] {reasoning}")
+
+            hf_context = f"\n\nAI Analyst Signals:\n" + '\n'.join(lines)
+
+        system_prompt = (
+            'You are a concise investment analyst. Generate a brief investment thesis '
+            '(3-5 sentences) based on current market data, top news clusters, '
+            'and AI analyst signals. '
+            'Focus on actionable insights. Be specific about which sectors or trends '
+            'to watch. Include risk factors.'
+        )
+
+        user_content = (
+            f"Market Data:\n{market_summary}\n\n"
+            f"Momentum Signal: {signals['momentum_count']}/3 US indices up >0.3%\n"
+            f"Gold Change: {signals['gold_change_pct']:+.2f}%\n\n"
+            f"Top News Clusters:\n{cluster_summaries}"
+            f"{hf_context}\n\n"
+            "Generate a brief investment thesis for today."
+        )
+
         messages = [
-            {
-                'role': 'system',
-                'content': (
-                    'You are a concise investment analyst. Generate a brief investment thesis '
-                    '(3-5 sentences) based on current market data and top news clusters. '
-                    'Focus on actionable insights. Be specific about which sectors or trends '
-                    'to watch. Include risk factors.'
-                ),
-            },
-            {
-                'role': 'user',
-                'content': (
-                    f"Market Data:\n{market_summary}\n\n"
-                    f"Momentum Signal: {signals['momentum_count']}/3 US indices up >0.3%\n"
-                    f"Gold Change: {signals['gold_change_pct']:+.2f}%\n\n"
-                    f"Top News Clusters:\n{cluster_summaries}\n\n"
-                    "Generate a brief investment thesis for today."
-                ),
-            },
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_content},
         ]
 
         try:

@@ -1,9 +1,10 @@
 """Tests for the views blueprint — HTML-serving routes."""
 import pytest
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from app.models.brief import DailyBrief, BriefSection
 from app.models.market import MarketSnapshot
 from app.models.weather import WeatherCache
+from app.models.topic import TrackedTopic, Story, Event
 
 
 @pytest.fixture
@@ -198,6 +199,36 @@ class TestStoriesPage:
         resp = client.get('/stories')
         assert resp.status_code == 200
 
+    def test_stories_shows_story_metrics(self, client, db_session):
+        topic = TrackedTopic(name='Energy Supply', description='Track policy and output changes')
+        db_session.add(topic)
+        db_session.flush()
+
+        story = Story(
+            topic_id=topic.id,
+            title='Oil output cuts continue',
+            status='ongoing',
+            first_seen=datetime.now(timezone.utc) - timedelta(days=5),
+            last_updated=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        db_session.add(story)
+        db_session.flush()
+
+        event = Event(
+            story_id=story.id,
+            description='Producers announced extension through quarter end',
+            event_date=datetime.now(timezone.utc),
+            source_urls_json=['https://example.com/source-a'],
+        )
+        db_session.add(event)
+        db_session.commit()
+
+        resp = client.get('/stories')
+        assert resp.status_code == 200
+        assert b'1 stories / 1 events' in resp.data
+        assert b'source 1' in resp.data
+        assert b'updated 1d ago' in resp.data
+
 
 class TestThesisPage:
     def test_thesis_returns_200(self, client, sample_brief):
@@ -228,6 +259,12 @@ class TestSettingsPage:
         """Settings page should have pipeline trigger button."""
         resp = client.get('/settings')
         assert b'triggerPipeline' in resp.data
+
+    def test_settings_contains_schedule_controls(self, client, sample_brief):
+        resp = client.get('/settings')
+        assert b'savePipelineSchedule' in resp.data
+        assert b'scheduleTimezone' in resp.data
+        assert b'refreshSourceHealth' in resp.data
 
 
 class TestTimelinesPage:

@@ -1,17 +1,35 @@
 import threading
 import hmac
-from datetime import date
+from datetime import date, datetime, timezone
 from functools import wraps
 from flask import Blueprint, jsonify, request, current_app
 from sqlalchemy.exc import IntegrityError
-from app.extensions import db
+from app.extensions import db, scheduler
 from app.models.source import Source
 from app.models.topic import TrackedTopic
 from app import feature_flags
+from app.jobs.scheduled import refresh_daily_pipeline_job
+from app.services.scheduler_config_service import SchedulerConfigService
 
 admin_bp = Blueprint('admin', __name__)
 _pipeline_thread = None
 _pipeline_trigger_lock = threading.Lock()
+
+
+def _safe_scheduler_get_job(job_id):
+    try:
+        return scheduler.get_job(job_id)
+    except Exception:
+        return None
+
+
+def _pipeline_schedule_payload():
+    schedule = SchedulerConfigService().get_pipeline_schedule()
+    job = _safe_scheduler_get_job('daily_pipeline')
+    return {
+        **schedule,
+        'next_run_at': job.next_run_time.isoformat() if job and job.next_run_time else None,
+    }
 
 
 def _extract_admin_token():
@@ -156,6 +174,79 @@ def add_watchlist():
     return jsonify(topic.to_dict()), 201
 
 
+@admin_bp.route('/sources/health')
+@require_admin_key
+def source_health():
+    now = datetime.now(timezone.utc)
+    sources = Source.query.order_by(Source.section, Source.name).all()
+    states = {
+        'healthy': 0,
+        'degraded': 0,
+        'cooldown': 0,
+        'inactive': 0,
+    }
+
+    items = []
+    for source in sources:
+        payload = source.to_dict()
+        state = payload['health_state']
+        states[state] = states.get(state, 0) + 1
+        until = source.auto_disabled_until
+        if until and until.tzinfo is None:
+            until = until.replace(tzinfo=timezone.utc)
+        payload['is_cooling_down'] = bool(until and until > now)
+        items.append(payload)
+
+    return jsonify({
+        'summary': states,
+        'sources': items,
+        'generated_at': now.isoformat(),
+    })
+
+
+@admin_bp.route('/schedule/pipeline')
+@require_admin_key
+def get_pipeline_schedule():
+    return jsonify(_pipeline_schedule_payload())
+
+
+@admin_bp.route('/schedule/pipeline', methods=['PUT'])
+@require_admin_key
+def update_pipeline_schedule():
+    data = request.get_json() or {}
+    updates = {}
+
+    if 'enabled' in data:
+        if not isinstance(data['enabled'], bool):
+            return jsonify({'error': '"enabled" must be a boolean'}), 400
+        updates['enabled'] = data['enabled']
+
+    if 'time' in data:
+        time_str = str(data['time']).strip()
+        if ':' not in time_str:
+            return jsonify({'error': '"time" must use HH:MM format'}), 400
+        hh, mm = time_str.split(':', 1)
+        if not (hh.isdigit() and mm.isdigit()):
+            return jsonify({'error': '"time" must use HH:MM format'}), 400
+        updates['hour'] = int(hh)
+        updates['minute'] = int(mm)
+
+    if 'hour' in data:
+        updates['hour'] = data['hour']
+    if 'minute' in data:
+        updates['minute'] = data['minute']
+    if 'timezone' in data:
+        updates['timezone'] = data['timezone']
+
+    try:
+        schedule_config = SchedulerConfigService().update_pipeline_schedule(updates)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    refresh_daily_pipeline_job(scheduler, current_app._get_current_object(), schedule_config)
+    return jsonify(_pipeline_schedule_payload())
+
+
 @admin_bp.route('/pipeline/trigger', methods=['POST'])
 @require_admin_key
 def trigger_pipeline():
@@ -179,6 +270,29 @@ def trigger_pipeline():
         _pipeline_thread.start()
 
     return jsonify({'status': 'triggered', 'date': target.isoformat()})
+
+
+@admin_bp.route('/hedge-fund/trigger', methods=['POST'])
+@require_admin_key
+def trigger_hedge_fund():
+    """Manually trigger hedge fund analysis."""
+    from app.services.hedge_fund_service import HedgeFundService
+
+    data = request.get_json() or {}
+    service = HedgeFundService()
+
+    # Allow overriding tickers and analysts
+    if data.get('tickers'):
+        service.tickers = data['tickers']
+    if data.get('analysts'):
+        service.analysts = data['analysts']
+
+    analyses, usage = service.run_analysis(date.today())
+    return jsonify({
+        'status': 'complete',
+        'tickers_analyzed': len(analyses),
+        'results': [a.to_dict() for a in analyses],
+    })
 
 
 @admin_bp.route('/flags')

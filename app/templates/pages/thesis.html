@@ -52,4 +52,91 @@
     </p>
   </div>
 {% endif %}
+
+<!-- AI Analyst Signals (from hedge fund analysis) -->
+{% if hf_signals %}
+<div class="sb-hf-section" style="margin-top:var(--sb-space-8);">
+  <h2 class="sb-section__title">
+    AI Analyst Signals
+    <span class="sb-section__badge">{{ hf_signals | length }} tickers</span>
+  </h2>
+
+  <!-- Consensus overview pills -->
+  <div class="sb-hf-overview">
+    {% for sig in hf_signals %}
+    <div class="sb-hf-pill sb-hf-pill--{{ sig.consensus or sig.consensus_signal or 'neutral' }}">
+      <span class="sb-hf-pill__ticker">{{ sig.ticker }}</span>
+      <span class="sb-hf-pill__signal">{{ (sig.consensus or sig.consensus_signal or 'neutral') | title }}</span>
+      <span class="sb-hf-pill__conf">{{ (sig.confidence or sig.consensus_confidence or 0) | round(0) | int }}%</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Per-ticker expandable cards -->
+  {% for sig in hf_signals %}
+  {% set signal_key = sig.consensus or sig.consensus_signal or 'neutral' %}
+  <div class="sb-hf-card">
+    <div class="sb-hf-card__header" onclick="this.parentElement.classList.toggle('sb-hf-card--expanded')">
+      <div class="sb-hf-card__ticker">{{ sig.ticker }}</div>
+      <div class="sb-hf-card__consensus sb-hf-signal--{{ signal_key }}">
+        {{ signal_key | title }}
+      </div>
+      <div class="sb-hf-card__confidence">
+        <div class="sb-hf-conf-bar">
+          <div class="sb-hf-conf-bar__fill sb-hf-signal-bg--{{ signal_key }}"
+               style="width:{{ (sig.confidence or sig.consensus_confidence or 0) }}%"></div>
+        </div>
+        <span>{{ (sig.confidence or sig.consensus_confidence or 0) | round(0) | int }}%</span>
+      </div>
+      <svg class="sb-hf-card__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+
+    <div class="sb-hf-card__body">
+      {% set analysts = sig.analysts or sig.analyst_signals or {} %}
+      {% if analysts %}
+        {% for agent_name, agent_data in analysts.items() %}
+        {% if agent_data is mapping %}
+        <div class="sb-hf-analyst-row">
+          <div class="sb-hf-analyst-row__name">{{ agent_name | replace('_', ' ') | title }}</div>
+          <div class="sb-hf-analyst-row__signal sb-hf-signal--{{ (agent_data.signal or 'neutral') | lower }}">
+            {{ (agent_data.signal or 'N/A') | title }}
+          </div>
+          <div class="sb-hf-analyst-row__conf">{{ agent_data.confidence or 0 }}%</div>
+          {% if agent_data.reasoning %}
+          <div class="sb-hf-analyst-row__reasoning">
+            {{ agent_data.reasoning | format_hf_reasoning(agent_name) }}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      {% else %}
+        <p style="color:var(--sb-text-muted);font-size:var(--sb-text-sm);padding:var(--sb-space-3) 0;">
+          No analyst detail available for this ticker.
+        </p>
+      {% endif %}
+
+      {% if sig.decision %}
+      <div class="sb-hf-decision">
+        <span class="sb-hf-decision__label">Portfolio Decision:</span>
+        <span class="sb-hf-signal--{{ (sig.decision.action or 'hold') | lower }}">
+          {{ (sig.decision.action or 'hold') | upper }}
+        </span>
+        {% if sig.decision.reasoning %}
+        <span class="sb-hf-decision__reasoning">{{ sig.decision.reasoning | truncate(150) }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <p class="sb-hf-disclaimer">
+    AI-generated signals for educational purposes only. Not financial advice.
+  </p>
+</div>
+{% endif %}
 {% endblock %}

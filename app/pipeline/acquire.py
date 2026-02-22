@@ -1,6 +1,8 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from time import perf_counter
 from sqlalchemy.exc import IntegrityError
+from flask import current_app, has_app_context
 from app.extensions import db
 from app.models.source import Source
 from app.models.article import Article
@@ -36,10 +38,28 @@ def _fetch_all_rss():
     """Fetch RSS feeds from all active sources."""
     sources = Source.query.filter_by(is_active=True).all()
     total_added = 0
+    now = datetime.now(timezone.utc)
 
     for source in sources:
+        cooldown_until = source.auto_disabled_until
+        if cooldown_until and cooldown_until.tzinfo is None:
+            cooldown_until = cooldown_until.replace(tzinfo=timezone.utc)
+        if cooldown_until and cooldown_until > now:
+            logger.info(
+                "Skipping source %s: in cooldown until %s",
+                source.name,
+                cooldown_until.isoformat(),
+            )
+            continue
+
+        started_at = datetime.now(timezone.utc)
+        t0 = perf_counter()
         try:
-            entries = fetch_feed(source)
+            entries, meta = fetch_feed(source, include_meta=True)
+            latency_ms = (perf_counter() - t0) * 1000.0
+            if not meta.get('ok', True):
+                raise RuntimeError(meta.get('error') or 'Feed fetch failed')
+
             added = 0
             for entry in entries:
                 # Check if article already exists by URL
@@ -57,7 +77,7 @@ def _fetch_all_rss():
                 db.session.add(article)
                 added += 1
 
-            source.last_fetched_at = datetime.now(timezone.utc)
+            _mark_source_fetch_success(source, started_at, latency_ms)
             db.session.commit()
             total_added += added
             logger.debug(f"Source {source.name}: {added} new articles from {len(entries)} entries")
@@ -65,11 +85,80 @@ def _fetch_all_rss():
         except IntegrityError:
             db.session.rollback()
             logger.warning(f"Integrity error for source {source.name}, skipping duplicates")
+            try:
+                latency_ms = (perf_counter() - t0) * 1000.0
+                _mark_source_fetch_success(source, started_at, latency_ms)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         except Exception as e:
             db.session.rollback()
             logger.error(f"Failed to process source {source.name}: {e}")
+            _mark_source_fetch_failure(source, str(e), started_at)
 
     return total_added
+
+
+def _mark_source_fetch_success(source, started_at, latency_ms):
+    source.last_fetched_at = started_at
+    source.last_success_at = started_at
+    source.consecutive_failures = 0
+    source.consecutive_successes = (source.consecutive_successes or 0) + 1
+    source.last_error = None
+    source.auto_disabled_until = None
+
+    alpha = _source_latency_alpha()
+    if source.avg_latency_ms is None:
+        source.avg_latency_ms = latency_ms
+    else:
+        source.avg_latency_ms = (source.avg_latency_ms * (1.0 - alpha)) + (latency_ms * alpha)
+
+
+def _mark_source_fetch_failure(source, error, started_at):
+    source.last_failure_at = started_at
+    source.consecutive_successes = 0
+    source.consecutive_failures = (source.consecutive_failures or 0) + 1
+    source.total_failures = (source.total_failures or 0) + 1
+    source.last_error = (error or 'unknown error')[:512]
+
+    threshold = max(_source_failure_threshold(), 1)
+    if source.consecutive_failures >= threshold:
+        disable_minutes = max(_source_auto_disable_minutes(), 1)
+        source.auto_disabled_until = started_at + timedelta(minutes=disable_minutes)
+        logger.warning(
+            "Source %s entered cooldown for %sm after %s consecutive failures",
+            source.name,
+            disable_minutes,
+            source.consecutive_failures,
+        )
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
+def _source_failure_threshold():
+    if has_app_context():
+        return int(current_app.config.get('SOURCE_FAILURE_THRESHOLD', 3))
+    return 3
+
+
+def _source_auto_disable_minutes():
+    if has_app_context():
+        return int(current_app.config.get('SOURCE_AUTO_DISABLE_MINUTES', 180))
+    return 180
+
+
+def _source_latency_alpha():
+    if has_app_context():
+        raw = current_app.config.get('SOURCE_LATENCY_ALPHA', 0.3)
+        try:
+            value = float(raw)
+            return max(0.0, min(1.0, value))
+        except (TypeError, ValueError):
+            pass
+    return 0.3
 
 
 def _fetch_market_data(target_date):

@@ -11,7 +11,7 @@
   </div>
   <div class="sb-gauge">
     <div class="sb-gauge__fill {{ 'sb-gauge__fill--' + gauge_class if gauge_class }}"
-         style="width:{{ [pct, 100] | min }}%">
+         style="width:{{ [pct, 100] | min }}%"></div>
   </div>
   {% if cost_today %}
   <div style="display:flex;gap:var(--sb-space-4);font-size:var(--sb-text-xs);color:var(--sb-text-muted);margin-top:var(--sb-space-2);">
