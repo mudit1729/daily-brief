@@ -6,6 +6,9 @@
   <h1 class="sb-brief-header__date">Tracked Stories</h1>
   <div class="sb-brief-header__meta">
     <span>{{ topics_data | length }} topics tracked</span>
+    <span>{{ story_totals.stories }} stories</span>
+    <span>{{ story_totals.events }} events</span>
+    <span>{{ story_totals.active }} active</span>
   </div>
 </div>
 
@@ -15,21 +18,37 @@
     <h2 class="sb-section__title">
       {{ td.topic.name }}
       {% if td.topic.description %}
-      <span class="sb-section__badge" title="{{ td.topic.description }}">{{ td.stories | length }} stories</span>
+      <span class="sb-section__badge" title="{{ td.topic.description }}">
+        {{ td.stories | length }} stories / {{ td.event_count }} events
+      </span>
       {% endif %}
     </h2>
 
     {% if td.stories %}
       {% for sd in td.stories %}
       <div style="margin-bottom:var(--sb-space-6);">
-        <div style="display:flex;align-items:center;gap:var(--sb-space-2);margin-bottom:var(--sb-space-3);">
+        {% set status_class = 'success' if sd.story.status in ['developing', 'ongoing'] else ('danger' if sd.story.status == 'stale' else 'warning') %}
+        <div style="display:flex;align-items:center;gap:var(--sb-space-2);margin-bottom:var(--sb-space-2);flex-wrap:wrap;">
           <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0;">
             {{ sd.story.title }}
           </h3>
-          <span class="sb-badge sb-badge--{{ 'success' if sd.story.status == 'developing' else 'warning' }}">
+          <span class="sb-badge sb-badge--{{ status_class }}">
             {{ sd.story.status }}
           </span>
+          <span class="sb-badge">{{ sd.event_count }} events</span>
+          <span class="sb-badge">{{ sd.source_count }} sources</span>
+          <span class="sb-source-row__section">updated {{ sd.quiet_days }}d ago</span>
+          <span class="sb-source-row__section">age {{ sd.age_days }}d</span>
         </div>
+        {% if sd.source_urls %}
+        <div style="display:flex;flex-wrap:wrap;gap:var(--sb-space-2);margin-bottom:var(--sb-space-3);">
+          {% for url in sd.source_urls %}
+          <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="sb-source-badge">
+            source {{ loop.index }}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
 
         {% if sd.events %}
         <div class="sb-timeline">

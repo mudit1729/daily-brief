@@ -11,6 +11,7 @@ from app.models.weather import WeatherCache
 from app.integrations.llm_gateway import LLMGateway, BudgetExhaustedError
 from app.integrations.weather import WeatherService
 from app.services.investment_service import InvestmentService
+from app.services.hedge_fund_service import HedgeFundService
 from app.services.cost_service import CostService
 from app.utils.text import extract_lead_sentences, truncate
 
@@ -78,6 +79,22 @@ def run(target_date, brief_id):
                 display_order=section_def['order'],
             )
             db.session.add(section)
+
+    # ── Timeline auto-update + auto-discover ──────────────────
+    try:
+        from app.services.timeline_service import TimelineService
+        tl_service = TimelineService()
+
+        # Auto-update existing timelines with today's clusters
+        update_result = tl_service.auto_update_timelines(target_date, brief_id)
+        logger.info(f"[Synthesize] Timelines auto-update: {update_result}")
+
+        # Auto-discover new timelines from trending topics
+        discover_result = tl_service.auto_discover_timelines(target_date, brief_id)
+        logger.info(f"[Synthesize] Timelines auto-discover: {discover_result}")
+
+    except Exception as e:
+        logger.error(f"[Synthesize] Timeline step failed: {e}")
 
     brief.total_tokens = total_tokens
     brief.total_cost_usd = round(total_cost, 6)
@@ -172,7 +189,7 @@ def _build_market_section(target_date, brief_id, llm, section_def):
     clusters = Cluster.query.filter_by(
         date=target_date,
         section='market',
-    ).order_by(Cluster.rank_score.desc()).limit(5).all()
+    ).order_by(Cluster.rank_score.desc()).limit(10).all()
 
     cluster_summaries = []
     section_tokens = 0
@@ -235,7 +252,7 @@ def _build_weather_section(target_date, brief_id, section_def):
 
 
 def _build_investment_section(target_date, brief_id, llm, section_def):
-    """Build investment thesis section."""
+    """Build investment thesis section, optionally enriched with hedge fund signals."""
     snapshots = MarketSnapshot.query.filter_by(snapshot_date=target_date).all()
     snapshot_dicts = [
         {'symbol': s.symbol, 'name': s.name, 'price': s.price,
@@ -247,9 +264,27 @@ def _build_investment_section(target_date, brief_id, llm, section_def):
         Cluster.rank_score.desc()
     ).limit(5).all()
 
+    # ── Run hedge fund analysis first (if enabled) ──
+    hf_signals = []
+    try:
+        hf_service = HedgeFundService()
+        hf_analyses, hf_usage = hf_service.run_analysis(target_date, brief_id)
+        for a in hf_analyses:
+            hf_signals.append({
+                'ticker': a.ticker,
+                'consensus': a.consensus_signal,
+                'confidence': a.consensus_confidence,
+                'analysts': a.analyst_signals_json or {},
+                'decision': a.decision_json,
+            })
+    except Exception as e:
+        logger.error(f"[Synthesize] Hedge fund analysis failed (non-fatal): {e}")
+
+    # ── Generate thesis (now with HF context) ──
     investment_service = InvestmentService()
     thesis, usage = investment_service.generate_thesis(
-        target_date, brief_id, snapshot_dicts, top_clusters, llm
+        target_date, brief_id, snapshot_dicts, top_clusters, llm,
+        hedge_fund_signals=hf_signals,
     )
 
     content = {
@@ -259,6 +294,7 @@ def _build_investment_section(target_date, brief_id, llm, section_def):
             'momentum': thesis.momentum_signal if thesis else None,
             'value': thesis.value_signal if thesis else None,
         },
+        'hedge_fund_signals': hf_signals,
     }
 
     return BriefSection(
@@ -385,4 +421,4 @@ def _format_cluster(cluster, articles, summary):
 
 def _max_clusters_for_degradation(level):
     """Max clusters to process at each degradation level."""
-    return {0: 10, 1: 8, 2: 6, 3: 3, 4: 5}.get(level, 5)
+    return {0: 15, 1: 12, 2: 8, 3: 5, 4: 6}.get(level, 6)

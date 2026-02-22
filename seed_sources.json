@@ -223,5 +223,26 @@
     "bias_label": "right",
     "trust_score": 82,
     "source_type": "reporting"
-  }
+  },
+
+  {"name": "Yahoo Finance - Top Stories", "url": "https://finance.yahoo.com/news/rssindex", "section": "market", "region": "us", "bias_label": "center", "trust_score": 72, "source_type": "reporting"},
+  {"name": "MarketWatch - Top Stories", "url": "https://feeds.marketwatch.com/marketwatch/topstories/", "section": "market", "region": "us", "bias_label": "center", "trust_score": 75, "source_type": "reporting"},
+  {"name": "Investopedia - News", "url": "https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline", "section": "market", "region": "us", "bias_label": "center", "trust_score": 70, "source_type": "reporting"},
+  {"name": "Financial Times - World", "url": "https://www.ft.com/rss/home", "section": "market", "region": "global", "bias_label": "center", "trust_score": 88, "source_type": "analysis"},
+
+  {"name": "Phys.org - Top News", "url": "https://phys.org/rss-feed/", "section": "science", "region": "global", "bias_label": "center", "trust_score": 75, "source_type": "reporting"},
+  {"name": "ScienceDaily", "url": "https://www.sciencedaily.com/rss/all.xml", "section": "science", "region": "global", "bias_label": "center", "trust_score": 76, "source_type": "reporting"},
+  {"name": "Quanta Magazine", "url": "https://api.quantamagazine.org/feed/", "section": "science", "region": "global", "bias_label": "center", "trust_score": 90, "source_type": "analysis"},
+  {"name": "Scientific American", "url": "https://rss.sciam.com/ScientificAmerican-Global", "section": "science", "region": "global", "bias_label": "center", "trust_score": 85, "source_type": "reporting"},
+
+  {"name": "MedPage Today", "url": "https://www.medpagetoday.com/rss/headlines.xml", "section": "health", "region": "global", "bias_label": "center", "trust_score": 80, "source_type": "reporting"},
+  {"name": "Medical News Today", "url": "https://rss.medicalnewstoday.com/featurednews.xml", "section": "health", "region": "global", "bias_label": "center", "trust_score": 72, "source_type": "reporting"},
+  {"name": "NIH News", "url": "https://www.nih.gov/news-events/news-releases/feed", "section": "health", "region": "us", "bias_label": "center", "trust_score": 92, "source_type": "primary"},
+
+  {"name": "Wired - AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss", "section": "ai_news", "region": "global", "bias_label": "center", "trust_score": 74, "source_type": "reporting"},
+  {"name": "VentureBeat - AI", "url": "https://venturebeat.com/category/ai/feed/", "section": "ai_news", "region": "global", "bias_label": "center", "trust_score": 70, "source_type": "reporting"},
+
+  {"name": "Foreign Policy", "url": "https://foreignpolicy.com/feed/", "section": "general_news", "region": "global", "bias_label": "center", "trust_score": 82, "source_type": "analysis"},
+  {"name": "The Diplomat", "url": "https://thediplomat.com/feed/", "section": "general_news", "region": "global", "bias_label": "center", "trust_score": 78, "source_type": "analysis"},
+  {"name": "Defense One", "url": "https://www.defenseone.com/rss/", "section": "general_news", "region": "us", "bias_label": "center", "trust_score": 76, "source_type": "reporting"}
 ]

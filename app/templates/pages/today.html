@@ -72,17 +72,39 @@
     {% set sec = sections.get(section_key) %}
     {% if sec and sec.content.get('clusters') %}
     <section id="section-{{ section_key }}" class="sb-section">
-      <h2 class="sb-section__title">
-        {{ sec.title }}
-        <span class="sb-section__badge">{{ sec.content.clusters | length }}</span>
-        {% if sec.degradation and sec.degradation > 0 %}
-        <span class="sb-badge sb-badge--warning" title="Degradation level {{ sec.degradation }}: budget constrained">D{{ sec.degradation }}</span>
-        {% endif %}
-      </h2>
+      <div class="sb-section__header">
+        <h2 class="sb-section__title">
+          {{ sec.title }}
+          <span class="sb-section__badge">{{ sec.content.clusters | length }}</span>
+          {% if sec.degradation and sec.degradation > 0 %}
+          <span class="sb-badge sb-badge--warning" title="Degradation level {{ sec.degradation }}: budget constrained">D{{ sec.degradation }}</span>
+          {% endif %}
+        </h2>
+        <div class="sb-stack-controls">
+          <span class="sb-stack-counter">
+            <span class="sb-stack-counter__current">1</span>/<span class="sb-stack-counter__total">{{ sec.content.clusters | length }}</span>
+          </span>
+          <button class="sb-stack-btn sb-stack-btn--prev" aria-label="Previous card" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="sb-stack-btn sb-stack-btn--next" aria-label="Next card">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="sb-stack-btn sb-stack-btn--reset" aria-label="Reset to first card" title="Back to first">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+        </div>
+      </div>
 
-      {% for cluster in sec.content.clusters %}
-        {% include "partials/cluster_card.html" %}
-      {% endfor %}
+      <div class="sb-card-stack" data-current="0">
+        {% for cluster in sec.content.clusters %}
+          <div class="sb-card-stack__item {% if loop.index0 == 0 %}is-active{% elif loop.index0 <= 2 %}is-queued{% else %}is-hidden{% endif %}"
+               data-stack-index="{{ loop.index0 }}"
+               style="--stack-offset: {{ loop.index0 }}">
+            {% include "partials/cluster_card.html" %}
+          </div>
+        {% endfor %}
+      </div>
     </section>
     {% endif %}
   {% endfor %}

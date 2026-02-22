@@ -1,6 +1,6 @@
 import pytest
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from app.extensions import db
 from app.models.brief import DailyBrief, BriefSection
 from app.models.source import Source
@@ -180,6 +180,51 @@ class TestAdminRoutes:
 
         second = client.post('/api/admin/watchlists', json=payload, headers=admin_headers)
         assert second.status_code == 409
+
+    def test_get_pipeline_schedule(self, client, admin_headers):
+        resp = client.get('/api/admin/schedule/pipeline', headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json['hour'] == 5
+        assert resp.json['minute'] == 30
+        assert resp.json['timezone'] == 'UTC'
+
+    def test_update_pipeline_schedule(self, client, admin_headers):
+        resp = client.put('/api/admin/schedule/pipeline', json={
+            'enabled': False,
+            'time': '07:45',
+            'timezone': 'UTC',
+        }, headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json['enabled'] is False
+        assert resp.json['hour'] == 7
+        assert resp.json['minute'] == 45
+
+        check = client.get('/api/admin/schedule/pipeline', headers=admin_headers)
+        assert check.status_code == 200
+        assert check.json['enabled'] is False
+        assert check.json['hour'] == 7
+        assert check.json['minute'] == 45
+
+    def test_update_pipeline_schedule_rejects_bad_time(self, client, admin_headers):
+        resp = client.put('/api/admin/schedule/pipeline', json={
+            'time': '99:99',
+        }, headers=admin_headers)
+        assert resp.status_code == 400
+
+    def test_source_health_endpoint(self, client, sample_sources, admin_headers, db_session):
+        degraded = sample_sources[1]
+        degraded.consecutive_failures = 2
+
+        cooling = sample_sources[2]
+        cooling.consecutive_failures = 4
+        cooling.auto_disabled_until = datetime.now(timezone.utc) + timedelta(hours=1)
+        db_session.commit()
+
+        resp = client.get('/api/admin/sources/health', headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json['summary']['healthy'] >= 1
+        assert resp.json['summary']['degraded'] >= 1
+        assert resp.json['summary']['cooldown'] >= 1
 
 
 class TestCostRoutes:

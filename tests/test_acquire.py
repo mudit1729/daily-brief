@@ -1,9 +1,10 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.models.source import Source
 from app.models.article import Article
 from app.integrations.rss import fetch_feed
+from app.pipeline.acquire import _fetch_all_rss
 
 
 class TestRSSFetch:
@@ -121,3 +122,62 @@ class TestMarketData:
         ]
         passed, signals = service.check_momentum_value_gate(snapshots_fail)
         assert passed is False
+
+
+class TestSourceHealthFallback:
+    def test_source_enters_cooldown_after_consecutive_failures(self, app, db_session):
+        source = Source(
+            name='Failing Feed',
+            url='https://example.com/failing.xml',
+            section='ai_news',
+            source_type='reporting',
+        )
+        db_session.add(source)
+        db_session.commit()
+
+        app.config['SOURCE_FAILURE_THRESHOLD'] = 2
+        app.config['SOURCE_AUTO_DISABLE_MINUTES'] = 60
+
+        with patch('app.pipeline.acquire.fetch_feed', return_value=([], {'ok': False, 'error': 'timeout'})):
+            _fetch_all_rss()
+            _fetch_all_rss()
+
+        refreshed = db_session.get(Source, source.id)
+        assert refreshed.consecutive_failures >= 2
+        assert refreshed.auto_disabled_until is not None
+        assert refreshed.last_error == 'timeout'
+
+    def test_source_in_cooldown_is_skipped(self, db_session):
+        source = Source(
+            name='Cooling Feed',
+            url='https://example.com/cooling.xml',
+            section='ai_news',
+            source_type='reporting',
+            auto_disabled_until=datetime.now(timezone.utc) + timedelta(minutes=30),
+        )
+        db_session.add(source)
+        db_session.commit()
+
+        with patch('app.pipeline.acquire.fetch_feed') as mocked_fetch:
+            _fetch_all_rss()
+
+        mocked_fetch.assert_not_called()
+
+    def test_success_resets_failure_streak(self, db_session):
+        source = Source(
+            name='Recovered Feed',
+            url='https://example.com/recovered.xml',
+            section='ai_news',
+            source_type='reporting',
+            consecutive_failures=3,
+            total_failures=3,
+        )
+        db_session.add(source)
+        db_session.commit()
+
+        with patch('app.pipeline.acquire.fetch_feed', return_value=([], {'ok': True, 'error': None})):
+            _fetch_all_rss()
+
+        refreshed = db_session.get(Source, source.id)
+        assert refreshed.consecutive_failures == 0
+        assert refreshed.last_success_at is not None
