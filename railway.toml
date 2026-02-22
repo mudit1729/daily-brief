@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "FLASK_APP=wsgi:app flask db upgrade; gunicorn wsgi:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
+startCommand = "FLASK_APP=wsgi:app flask db upgrade; python scripts/seed_db.py; gunicorn wsgi:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
