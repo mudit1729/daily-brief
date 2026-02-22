@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = 15
+MAX_HTML_BYTES = 512 * 1024  # 512 KB limit to prevent memory issues
 USER_AGENT = 'SignalBriefBot/1.0 (+https://github.com/signal-brief-engine)'
 
 
@@ -20,9 +21,21 @@ def extract(url):
             url,
             timeout=REQUEST_TIMEOUT,
             headers={'User-Agent': USER_AGENT},
+            stream=True,
         )
         resp.raise_for_status()
-        html = resp.text
+
+        # Read up to MAX_HTML_BYTES to prevent huge pages from causing OOM/crashes
+        chunks = []
+        total = 0
+        for chunk in resp.iter_content(chunk_size=64 * 1024, decode_unicode=True):
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > MAX_HTML_BYTES:
+                logger.debug(f"Truncating HTML at {MAX_HTML_BYTES} bytes for {url}")
+                break
+        resp.close()
+        html = ''.join(chunks)
     except Exception as e:
         logger.warning(f"Failed to fetch {url}: {e}")
         return None
