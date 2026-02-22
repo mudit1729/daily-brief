@@ -176,9 +176,9 @@ body {
 }
 .sb-clock {
   font-family: var(--sb-font-mono);
-  font-size: var(--sb-text-xs);
+  font-size: var(--sb-text-base);
   background: var(--sb-bg-card);
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: var(--sb-radius-md);
   border: 1px solid var(--sb-border-subtle);
   color: var(--sb-text-secondary);

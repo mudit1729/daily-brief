@@ -27,22 +27,6 @@
       <span class="sb-clock" data-tz="America/Los_Angeles" data-label="SD"></span>
       <span class="sb-clock" data-tz="Asia/Kolkata" data-label="HYD"></span>
     </div>
-    {% if overview and overview.top_stories %}
-    <div class="sb-brief-header__headlines">
-      {% for story in overview.top_stories %}
-      <span class="sb-brief-header__headline">
-        <span class="sb-brief-header__headline-dot"></span>
-        {{ story.label }}
-      </span>
-      {% endfor %}
-      {% if overview.market_highlight %}
-      <span class="sb-brief-header__headline">
-        <span class="sb-brief-header__headline-dot sb-brief-header__headline-dot--{{ overview.market_highlight.change_pct | change_class }}"></span>
-        {{ overview.market_highlight.name }} {{ overview.market_highlight.change_pct | change_sign }}
-      </span>
-      {% endif %}
-    </div>
-    {% endif %}
     <!-- Time travel wheel -->
     <div class="sb-time-travel__panel" data-time-travel-panel>
       <div class="sb-time-travel__wheel-row">
