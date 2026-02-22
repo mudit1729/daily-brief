@@ -1,10 +1,31 @@
 import logging
+import re
 from datetime import datetime, timezone
 from app.extensions import db
 from app.models.topic import TrackedTopic, Story, Event
 from app import feature_flags
 
 logger = logging.getLogger(__name__)
+
+# Common words to ignore when matching topic terms to cluster text
+STOPWORDS = {
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'is', 'it', 'its', 'as', 'are', 'was',
+    'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does', 'did',
+    'not', 'no', 'nor', 'so', 'if', 'up', 'out', 'about', 'into',
+    'than', 'then', 'that', 'this', 'these', 'those', 'what', 'which',
+    'who', 'how', 'will', 'can', 'may', 'vs',
+}
+
+
+def _extract_words(text):
+    """Extract lowercase words from text as a set."""
+    return set(re.findall(r'\b[a-z0-9]+\b', text.lower()))
+
+
+def _significant_terms(terms):
+    """Filter topic terms to only significant words (not stopwords, len > 1)."""
+    return [t for t in terms if t.lower() not in STOPWORDS and len(t) > 1]
 
 
 class StoryTracker:
@@ -25,30 +46,37 @@ class StoryTracker:
         if not cluster_text:
             return None
 
+        cluster_words = _extract_words(cluster_text)
+
         # Check active topics
         topics = TrackedTopic.query.filter_by(is_active=True).all()
         for topic in topics:
-            topic_terms = topic.name.lower().split()
-            if any(term in cluster_text for term in topic_terms):
+            topic_terms = _significant_terms(topic.name.lower().split())
+            if not topic_terms:
+                continue
+
+            # Require ALL significant topic terms to appear as whole words
+            if all(term in cluster_words for term in topic_terms):
                 # Check existing stories for this topic
-                story = self._find_or_create_story(topic, cluster)
+                story = self._find_or_create_story(topic, cluster, cluster_words)
                 if story:
                     self._add_event(story, cluster, articles)
                     return story
 
         return None
 
-    def _find_or_create_story(self, topic, cluster):
+    def _find_or_create_story(self, topic, cluster, cluster_words):
         """Find existing developing story or create new one."""
         stories = Story.query.filter(
             Story.topic_id == topic.id,
             Story.status.in_(['developing', 'ongoing']),
         ).all()
 
-        cluster_text = (cluster.label or '').lower()
         for story in stories:
-            story_terms = story.title.lower().split()
-            if any(term in cluster_text for term in story_terms if len(term) > 3):
+            story_terms = _significant_terms(story.title.lower().split())
+            # Require at least 2 significant story terms to match as whole words
+            matching = sum(1 for term in story_terms if term in cluster_words)
+            if story_terms and matching >= min(2, len(story_terms)):
                 story.last_updated = datetime.now(timezone.utc)
                 # Append cluster ID to tracking
                 ids = story.cluster_ids_json or []
