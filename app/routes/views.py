@@ -431,7 +431,7 @@ def _compute_overview(sections):
             total_sources += cl.get('article_count', 0)
             if cl.get('rank_score', 0) > 0.5 and len(top_stories) < 5:
                 top_stories.append({
-                    'label': cl.get('label', '')[:80],
+                    'label': (cl.get('label') or '')[:80],
                     'section': key,
                     'score': cl.get('rank_score', 0),
                 })
