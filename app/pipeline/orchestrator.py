@@ -16,12 +16,15 @@ def _claim_pipeline_brief(target_date, force=False):
     Returns DailyBrief if this worker should run pipeline, else None.
     """
     brief = DailyBrief.query.filter_by(date=target_date).first()
+
+    # Force mode: reset ANY existing brief back to running
+    if brief and force:
+        logger.info(f"Force re-running pipeline for {target_date} (was {brief.status})")
+        brief.status = 'running'
+        db.session.commit()
+        return brief
+
     if brief and brief.status == 'complete':
-        if force:
-            logger.info(f"Force re-running pipeline for {target_date}")
-            brief.status = 'running'
-            db.session.commit()
-            return brief
         logger.info(f"Brief for {target_date} already complete, skipping")
         return None
 
