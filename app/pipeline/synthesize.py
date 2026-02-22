@@ -108,6 +108,7 @@ def run(target_date, brief_id):
             logger.info("[Synthesize] Story tracking disabled (FF_STORY_TRACKING)")
     except Exception as e:
         logger.error(f"[Synthesize] Story tracking failed (non-fatal): {e}")
+        db.session.rollback()  # Recover session so subsequent steps don't cascade-fail
 
     # ── Grok analysis pass (secondary LLM enrichment) ────────
     try:
