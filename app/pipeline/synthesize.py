@@ -206,6 +206,12 @@ def _build_news_section(target_date, brief_id, llm, section_def):
         articles = _get_cluster_articles(cluster)
         article_texts = [a.extracted_text for a in articles if a.extracted_text]
 
+        # Always set cluster label from article title if not already set
+        if not cluster.label and articles:
+            titles = [a.title for a in articles if a.title]
+            if titles:
+                cluster.label = titles[0][:200]
+
         if degradation >= 4:
             # Extractive: use lead sentences, no LLM
             summary_text = _extractive_summary(articles)
@@ -263,6 +269,12 @@ def _build_market_section(target_date, brief_id, llm, section_def):
     for cluster in clusters:
         articles = _get_cluster_articles(cluster)
         degradation = llm.determine_degradation_level('market')
+
+        # Always set cluster label from article title if not already set
+        if not cluster.label and articles:
+            titles = [a.title for a in articles if a.title]
+            if titles:
+                cluster.label = titles[0][:200]
 
         if degradation >= 4:
             summary_text = _extractive_summary(articles)
