@@ -45,6 +45,7 @@ def run(target_date):
     articles = Article.query.filter(
         Article.fetched_at >= cutoff,
         Article.extracted_text.isnot(None),
+        Article.extracted_text != '',
         Article.is_duplicate == False,
     ).all()
 
@@ -52,6 +53,12 @@ def run(target_date):
     articles_needing_embeddings = [
         a for a in articles
         if not ArticleEmbedding.query.filter_by(article_id=a.id).first()
+    ]
+
+    # Also filter out empty/whitespace-only extracted_text
+    articles_needing_embeddings = [
+        a for a in articles_needing_embeddings
+        if a.extracted_text and a.extracted_text.strip()
     ]
 
     # Compute embeddings in batch
