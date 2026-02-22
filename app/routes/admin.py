@@ -1,3 +1,4 @@
+import logging
 import threading
 import hmac
 from datetime import date, datetime, timezone
@@ -11,6 +12,7 @@ from app import feature_flags
 from app.jobs.scheduled import refresh_daily_pipeline_job
 from app.services.scheduler_config_service import SchedulerConfigService
 
+logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin', __name__)
 _pipeline_thread = None
 _pipeline_trigger_lock = threading.Lock()
@@ -258,17 +260,23 @@ def trigger_pipeline():
     force = request.json.get('force', False) if request.is_json else False
     target = date.today()
     app = current_app._get_current_object()
+    logger.info(f"[Trigger] Pipeline trigger received: date={target}, force={force}, is_json={request.is_json}")
 
     def run_in_thread():
         with app.app_context():
-            run_daily_pipeline(target, force=force)
+            try:
+                run_daily_pipeline(target, force=force)
+            except Exception as e:
+                logger.error(f"[Trigger] Pipeline thread crashed: {e}", exc_info=True)
 
     with _pipeline_trigger_lock:
         if _pipeline_thread and _pipeline_thread.is_alive():
+            logger.warning("[Trigger] Pipeline already running, rejecting duplicate")
             return jsonify({'error': 'Pipeline already running'}), 409
 
         _pipeline_thread = threading.Thread(target=run_in_thread, daemon=True)
         _pipeline_thread.start()
+        logger.info("[Trigger] Pipeline thread started")
 
     return jsonify({'status': 'triggered', 'date': target.isoformat()})
 

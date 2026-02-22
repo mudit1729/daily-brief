@@ -37,6 +37,9 @@ def run(target_date, brief_id):
     logger.info(f"[Synthesize] Starting for {target_date}")
 
     config = current_app.config
+    model = config.get('LLM_MODEL', 'unknown')
+    budget = config.get('LLM_DAILY_BUDGET_USD', 0)
+    logger.info(f"[Synthesize] Config: model={model}, budget=${budget}, sections={len(SECTIONS)}")
     llm = LLMGateway(config)
     cost_service = CostService()
 
