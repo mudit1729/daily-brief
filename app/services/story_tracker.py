@@ -19,7 +19,7 @@ STOPWORDS = {
     'after', 'before', 'over', 'under', 'between', 'through', 'during',
     'while', 'where', 'when', 'why', 'all', 'any', 'each', 'every',
     'other', 'some', 'such', 'only', 'own', 'same', 'our', 'your',
-    'his', 'her', 'their', 'my', 'we', 'you', 'he', 'she', 'they',
+    'his', 'her', 'their', 'my', 'we', 'us', 'you', 'he', 'she', 'they',
 }
 
 
