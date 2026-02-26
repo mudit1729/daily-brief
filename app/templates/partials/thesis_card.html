@@ -17,7 +17,7 @@
   </div>
 
   {% if content.get('thesis') %}
-  <p class="sb-thesis__text">{{ content.thesis }}</p>
+  <div class="sb-thesis__text">{{ content.thesis | render_thesis }}</div>
   {% else %}
   <p class="sb-thesis__text" style="color:var(--sb-text-muted);font-style:italic;">
     No thesis generated today. The momentum and value gate conditions were not met.

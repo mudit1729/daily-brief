@@ -326,6 +326,31 @@ def _fallback_format(data):
     return '\n'.join(lines) if lines else str(data)[:200]
 
 
+@views_bp.app_template_filter('render_thesis')
+def render_thesis_filter(text):
+    """Convert thesis text into structured HTML with bold rendering and paragraph breaks."""
+    import re
+    from markupsafe import Markup
+
+    if not text:
+        return ''
+
+    # Convert **bold** to <strong>
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+
+    # Split into paragraphs at key transition phrases
+    sentences = re.split(
+        r'(?<=\.) (?=However,|Watch for|Key risks|In India,|In [A-Z][a-z]+,)',
+        text,
+    )
+
+    if len(sentences) <= 1:
+        return Markup(f'<p>{text}</p>')
+
+    paragraphs = [f'<p>{s.strip()}</p>' for s in sentences if s.strip()]
+    return Markup('\n'.join(paragraphs))
+
+
 @views_bp.app_template_filter('format_hf_reasoning')
 def format_hf_reasoning_filter(reasoning, agent_name=''):
     """Format hedge fund analyst reasoning into readable HTML.
