@@ -382,13 +382,23 @@ class StockResearchService:
 
         try:
             from app.services.hedge_fund_service import HedgeFundService
+            from app import feature_flags
 
             with self.app.app_context():
-                service = HedgeFundService()
-                service.tickers = [ticker]
-                service.analysts = ['fundamentals', 'technicals', 'valuation', 'sentiment']
+                # Temporarily enable the flag — /research is an explicit user request
+                was_enabled = feature_flags.is_enabled('hedge_fund_analysis')
+                if not was_enabled:
+                    feature_flags.set_flag('hedge_fund_analysis', True)
 
-                analyses, usage = service.run_analysis(date.today())
+                try:
+                    service = HedgeFundService()
+                    service.tickers = [ticker]
+                    service.analysts = ['fundamentals', 'technicals', 'valuation', 'sentiment']
+
+                    analyses, usage = service.run_analysis(date.today())
+                finally:
+                    if not was_enabled:
+                        feature_flags.set_flag('hedge_fund_analysis', False)
 
                 if not analyses:
                     self.bot.send_message(chat_id, 'AI analysis returned no results.')
