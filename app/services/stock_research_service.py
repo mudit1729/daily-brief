@@ -2,16 +2,23 @@
 Stock research service — orchestrates in-depth stock analysis
 for the Telegram /research command. Sends progressive updates
 with verbose data, numbers, and source citations.
+
+Supports two data modes:
+  - API mode: fetches live data from financialdatasets.ai
+  - LLM mode: uses a single gpt-4.1-nano call when API is unavailable
 """
+import json
 import logging
 import os
 from datetime import date, timedelta
 
+import pandas as pd
+
 logger = logging.getLogger(__name__)
 
-DATA_SOURCE = 'financialdatasets.ai'
-DATA_CITE = f'_Source: {DATA_SOURCE}_'
-SEC_URL = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type=10-Q&dateb=&owner=include&count=10'
+DATA_SOURCE_API = 'financialdatasets.ai'
+DATA_SOURCE_LLM = 'LLM-estimated (gpt-4.1-nano — not real-time)'
+LLM_DATA_MODEL = 'gpt-4.1-nano'
 
 
 def _pct(val):
@@ -63,6 +70,11 @@ class StockResearchService:
         self.bot = bot
         self.app = app
 
+    def _data_cite(self, data):
+        if data.get('_source') == 'llm':
+            return f'_Source: {DATA_SOURCE_LLM}_'
+        return f'_Source: {DATA_SOURCE_API}_'
+
     def run_research(self, ticker, chat_id):
         """
         Main entry point. Runs in a background thread with app context.
@@ -82,6 +94,15 @@ class StockResearchService:
             self.bot.send_message(chat_id, f'❌ Error fetching data for {ticker}: {e}')
             return
 
+        # Notify if using LLM-estimated data
+        if data.get('_source') == 'llm':
+            self.bot.send_message(
+                chat_id,
+                f'⚠️ *Note:* Live market data API unavailable. '
+                f'Using LLM-estimated data ({LLM_DATA_MODEL}). '
+                f'Figures are approximate and based on training data, not real-time.',
+            )
+
         # Phase 1: Company overview
         self._send_overview(chat_id, ticker, data)
 
@@ -94,7 +115,7 @@ class StockResearchService:
         # Phase 4: Momentum & technicals
         self._send_momentum(chat_id, ticker, data)
 
-        # Phase 5: Financial statement detail + 8-quarter trends
+        # Phase 5: Financial statement detail + quarterly trends
         self._send_financials(chat_id, ticker, data)
 
         # Phase 6: Insider trading activity
@@ -106,17 +127,45 @@ class StockResearchService:
         # Phase 8: Chart
         self._send_chart(chat_id, ticker, data)
 
-        # Phase 9: AI Multi-Agent Analysis
-        self._send_ai_analysis(chat_id, ticker)
+        # Phase 9: AI Multi-Agent Analysis (skip in LLM mode — agents need live API)
+        if data.get('_source') == 'llm':
+            self.bot.send_message(
+                chat_id,
+                f'🤖 *{ticker} — AI Multi-Agent Analysis*\n'
+                f'_Skipped: requires live market data API. '
+                f'Multi-perspective analysis included in AI Summary below._',
+            )
+        else:
+            self._send_ai_analysis(chat_id, ticker)
 
-        # Phase 10: LLM Investment Summary
+        # Phase 10: LLM Investment Summary (enhanced in LLM mode)
         self._send_llm_summary(chat_id, ticker, data)
 
     # ──────────────────────────────────────────────
-    # Data fetching
+    # Data fetching — with LLM fallback
     # ──────────────────────────────────────────────
 
     def _fetch_data(self, ticker):
+        """Fetch data from API, falling back to LLM if API returns nothing."""
+        with self.app.app_context():
+            use_llm = self.app.config.get('RESEARCH_USE_LLM_DATA', False)
+
+        if use_llm:
+            logger.info(f"[Research] RESEARCH_USE_LLM_DATA=true, using LLM for {ticker}")
+            return self._fetch_data_via_llm(ticker)
+
+        # Try API first
+        data = self._fetch_data_from_api(ticker)
+
+        # If API returned nothing useful, fall back to LLM
+        if not data['company'] and not data['metrics'] and not data['line_items']:
+            logger.warning(f"[Research] API returned no data for {ticker}, falling back to LLM")
+            return self._fetch_data_via_llm(ticker)
+
+        data['_source'] = 'api'
+        return data
+
+    def _fetch_data_from_api(self, ticker):
         """Fetch all data from financialdatasets.ai API."""
         from vendor.ai_hedge_fund.tools.api import (
             get_prices, get_financial_metrics, search_line_items,
@@ -145,14 +194,9 @@ class StockResearchService:
         except Exception as e:
             logger.warning(f"[Research] Company facts failed: {e}")
 
-        # Prices (1 year)
         prices = get_prices(ticker, start_1y, end)
         prices_df = prices_to_df(prices) if prices else None
-
-        # Financial metrics (8 quarters)
         metrics = get_financial_metrics(ticker, end, period='quarterly', limit=8)
-
-        # Line items (8 quarters) — expanded list
         line_items = search_line_items(
             ticker,
             line_items=[
@@ -166,18 +210,14 @@ class StockResearchService:
             ],
             end_date=end, period='quarterly', limit=8,
         )
-
-        # Market cap
         market_cap = get_market_cap(ticker, end)
 
-        # Insider trades (last 90 days)
         insider_trades = []
         try:
             insider_trades = get_insider_trades(ticker, end, start_date=start_90d, limit=50)
         except Exception as e:
             logger.warning(f"[Research] Insider trades failed: {e}")
 
-        # Company news (last 30 days)
         news = []
         try:
             start_30d = (date.today() - timedelta(days=30)).isoformat()
@@ -195,6 +235,328 @@ class StockResearchService:
             'insider_trades': insider_trades,
             'news': news,
         }
+
+    # ──────────────────────────────────────────────
+    # LLM-based data fetching (single cheap call)
+    # ──────────────────────────────────────────────
+
+    def _fetch_data_via_llm(self, ticker):
+        """Fetch financial data via a single gpt-4.1-nano LLM call."""
+        from app.integrations.llm_gateway import LLMGateway
+        from vendor.ai_hedge_fund.data.models import (
+            CompanyFacts, FinancialMetrics, LineItem, InsiderTrade, CompanyNews,
+        )
+
+        with self.app.app_context():
+            llm = LLMGateway()
+
+            system_prompt = (
+                "You are a financial data provider. Return ONLY valid JSON matching "
+                "the exact schema requested. Use null for unknown values. "
+                "All financial figures should be in USD. Percentages should be "
+                "expressed as decimals (e.g. 0.25 for 25%). "
+                "Provide the most recent data you know. Output ONLY the JSON object, "
+                "no markdown, no explanation."
+            )
+
+            user_prompt = f"""Provide comprehensive financial data for {ticker} as a JSON object:
+
+{{
+  "company": {{
+    "name": "string", "ticker": "{ticker}", "sector": "string", "industry": "string",
+    "exchange": "string", "location": "string or null", "employees": number_or_null,
+    "website_url": "string or null", "cik": "string or null",
+    "market_cap": number_or_null, "listing_date": "YYYY-MM-DD or null",
+    "sic_industry": "string or null", "sec_filings_url": "string or null"
+  }},
+  "current_price": number,
+  "week_52_high": number,
+  "week_52_low": number,
+  "monthly_closes": [
+    {{"date": "YYYY-MM-01", "close": number}}
+  ],
+  "metrics": [
+    {{
+      "report_period": "YYYY-MM-DD", "period": "quarterly", "currency": "USD",
+      "market_cap": number_or_null, "enterprise_value": number_or_null,
+      "pe": number_or_null, "pb": number_or_null, "ps": number_or_null,
+      "ev_ebitda": number_or_null, "ev_revenue": number_or_null,
+      "peg": number_or_null, "fcf_yield": number_or_null,
+      "gross_margin": number_or_null, "operating_margin": number_or_null,
+      "net_margin": number_or_null, "roe": number_or_null, "roa": number_or_null,
+      "roic": number_or_null, "revenue_growth": number_or_null,
+      "earnings_growth": number_or_null, "eps_growth": number_or_null,
+      "fcf_growth": number_or_null, "operating_income_growth": number_or_null,
+      "ebitda_growth": number_or_null, "book_value_growth": number_or_null,
+      "current_ratio": number_or_null, "quick_ratio": number_or_null,
+      "debt_to_equity": number_or_null, "debt_to_assets": number_or_null,
+      "interest_coverage": number_or_null,
+      "eps": number_or_null, "bvps": number_or_null, "fcfps": number_or_null,
+      "payout_ratio": number_or_null, "asset_turnover": number_or_null
+    }}
+  ],
+  "financials": [
+    {{
+      "report_period": "YYYY-MM-DD", "period": "quarterly", "currency": "USD",
+      "revenue": number_or_null, "net_income": number_or_null,
+      "operating_income": number_or_null, "gross_profit": number_or_null,
+      "free_cash_flow": number_or_null, "total_assets": number_or_null,
+      "total_liabilities": number_or_null, "total_debt": number_or_null,
+      "total_equity": number_or_null, "cash": number_or_null,
+      "operating_cash_flow": number_or_null, "eps": number_or_null,
+      "outstanding_shares": number_or_null, "capex": number_or_null,
+      "rnd": number_or_null, "sga": number_or_null, "dividends": number_or_null
+    }}
+  ],
+  "insider_trades": [
+    {{
+      "name": "string", "title": "string or null", "is_director": boolean,
+      "shares": number, "price": number_or_null, "value": number_or_null,
+      "filing_date": "YYYY-MM-DD"
+    }}
+  ],
+  "news": [
+    {{"title": "string", "source": "string or null", "date": "YYYY-MM-DD",
+      "sentiment": "positive|negative|neutral"}}
+  ]
+}}
+
+Requirements:
+- monthly_closes: 12 entries for the last 12 months
+- metrics: 4 entries for the last 4 quarters (newest first)
+- financials: 4 entries for the last 4 quarters (newest first)
+- insider_trades: up to 5 notable recent insider trades
+- news: up to 5 major recent news items/themes
+- Use null (not "N/A") for unknown numeric values"""
+
+            result = llm.call(
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                purpose=f'research.data.{ticker}',
+                section='research',
+                max_tokens=4000,
+                model=LLM_DATA_MODEL,
+            )
+
+            raw = result['content'].strip()
+            # Strip markdown code fences if present
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+                if raw.endswith('```'):
+                    raw = raw[:-3]
+                raw = raw.strip()
+
+            try:
+                j = json.loads(raw)
+            except json.JSONDecodeError:
+                logger.error(f"[Research] LLM returned invalid JSON for {ticker}: {raw[:200]}")
+                raise ValueError(f"LLM returned invalid JSON for {ticker}")
+
+        # Convert JSON → Pydantic models
+        company = self._parse_llm_company(j.get('company', {}), ticker)
+        metrics = self._parse_llm_metrics(j.get('metrics', []), ticker)
+        line_items = self._parse_llm_line_items(j.get('financials', []), ticker)
+        insider_trades = self._parse_llm_insider_trades(j.get('insider_trades', []), ticker)
+        news = self._parse_llm_news(j.get('news', []), ticker)
+        prices_df = self._parse_llm_prices(
+            j.get('monthly_closes', []),
+            j.get('current_price'),
+            j.get('week_52_high'),
+            j.get('week_52_low'),
+        )
+        market_cap = None
+        if company:
+            market_cap = company.market_cap
+        if not market_cap and metrics:
+            market_cap = metrics[0].market_cap
+
+        return {
+            'company': company,
+            'prices': [],
+            'prices_df': prices_df,
+            'metrics': metrics,
+            'line_items': line_items,
+            'market_cap': market_cap,
+            'insider_trades': insider_trades,
+            'news': news,
+            '_source': 'llm',
+        }
+
+    # ── LLM JSON → Pydantic converters ──
+
+    def _parse_llm_company(self, j, ticker):
+        from vendor.ai_hedge_fund.data.models import CompanyFacts
+        if not j:
+            return None
+        return CompanyFacts(
+            ticker=ticker,
+            name=j.get('name', ticker),
+            sector=j.get('sector'),
+            industry=j.get('industry'),
+            exchange=j.get('exchange'),
+            location=j.get('location'),
+            number_of_employees=j.get('employees'),
+            website_url=j.get('website_url'),
+            cik=j.get('cik'),
+            market_cap=j.get('market_cap'),
+            listing_date=j.get('listing_date'),
+            sic_industry=j.get('sic_industry'),
+            sec_filings_url=j.get('sec_filings_url'),
+        )
+
+    def _parse_llm_metrics(self, items, ticker):
+        from vendor.ai_hedge_fund.data.models import FinancialMetrics
+        results = []
+        field_map = {
+            'pe': 'price_to_earnings_ratio', 'pb': 'price_to_book_ratio',
+            'ps': 'price_to_sales_ratio', 'ev_ebitda': 'enterprise_value_to_ebitda_ratio',
+            'ev_revenue': 'enterprise_value_to_revenue_ratio',
+            'peg': 'peg_ratio', 'fcf_yield': 'free_cash_flow_yield',
+            'gross_margin': 'gross_margin', 'operating_margin': 'operating_margin',
+            'net_margin': 'net_margin', 'roe': 'return_on_equity',
+            'roa': 'return_on_assets', 'roic': 'return_on_invested_capital',
+            'revenue_growth': 'revenue_growth', 'earnings_growth': 'earnings_growth',
+            'eps_growth': 'earnings_per_share_growth',
+            'fcf_growth': 'free_cash_flow_growth',
+            'operating_income_growth': 'operating_income_growth',
+            'ebitda_growth': 'ebitda_growth', 'book_value_growth': 'book_value_growth',
+            'current_ratio': 'current_ratio', 'quick_ratio': 'quick_ratio',
+            'debt_to_equity': 'debt_to_equity', 'debt_to_assets': 'debt_to_assets',
+            'interest_coverage': 'interest_coverage',
+            'eps': 'earnings_per_share', 'bvps': 'book_value_per_share',
+            'fcfps': 'free_cash_flow_per_share', 'payout_ratio': 'payout_ratio',
+            'asset_turnover': 'asset_turnover',
+            'market_cap': 'market_cap', 'enterprise_value': 'enterprise_value',
+        }
+        for item in items:
+            kwargs = {
+                'ticker': ticker,
+                'report_period': item.get('report_period', ''),
+                'period': item.get('period', 'quarterly'),
+                'currency': item.get('currency', 'USD'),
+            }
+            for src_key, dst_key in field_map.items():
+                val = item.get(src_key)
+                kwargs[dst_key] = val
+            try:
+                results.append(FinancialMetrics(**kwargs))
+            except Exception as e:
+                logger.warning(f"[Research] Failed to parse LLM metric: {e}")
+        return results
+
+    def _parse_llm_line_items(self, items, ticker):
+        from vendor.ai_hedge_fund.data.models import LineItem
+        field_map = {
+            'revenue': 'revenue', 'net_income': 'net_income',
+            'operating_income': 'operating_income', 'gross_profit': 'gross_profit',
+            'free_cash_flow': 'free_cash_flow', 'total_assets': 'total_assets',
+            'total_liabilities': 'total_liabilities', 'total_debt': 'total_debt',
+            'total_equity': 'total_equity', 'cash': 'cash_and_equivalents',
+            'operating_cash_flow': 'operating_cash_flow',
+            'eps': 'earnings_per_share', 'outstanding_shares': 'outstanding_shares',
+            'capex': 'capital_expenditure', 'rnd': 'research_and_development',
+            'sga': 'selling_general_and_administrative',
+            'dividends': 'dividends_and_other_cash_distributions',
+        }
+        results = []
+        for item in items:
+            kwargs = {
+                'ticker': ticker,
+                'report_period': item.get('report_period', ''),
+                'period': item.get('period', 'quarterly'),
+                'currency': item.get('currency', 'USD'),
+            }
+            for src_key, dst_key in field_map.items():
+                val = item.get(src_key)
+                if val is not None:
+                    kwargs[dst_key] = val
+            try:
+                results.append(LineItem(**kwargs))
+            except Exception as e:
+                logger.warning(f"[Research] Failed to parse LLM line item: {e}")
+        return results
+
+    def _parse_llm_insider_trades(self, items, ticker):
+        from vendor.ai_hedge_fund.data.models import InsiderTrade
+        results = []
+        for item in items:
+            try:
+                results.append(InsiderTrade(
+                    ticker=ticker,
+                    issuer=None,
+                    name=item.get('name', 'Unknown'),
+                    title=item.get('title'),
+                    is_board_director=item.get('is_director', False),
+                    transaction_date=item.get('filing_date'),
+                    transaction_shares=item.get('shares'),
+                    transaction_price_per_share=item.get('price'),
+                    transaction_value=item.get('value'),
+                    shares_owned_before_transaction=None,
+                    shares_owned_after_transaction=None,
+                    security_title='Common Stock',
+                    filing_date=item.get('filing_date', date.today().isoformat()),
+                ))
+            except Exception as e:
+                logger.warning(f"[Research] Failed to parse LLM insider trade: {e}")
+        return results
+
+    def _parse_llm_news(self, items, ticker):
+        from vendor.ai_hedge_fund.data.models import CompanyNews
+        results = []
+        for item in items:
+            try:
+                results.append(CompanyNews(
+                    ticker=ticker,
+                    title=item.get('title', ''),
+                    author='LLM-estimated',
+                    source=item.get('source', ''),
+                    date=item.get('date', date.today().isoformat()),
+                    url='',
+                    sentiment=item.get('sentiment'),
+                ))
+            except Exception as e:
+                logger.warning(f"[Research] Failed to parse LLM news: {e}")
+        return results
+
+    def _parse_llm_prices(self, monthly_closes, current_price, high_52w, low_52w):
+        """Build a synthetic prices DataFrame from monthly close data."""
+        if not monthly_closes:
+            return None
+
+        rows = []
+        for entry in monthly_closes:
+            close_val = entry.get('close')
+            date_str = entry.get('date')
+            if close_val is not None and date_str:
+                rows.append({
+                    'Date': pd.Timestamp(date_str),
+                    'open': close_val,
+                    'close': close_val,
+                    'high': close_val,
+                    'low': close_val,
+                    'volume': 0,
+                })
+
+        if not rows:
+            return None
+
+        df = pd.DataFrame(rows)
+        df.set_index('Date', inplace=True)
+        df.sort_index(inplace=True)
+
+        # Adjust high/low of first and last rows with 52w data
+        if high_52w is not None:
+            df['high'] = df['high'].clip(upper=high_52w)
+            idx_max = df['close'].idxmax()
+            df.loc[idx_max, 'high'] = high_52w
+        if low_52w is not None:
+            df['low'] = df['low'].clip(lower=low_52w)
+            idx_min = df['close'].idxmin()
+            df.loc[idx_min, 'low'] = low_52w
+
+        return df
 
     # ──────────────────────────────────────────────
     # Phase 1: Company Overview
@@ -232,43 +594,38 @@ class StockResearchService:
 
         lines.append('')
 
-        # Market cap & enterprise value
         if mc:
             lines.append(f'*Market Cap:* {_fmt(mc)}')
         if metrics and metrics[0].enterprise_value:
             lines.append(f'*Enterprise Value:* {_fmt(metrics[0].enterprise_value)}')
-        if metrics and metrics[0].market_cap and mc:
-            # Show EV/MC ratio
-            ev = metrics[0].enterprise_value
-            if ev and mc:
-                lines.append(f'*EV/Market Cap:* {ev / mc:.2f}x')
+            if mc:
+                ev = metrics[0].enterprise_value
+                if ev and mc:
+                    lines.append(f'*EV/Market Cap:* {ev / mc:.2f}x')
 
-        # Current price & 52-week range from price data
         if prices_df is not None and not prices_df.empty:
             close = prices_df['close']
-            high_col = prices_df['high']
-            low_col = prices_df['low']
             current = close.iloc[-1]
-            prev_close = close.iloc[-2] if len(close) >= 2 else current
-            day_change = (current - prev_close) / prev_close if prev_close else 0
-            day_emoji = '🟢' if day_change >= 0 else '🔴'
 
-            high_52w = high_col.max()
-            low_52w = low_col.min()
-            pct_from_high = (current - high_52w) / high_52w
+            high_52w = prices_df['high'].max()
+            low_52w = prices_df['low'].min()
+            pct_from_high = (current - high_52w) / high_52w if high_52w else 0
             pct_from_low = (current - low_52w) / low_52w if low_52w else 0
 
-            latest_vol = prices_df['volume'].iloc[-1]
-            avg_vol_30d = prices_df['volume'].iloc[-21:].mean() if len(prices_df) >= 21 else latest_vol
-
             lines.append('')
-            lines.append(f'{day_emoji} *Current Price:* ${current:.2f} ({_pct(day_change)} today)')
+            lines.append(f'*Current Price:* ${current:.2f}')
             lines.append(f'*52-Week High:* ${high_52w:.2f} ({_pct(pct_from_high)} from high)')
             lines.append(f'*52-Week Low:* ${low_52w:.2f} ({_pct(pct_from_low)} from low)')
-            lines.append(f'*Today Volume:* {_fmt(latest_vol, "", 0)}')
-            lines.append(f'*Avg Volume (30d):* {_fmt(avg_vol_30d, "", 0)}')
 
-            # Shares outstanding from line items
+            # Volume only if we have real daily data (not LLM monthly)
+            if data.get('_source') != 'llm':
+                prev_close = close.iloc[-2] if len(close) >= 2 else current
+                day_change = (current - prev_close) / prev_close if prev_close else 0
+                latest_vol = prices_df['volume'].iloc[-1]
+                avg_vol_30d = prices_df['volume'].iloc[-21:].mean() if len(prices_df) >= 21 else latest_vol
+                lines.append(f'*Today Volume:* {_fmt(latest_vol, "", 0)}')
+                lines.append(f'*Avg Volume (30d):* {_fmt(avg_vol_30d, "", 0)}')
+
             if data['line_items']:
                 shares = getattr(data['line_items'][0], 'outstanding_shares', None)
                 if shares:
@@ -278,7 +635,7 @@ class StockResearchService:
             lines.append('No company data available.')
 
         lines.append('')
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         if co and co.sec_filings_url:
             lines.append(f'_SEC Filings: {co.sec_filings_url}_')
 
@@ -294,7 +651,7 @@ class StockResearchService:
             self.bot.send_message(chat_id, f'📉 *{ticker} — Fundamentals*\nNo metrics data available.')
             return
 
-        m = metrics[0]  # Latest quarter
+        m = metrics[0]
         lines = [
             f'📊 *{ticker} — Fundamentals* ({m.report_period})',
             '',
@@ -335,21 +692,12 @@ class StockResearchService:
             '*── Balance Sheet Health ──*',
             _ratio_context('Current Ratio', m.current_ratio, 1.0, 3.0, 'tight liquidity', 'strong liquidity'),
             _ratio_context('Quick Ratio', m.quick_ratio, 0.8, 2.0, 'low', 'strong'),
-            f'Cash Ratio: {_safe(m.cash_ratio)}',
-            f'Operating CF Ratio: {_safe(m.operating_cash_flow_ratio)}',
             _ratio_context('Debt/Equity', m.debt_to_equity, 0.3, 2.0, 'low leverage', 'high leverage'),
             f'Debt/Assets: {_safe(m.debt_to_assets)}',
             f'Interest Coverage: {_safe(m.interest_coverage, ".1f")}x' if m.interest_coverage else 'Interest Coverage: N/A',
-            '',
-            '*── Efficiency ──*',
-            f'Inventory Turnover: {_safe(m.inventory_turnover, ".1f")}' if m.inventory_turnover else 'Inventory Turnover: N/A',
-            f'Receivables Turnover: {_safe(m.receivables_turnover, ".1f")}' if m.receivables_turnover else 'Receivables Turnover: N/A',
-            f'Days Sales Outstanding: {_safe(m.days_sales_outstanding, ".0f")} days' if m.days_sales_outstanding else 'Days Sales Outstanding: N/A',
-            f'Operating Cycle: {_safe(m.operating_cycle, ".0f")} days' if m.operating_cycle else 'Operating Cycle: N/A',
-            f'Working Capital Turnover: {_safe(m.working_capital_turnover, ".1f")}' if m.working_capital_turnover else 'Working Capital Turnover: N/A',
         ]
 
-        # Historical comparison — show prior quarter + YoY
+        # Historical comparison
         if len(metrics) >= 2:
             pm = metrics[1]
             lines.append('')
@@ -361,21 +709,8 @@ class StockResearchService:
             if m.return_on_equity is not None and pm.return_on_equity is not None:
                 lines.append(f'ROE: {_pct(pm.return_on_equity)} → {_pct(m.return_on_equity)}')
 
-        if len(metrics) >= 5:
-            ym = metrics[4]
-            lines.append('')
-            lines.append(f'*── vs Year Ago ({ym.report_period}) ──*')
-            if m.price_to_earnings_ratio and ym.price_to_earnings_ratio:
-                lines.append(f'P/E: {ym.price_to_earnings_ratio:.2f} → {m.price_to_earnings_ratio:.2f}')
-            if m.net_margin is not None and ym.net_margin is not None:
-                lines.append(f'Net Margin: {_pct(ym.net_margin)} → {_pct(m.net_margin)}')
-            if m.return_on_equity is not None and ym.return_on_equity is not None:
-                lines.append(f'ROE: {_pct(ym.return_on_equity)} → {_pct(m.return_on_equity)}')
-            if m.revenue_growth is not None and ym.revenue_growth is not None:
-                lines.append(f'Rev Growth: {_pct(ym.revenue_growth)} → {_pct(m.revenue_growth)}')
-
         lines.append('')
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         self.bot.send_message(chat_id, '\n'.join(lines))
 
     # ──────────────────────────────────────────────
@@ -410,7 +745,7 @@ class StockResearchService:
         lines.append(f'  FCF/Share: {_fmt(m.free_cash_flow_per_share)}')
         if pe:
             earnings_yield = 1.0 / pe * 100
-            lines.append(f'  Earnings Yield: {earnings_yield:.2f}% (inverse P/E; compare to bond yields)')
+            lines.append(f'  Earnings Yield: {earnings_yield:.2f}% (inverse P/E)')
         lines.append('')
 
         # Rule-based valuation signals
@@ -419,70 +754,56 @@ class StockResearchService:
 
         if pe is not None:
             if pe < 15:
-                bull_signals.append(f'P/E of {pe:.1f} is below 15 — historically cheap territory')
+                bull_signals.append(f'P/E of {pe:.1f} is below 15 — cheap territory')
             elif pe < 22:
                 bull_signals.append(f'P/E of {pe:.1f} is below S&P 500 average (~22)')
             elif pe > 35:
-                bear_signals.append(f'P/E of {pe:.1f} is well above market average — priced for perfection')
+                bear_signals.append(f'P/E of {pe:.1f} is well above market average')
             elif pe > 25:
                 bear_signals.append(f'P/E of {pe:.1f} is above market average of ~22')
 
         if peg is not None:
-            if peg < 0.8:
-                bull_signals.append(f'PEG of {peg:.2f} suggests growth is significantly undervalued')
-            elif peg < 1.0:
-                bull_signals.append(f'PEG of {peg:.2f} < 1.0 — growth undervalued relative to earnings expansion')
+            if peg < 1.0:
+                bull_signals.append(f'PEG of {peg:.2f} < 1.0 — growth undervalued')
             elif peg > 2.5:
-                bear_signals.append(f'PEG of {peg:.2f} > 2.5 — paying a steep premium for growth')
+                bear_signals.append(f'PEG of {peg:.2f} > 2.5 — steep premium for growth')
 
         if fcf_yield is not None:
-            if fcf_yield > 0.08:
-                bull_signals.append(f'FCF yield of {fcf_yield*100:.1f}% is exceptional — strong cash machine')
-            elif fcf_yield > 0.05:
-                bull_signals.append(f'FCF yield of {fcf_yield*100:.1f}% is healthy — company generates solid free cash')
+            if fcf_yield > 0.05:
+                bull_signals.append(f'FCF yield of {fcf_yield*100:.1f}% — strong cash generation')
             elif fcf_yield < 0.01:
-                bear_signals.append(f'FCF yield of {fcf_yield*100:.1f}% is very weak — limited free cash generation')
+                bear_signals.append(f'FCF yield of {fcf_yield*100:.1f}% — weak free cash')
 
-        if pb is not None:
-            if pb < 1.0:
-                bull_signals.append(f'P/B of {pb:.2f} — stock trading below book value (potential deep value)')
-            elif pb > 10:
-                bear_signals.append(f'P/B of {pb:.2f} — extreme premium to tangible assets')
-
-        if ev_ebitda is not None:
-            if ev_ebitda < 8:
-                bull_signals.append(f'EV/EBITDA of {ev_ebitda:.1f} is low — potentially undervalued')
-            elif ev_ebitda > 30:
-                bear_signals.append(f'EV/EBITDA of {ev_ebitda:.1f} is very high — rich valuation')
-
+        if pb is not None and pb < 1.0:
+            bull_signals.append(f'P/B of {pb:.2f} — trading below book value')
+        if ev_ebitda is not None and ev_ebitda < 8:
+            bull_signals.append(f'EV/EBITDA of {ev_ebitda:.1f} is low')
         if m.debt_to_equity is not None and m.debt_to_equity > 2.0:
-            bear_signals.append(f'D/E of {m.debt_to_equity:.2f} — high leverage increases risk')
+            bear_signals.append(f'D/E of {m.debt_to_equity:.2f} — high leverage')
 
         if bull_signals:
-            lines.append('🟢 *Bullish Value Signals:*')
+            lines.append('🟢 *Bullish Signals:*')
             for s in bull_signals:
                 lines.append(f'  • {s}')
         if bear_signals:
-            lines.append('🔴 *Bearish Value Signals:*')
+            lines.append('🔴 *Bearish Signals:*')
             for s in bear_signals:
                 lines.append(f'  • {s}')
-
         if not bull_signals and not bear_signals:
-            lines.append('🟡 Valuation appears neutral relative to common benchmarks.')
+            lines.append('🟡 Valuation appears neutral.')
 
-        # Overall verdict
-        lines.append('')
         bull_count = len(bull_signals)
         bear_count = len(bear_signals)
+        lines.append('')
         if bull_count > bear_count + 1:
-            lines.append('*Verdict:* 🟢 Stock appears undervalued based on multiple metrics')
+            lines.append('*Verdict:* 🟢 Stock appears undervalued')
         elif bear_count > bull_count + 1:
-            lines.append('*Verdict:* 🔴 Stock appears overvalued — caution warranted')
+            lines.append('*Verdict:* 🔴 Stock appears overvalued')
         else:
-            lines.append('*Verdict:* 🟡 Mixed signals — valuation is roughly fair')
+            lines.append('*Verdict:* 🟡 Mixed signals — roughly fair')
 
         lines.append('')
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         self.bot.send_message(chat_id, '\n'.join(lines))
 
     # ──────────────────────────────────────────────
@@ -492,133 +813,124 @@ class StockResearchService:
     def _send_momentum(self, chat_id, ticker, data):
         prices_df = data['prices_df']
         metrics = data['metrics']
+        is_llm = data.get('_source') == 'llm'
         lines = [f'📈 *{ticker} — Momentum & Technicals*', '']
 
         if prices_df is not None and not prices_df.empty:
             close = prices_df['close']
-            high_col = prices_df['high']
-            low_col = prices_df['low']
             current = close.iloc[-1]
-
             lines.append(f'*Current Price:* ${current:.2f}')
-            lines.append(f'*Last Close Date:* {prices_df.index[-1].strftime("%Y-%m-%d")}')
             lines.append('')
 
-            # Price changes
-            def _change(days):
-                if len(close) > days:
-                    old = close.iloc[-days - 1]
-                    return (current - old) / old, old
-                return None, None
+            if is_llm:
+                # LLM mode: monthly data — show approximate returns
+                lines.append('*Approximate Price Performance (monthly data):*')
+                for label, months in [('1M', 1), ('3M', 3), ('6M', 6), ('1Y', 12)]:
+                    if len(close) > months:
+                        old = close.iloc[-months - 1]
+                        chg = (current - old) / old
+                        emoji = '🟢' if chg >= 0 else '🔴'
+                        lines.append(f'  {emoji} {label}: {_pct(chg)} (${old:.2f} → ${current:.2f})')
 
-            lines.append('*Price Performance:*')
-            for label, days in [('1W', 5), ('1M', 21), ('3M', 63), ('6M', 126), ('1Y', 252)]:
-                chg, old = _change(days)
-                if chg is not None:
-                    emoji = '🟢' if chg >= 0 else '🔴'
-                    lines.append(f'  {emoji} {label}: {_pct(chg)} (${old:.2f} → ${current:.2f})')
+                lines.append('')
+                high_52w = prices_df['high'].max()
+                low_52w = prices_df['low'].min()
+                range_52w = high_52w - low_52w
+                pos_in_range = (current - low_52w) / range_52w if range_52w > 0 else 0.5
+                lines.append('*52-Week Statistics:*')
+                lines.append(f'  High: ${high_52w:.2f}')
+                lines.append(f'  Low: ${low_52w:.2f}')
+                lines.append(f'  Range: ${range_52w:.2f}')
+                lines.append(f'  Position in range: {pos_in_range*100:.0f}%')
+                lines.append('')
+                lines.append('_Detailed technical indicators (SMAs, RSI, MACD, volume) require daily price data from live API._')
 
-            lines.append('')
+            else:
+                # API mode: full daily data
+                high_col = prices_df['high']
+                low_col = prices_df['low']
 
-            # 52-week statistics
-            high_52w = high_col.max()
-            low_52w = low_col.min()
-            range_52w = high_52w - low_52w
-            position_in_range = (current - low_52w) / range_52w if range_52w > 0 else 0.5
-            lines.append('*52-Week Statistics:*')
-            lines.append(f'  High: ${high_52w:.2f}')
-            lines.append(f'  Low: ${low_52w:.2f}')
-            lines.append(f'  Range: ${range_52w:.2f}')
-            lines.append(f'  Position in range: {position_in_range*100:.0f}% (0%=at low, 100%=at high)')
-            lines.append('')
+                def _change(days):
+                    if len(close) > days:
+                        old = close.iloc[-days - 1]
+                        return (current - old) / old, old
+                    return None, None
 
-            # Moving averages
-            lines.append('*Moving Averages:*')
-            for window, name in [(10, '10-day SMA'), (20, '20-day SMA'), (50, '50-day SMA'), (200, '200-day SMA')]:
-                if len(close) >= window:
-                    sma = close.rolling(window).mean().iloc[-1]
-                    pct_diff = (current - sma) / sma
-                    pos = '↑ above' if current > sma else '↓ below'
-                    lines.append(f'  {name}: ${sma:.2f} — price {pos} by {abs(pct_diff)*100:.1f}%')
+                lines.append(f'*Last Close Date:* {prices_df.index[-1].strftime("%Y-%m-%d")}')
+                lines.append('')
+                lines.append('*Price Performance:*')
+                for label, days in [('1W', 5), ('1M', 21), ('3M', 63), ('6M', 126), ('1Y', 252)]:
+                    chg, old = _change(days)
+                    if chg is not None:
+                        emoji = '🟢' if chg >= 0 else '🔴'
+                        lines.append(f'  {emoji} {label}: {_pct(chg)} (${old:.2f} → ${current:.2f})')
+                lines.append('')
 
-            # Golden/death cross check
-            if len(close) >= 200:
-                sma50 = close.rolling(50).mean().iloc[-1]
-                sma200 = close.rolling(200).mean().iloc[-1]
-                if sma50 > sma200:
-                    lines.append('  ✅ *Golden Cross* — 50 SMA above 200 SMA (bullish)')
-                else:
-                    lines.append('  ⚠️ *Death Cross* — 50 SMA below 200 SMA (bearish)')
-            lines.append('')
+                high_52w = high_col.max()
+                low_52w = low_col.min()
+                range_52w = high_52w - low_52w
+                pos_in_range = (current - low_52w) / range_52w if range_52w > 0 else 0.5
+                lines.append('*52-Week Statistics:*')
+                lines.append(f'  High: ${high_52w:.2f}')
+                lines.append(f'  Low: ${low_52w:.2f}')
+                lines.append(f'  Range: ${range_52w:.2f}')
+                lines.append(f'  Position in range: {pos_in_range*100:.0f}%')
+                lines.append('')
 
-            # RSI-14
-            if len(close) >= 15:
-                delta = close.diff()
-                gain = delta.clip(lower=0).rolling(14).mean()
-                loss = (-delta.clip(upper=0)).rolling(14).mean()
-                rs = gain.iloc[-1] / loss.iloc[-1] if loss.iloc[-1] != 0 else 0
-                rsi = 100 - (100 / (1 + rs))
-                if rsi > 70:
-                    rsi_label = '⚠️ OVERBOUGHT — potential pullback risk'
-                elif rsi > 60:
-                    rsi_label = 'bullish momentum'
-                elif rsi < 30:
-                    rsi_label = '⚠️ OVERSOLD — potential bounce candidate'
-                elif rsi < 40:
-                    rsi_label = 'bearish momentum'
-                else:
-                    rsi_label = 'neutral zone'
-                lines.append(f'*RSI-14:* {rsi:.1f} — {rsi_label}')
+                lines.append('*Moving Averages:*')
+                for window, name in [(10, '10d SMA'), (20, '20d SMA'), (50, '50d SMA'), (200, '200d SMA')]:
+                    if len(close) >= window:
+                        sma = close.rolling(window).mean().iloc[-1]
+                        pct_diff = (current - sma) / sma
+                        pos = '↑ above' if current > sma else '↓ below'
+                        lines.append(f'  {name}: ${sma:.2f} — price {pos} by {abs(pct_diff)*100:.1f}%')
 
-            # MACD approximation (12/26 EMA)
-            if len(close) >= 26:
-                ema12 = close.ewm(span=12, adjust=False).mean().iloc[-1]
-                ema26 = close.ewm(span=26, adjust=False).mean().iloc[-1]
-                macd_line = ema12 - ema26
-                macd_signal = 'bullish' if macd_line > 0 else 'bearish'
-                lines.append(f'*MACD:* {macd_line:.2f} ({macd_signal} — EMA12-EMA26)')
+                if len(close) >= 200:
+                    sma50 = close.rolling(50).mean().iloc[-1]
+                    sma200 = close.rolling(200).mean().iloc[-1]
+                    if sma50 > sma200:
+                        lines.append('  ✅ *Golden Cross* — 50 SMA > 200 SMA (bullish)')
+                    else:
+                        lines.append('  ⚠️ *Death Cross* — 50 SMA < 200 SMA (bearish)')
+                lines.append('')
 
-            lines.append('')
+                if len(close) >= 15:
+                    delta = close.diff()
+                    gain = delta.clip(lower=0).rolling(14).mean()
+                    loss = (-delta.clip(upper=0)).rolling(14).mean()
+                    rs = gain.iloc[-1] / loss.iloc[-1] if loss.iloc[-1] != 0 else 0
+                    rsi = 100 - (100 / (1 + rs))
+                    rsi_label = 'OVERBOUGHT' if rsi > 70 else 'OVERSOLD' if rsi < 30 else 'neutral'
+                    lines.append(f'*RSI-14:* {rsi:.1f} — {rsi_label}')
 
-            # Volume analysis
-            lines.append('*Volume Analysis:*')
-            vol = prices_df['volume']
-            today_vol = vol.iloc[-1]
-            lines.append(f'  Today: {_fmt(today_vol, "", 0)}')
-            for window, name in [(5, '5-day avg'), (20, '20-day avg'), (60, '60-day avg')]:
-                if len(vol) >= window:
-                    avg = vol.iloc[-window:].mean()
-                    ratio = today_vol / avg if avg > 0 else 1
-                    lines.append(f'  {name}: {_fmt(avg, "", 0)} (today {ratio:.1f}x)')
+                if len(close) >= 26:
+                    ema12 = close.ewm(span=12, adjust=False).mean().iloc[-1]
+                    ema26 = close.ewm(span=26, adjust=False).mean().iloc[-1]
+                    macd_line = ema12 - ema26
+                    lines.append(f'*MACD:* {macd_line:.2f} ({"bullish" if macd_line > 0 else "bearish"})')
+                lines.append('')
 
-            if len(vol) >= 60:
-                avg_20 = vol.iloc[-20:].mean()
-                avg_60 = vol.iloc[-60:].mean()
-                ratio = avg_20 / avg_60 if avg_60 > 0 else 1
-                if ratio > 1.3:
-                    lines.append('  📊 Volume surging — 20d avg 30%+ above 60d avg')
-                elif ratio > 1.1:
-                    lines.append('  📊 Volume increasing — accumulation signal')
-                elif ratio < 0.7:
-                    lines.append('  📊 Volume declining — low interest / distribution')
+                vol = prices_df['volume']
+                today_vol = vol.iloc[-1]
+                lines.append('*Volume Analysis:*')
+                lines.append(f'  Today: {_fmt(today_vol, "", 0)}')
+                for window, name in [(20, '20d avg'), (60, '60d avg')]:
+                    if len(vol) >= window:
+                        avg = vol.iloc[-window:].mean()
+                        ratio = today_vol / avg if avg > 0 else 1
+                        lines.append(f'  {name}: {_fmt(avg, "", 0)} (today {ratio:.1f}x)')
 
-            # Volatility
-            if len(close) >= 21:
-                daily_returns = close.pct_change().dropna()
-                vol_20d = daily_returns.iloc[-20:].std() * (252 ** 0.5)
-                lines.append(f'\n*Annualized Volatility (20d):* {vol_20d*100:.1f}%')
-                if vol_20d > 0.6:
-                    lines.append('  ⚠️ Very high volatility')
-                elif vol_20d > 0.35:
-                    lines.append('  ⚠️ Elevated volatility')
-
+                if len(close) >= 21:
+                    daily_returns = close.pct_change().dropna()
+                    vol_20d = daily_returns.iloc[-20:].std() * (252 ** 0.5)
+                    lines.append(f'\n*Annualized Volatility (20d):* {vol_20d*100:.1f}%')
         else:
             lines.append('No price data available.')
 
         # EPS trajectory
-        if metrics and len(metrics) >= 4:
+        if metrics and len(metrics) >= 2:
             lines.append('')
-            lines.append('*EPS Trajectory (last 8Q):*')
+            lines.append('*EPS Trajectory:*')
             for m in reversed(metrics[:min(8, len(metrics))]):
                 if m.earnings_per_share is not None:
                     growth_note = ''
@@ -627,11 +939,11 @@ class StockResearchService:
                     lines.append(f'  {m.report_period}: ${m.earnings_per_share:.2f}{growth_note}')
 
         lines.append('')
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         self.bot.send_message(chat_id, '\n'.join(lines))
 
     # ──────────────────────────────────────────────
-    # Phase 5: Financial Statements (verbose)
+    # Phase 5: Financial Statements
     # ──────────────────────────────────────────────
 
     def _send_financials(self, chat_id, ticker, data):
@@ -642,7 +954,6 @@ class StockResearchService:
 
         latest = line_items[0]
 
-        # Helper to safely get line item attrs
         def _g(item, attr):
             return getattr(item, attr, None)
 
@@ -671,7 +982,6 @@ class StockResearchService:
             f'Revenue: {_fmt(rev)}',
             f'Gross Profit: {_fmt(gp)}',
         ]
-
         if rev and gp:
             lines.append(f'Gross Margin: {gp/rev*100:.1f}%')
         lines.append(f'Operating Income: {_fmt(oi)}')
@@ -688,10 +998,10 @@ class StockResearchService:
             cogs = rev - gp
             lines.append(f'COGS: {_fmt(cogs)} ({cogs/rev*100:.1f}% of revenue)')
         if rnd:
-            rnd_pct = f' ({rnd/rev*100:.1f}% of revenue)' if rev else ''
+            rnd_pct = f' ({rnd/rev*100:.1f}% of rev)' if rev else ''
             lines.append(f'R&D: {_fmt(rnd)}{rnd_pct}')
         if sga:
-            sga_pct = f' ({sga/rev*100:.1f}% of revenue)' if rev else ''
+            sga_pct = f' ({sga/rev*100:.1f}% of rev)' if rev else ''
             lines.append(f'SG&A: {_fmt(sga)}{sga_pct}')
 
         lines.append('')
@@ -703,13 +1013,11 @@ class StockResearchService:
         lines.append(f'Cash & Equivalents: {_fmt(cash)}')
         if shares:
             lines.append(f'Shares Outstanding: {_fmt(shares, "", 0)}')
-        if ta and tl:
-            lines.append(f'Debt/Assets: {tl/ta*100:.1f}%')
         if td and te and te > 0:
             lines.append(f'Debt/Equity: {td/te:.2f}x')
         if cash and td:
             net_debt = td - cash
-            lines.append(f'Net Debt: {_fmt(net_debt)} {"(net cash position)" if net_debt < 0 else ""}')
+            lines.append(f'Net Debt: {_fmt(net_debt)} {"(net cash)" if net_debt < 0 else ""}')
 
         lines.append('')
         lines.append('*── Cash Flow ──*')
@@ -718,8 +1026,6 @@ class StockResearchService:
         lines.append(f'Free Cash Flow: {_fmt(fcf)}')
         if divs:
             lines.append(f'Dividends Paid: {_fmt(divs)}')
-        if ocf and capex:
-            lines.append(f'CapEx/OCF: {abs(capex)/ocf*100:.1f}%' if ocf > 0 else 'CapEx/OCF: N/A')
         if fcf and rev:
             lines.append(f'FCF Margin: {fcf/rev*100:.1f}%')
 
@@ -732,81 +1038,41 @@ class StockResearchService:
             prev_ni = _g(prev, 'net_income')
             prev_eps = _g(prev, 'earnings_per_share')
             prev_fcf = _g(prev, 'free_cash_flow')
-            prev_oi = _g(prev, 'operating_income')
             if rev and prev_rev and prev_rev != 0:
                 lines.append(f'Revenue: {_fmt(prev_rev)} → {_fmt(rev)} ({_pct((rev - prev_rev) / abs(prev_rev))})')
             if ni and prev_ni and prev_ni != 0:
                 lines.append(f'Net Income: {_fmt(prev_ni)} → {_fmt(ni)} ({_pct((ni - prev_ni) / abs(prev_ni))})')
             if eps and prev_eps and prev_eps != 0:
                 lines.append(f'EPS: ${prev_eps:.2f} → ${eps:.2f} ({_pct((eps - prev_eps) / abs(prev_eps))})')
-            if oi and prev_oi and prev_oi != 0:
-                lines.append(f'Op Income: {_fmt(prev_oi)} → {_fmt(oi)} ({_pct((oi - prev_oi) / abs(prev_oi))})')
-            if fcf and prev_fcf and prev_fcf != 0:
-                lines.append(f'FCF: {_fmt(prev_fcf)} → {_fmt(fcf)} ({_pct((fcf - prev_fcf) / abs(prev_fcf))})')
-
-        # YoY comparison
-        if len(line_items) >= 5:
-            yoy = line_items[4]
-            yoy_rev = _g(yoy, 'revenue')
-            yoy_ni = _g(yoy, 'net_income')
-            yoy_eps = _g(yoy, 'earnings_per_share')
-            yoy_fcf = _g(yoy, 'free_cash_flow')
-            lines.append('')
-            lines.append(f'*── vs Year Ago ({yoy.report_period}) ──*')
-            if rev and yoy_rev and yoy_rev != 0:
-                lines.append(f'Revenue: {_fmt(yoy_rev)} → {_fmt(rev)} ({_pct((rev - yoy_rev) / abs(yoy_rev))})')
-            if ni and yoy_ni and yoy_ni != 0:
-                lines.append(f'Net Income: {_fmt(yoy_ni)} → {_fmt(ni)} ({_pct((ni - yoy_ni) / abs(yoy_ni))})')
-            if eps and yoy_eps and yoy_eps != 0:
-                lines.append(f'EPS: ${yoy_eps:.2f} → ${eps:.2f} ({_pct((eps - yoy_eps) / abs(yoy_eps))})')
-            if fcf and yoy_fcf and yoy_fcf != 0:
-                lines.append(f'FCF: {_fmt(yoy_fcf)} → {_fmt(fcf)} ({_pct((fcf - yoy_fcf) / abs(yoy_fcf))})')
 
         lines.append('')
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         self.bot.send_message(chat_id, '\n'.join(lines))
 
-        # Send 8-quarter trends as a separate message (can be long)
+        # Quarterly trends
         self._send_quarterly_trends(chat_id, ticker, line_items)
 
     def _send_quarterly_trends(self, chat_id, ticker, line_items):
-        """Send 8-quarter revenue, EPS, and FCF trends."""
         if len(line_items) < 3:
             return
-
         lines = [f'📅 *{ticker} — Quarterly Trends*', '']
-
-        # Revenue trend
         lines.append('*Revenue by Quarter:*')
         for item in reversed(line_items):
             rev = getattr(item, 'revenue', None)
             if rev is not None:
                 lines.append(f'  {item.report_period}: {_fmt(rev)}')
-
-        # EPS trend
         lines.append('')
         lines.append('*EPS by Quarter:*')
         for item in reversed(line_items):
             eps = getattr(item, 'earnings_per_share', None)
             if eps is not None:
                 lines.append(f'  {item.report_period}: ${eps:.2f}')
-
-        # FCF trend
         lines.append('')
         lines.append('*Free Cash Flow by Quarter:*')
         for item in reversed(line_items):
             fcf = getattr(item, 'free_cash_flow', None)
             if fcf is not None:
                 lines.append(f'  {item.report_period}: {_fmt(fcf)}')
-
-        # Net income trend
-        lines.append('')
-        lines.append('*Net Income by Quarter:*')
-        for item in reversed(line_items):
-            ni = getattr(item, 'net_income', None)
-            if ni is not None:
-                lines.append(f'  {item.report_period}: {_fmt(ni)}')
-
         self.bot.send_message(chat_id, '\n'.join(lines))
 
     # ──────────────────────────────────────────────
@@ -818,64 +1084,48 @@ class StockResearchService:
         if not trades:
             self.bot.send_message(
                 chat_id,
-                f'👔 *{ticker} — Insider Trading (90d)*\nNo insider trades found in the last 90 days.',
+                f'👔 *{ticker} — Insider Trading*\nNo insider trades found.',
             )
             return
 
-        # Aggregate stats
         total_buys = 0
         total_sells = 0
         buy_value = 0.0
         sell_value = 0.0
-        buy_shares = 0
-        sell_shares = 0
 
         for t in trades:
-            shares = abs(t.transaction_shares or 0)
             value = abs(t.transaction_value or 0)
             if t.transaction_shares and t.transaction_shares > 0:
                 total_buys += 1
                 buy_value += value
-                buy_shares += shares
             elif t.transaction_shares and t.transaction_shares < 0:
                 total_sells += 1
                 sell_value += value
-                sell_shares += shares
 
         lines = [
-            f'👔 *{ticker} — Insider Trading (Last 90 Days)*',
+            f'👔 *{ticker} — Insider Trading*',
             '',
             f'*Total Transactions:* {len(trades)}',
-            f'*Buys:* {total_buys} transactions ({_fmt(buy_value)} total, {_fmt(buy_shares, "", 0)} shares)',
-            f'*Sells:* {total_sells} transactions ({_fmt(sell_value)} total, {_fmt(sell_shares, "", 0)} shares)',
+            f'*Buys:* {total_buys} ({_fmt(buy_value)})',
+            f'*Sells:* {total_sells} ({_fmt(sell_value)})',
             f'*Net:* {"🟢 Net buying" if buy_value > sell_value else "🔴 Net selling" if sell_value > buy_value else "🟡 Balanced"}',
             '',
         ]
 
-        if buy_value + sell_value > 0:
-            buy_pct = buy_value / (buy_value + sell_value) * 100
-            lines.append(f'Buy/Sell ratio by value: {buy_pct:.0f}%/{100-buy_pct:.0f}%')
-            lines.append('')
-
-        # Show most recent 8 trades with details
         lines.append('*Recent Transactions:*')
-        for t in trades[:8]:
+        for t in trades[:6]:
             name = t.name or 'Unknown'
             title = f' ({t.title})' if t.title else ''
-            director = ' [Board]' if t.is_board_director else ''
             shares = t.transaction_shares or 0
             action = '🟢 BUY' if shares > 0 else '🔴 SELL'
             price = f' @ ${t.transaction_price_per_share:.2f}' if t.transaction_price_per_share else ''
-            value = f' (${_fmt(abs(t.transaction_value))})' if t.transaction_value else ''
-
-            lines.append(f'  {action} {name}{title}{director}')
-            lines.append(f'    {abs(shares):,.0f} shares{price}{value}')
+            value_str = f' ({_fmt(abs(t.transaction_value))})' if t.transaction_value else ''
+            lines.append(f'  {action} {name}{title}')
+            lines.append(f'    {abs(shares):,.0f} shares{price}{value_str}')
             lines.append(f'    Filed: {t.filing_date[:10]}')
-            if t.shares_owned_after_transaction:
-                lines.append(f'    Remaining: {t.shares_owned_after_transaction:,.0f} shares')
             lines.append('')
 
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         self.bot.send_message(chat_id, '\n'.join(lines))
 
     # ──────────────────────────────────────────────
@@ -887,40 +1137,37 @@ class StockResearchService:
         if not news:
             self.bot.send_message(
                 chat_id,
-                f'📰 *{ticker} — Recent News*\nNo news articles found in the last 30 days.',
+                f'📰 *{ticker} — Recent News*\nNo news articles found.',
             )
             return
 
-        # Sentiment summary
         sentiments = [n.sentiment for n in news if n.sentiment]
         bullish_count = sum(1 for s in sentiments if s.lower() in ('positive', 'bullish'))
         bearish_count = sum(1 for s in sentiments if s.lower() in ('negative', 'bearish'))
         neutral_count = len(sentiments) - bullish_count - bearish_count
 
         lines = [
-            f'📰 *{ticker} — Recent News (Last 30 Days)*',
+            f'📰 *{ticker} — Recent News*',
             '',
-            f'*Articles Found:* {len(news)}',
+            f'*Articles:* {len(news)}',
         ]
         if sentiments:
             lines.append(f'*Sentiment:* 🟢 {bullish_count} positive | 🔴 {bearish_count} negative | 🟡 {neutral_count} neutral')
         lines.append('')
 
-        # Show each article
         for i, article in enumerate(news[:10], 1):
             sentiment_emoji = '🟢' if article.sentiment and article.sentiment.lower() in ('positive', 'bullish') \
                 else '🔴' if article.sentiment and article.sentiment.lower() in ('negative', 'bearish') \
                 else '🟡'
             date_str = article.date[:10] if article.date else ''
             source = article.source or ''
-
             lines.append(f'{i}. {sentiment_emoji} *{article.title}*')
             lines.append(f'   {source} | {date_str}')
             if article.url:
                 lines.append(f'   🔗 {article.url}')
             lines.append('')
 
-        lines.append(DATA_CITE)
+        lines.append(self._data_cite(data))
         self.bot.send_message(chat_id, '\n'.join(lines))
 
     # ──────────────────────────────────────────────
@@ -933,7 +1180,10 @@ class StockResearchService:
             chart_path = generate_research_chart(
                 ticker, data['prices_df'], data['metrics'], data['line_items'],
             )
-            self.bot.send_photo(chat_id, chart_path, caption=f'{ticker} — Research Chart (1Y price, revenue, EPS, P/E)')
+            is_llm = data.get('_source') == 'llm'
+            caption = f'{ticker} — Research Chart (monthly, LLM-estimated)' if is_llm \
+                else f'{ticker} — Research Chart (1Y price, revenue, EPS, P/E)'
+            self.bot.send_photo(chat_id, chart_path, caption=caption)
             os.unlink(chart_path)
         except Exception as e:
             logger.error(f"[Research] Chart generation failed: {e}", exc_info=True)
@@ -945,14 +1195,13 @@ class StockResearchService:
 
     def _send_ai_analysis(self, chat_id, ticker):
         """Run hedge fund multi-agent analysis and send results."""
-        self.bot.send_message(chat_id, f'🤖 *{ticker} — AI Analysis*\nRunning 4 analyst agents (fundamentals, technicals, valuation, sentiment)...')
+        self.bot.send_message(chat_id, f'🤖 *{ticker} — AI Analysis*\nRunning analyst agents...')
 
         try:
             from app.services.hedge_fund_service import HedgeFundService
             from app import feature_flags
 
             with self.app.app_context():
-                # Temporarily enable the flag — /research is an explicit user request
                 was_enabled = feature_flags.is_enabled('hedge_fund_analysis')
                 if not was_enabled:
                     feature_flags.set_flag('hedge_fund_analysis', True)
@@ -961,7 +1210,6 @@ class StockResearchService:
                     service = HedgeFundService()
                     service.tickers = [ticker]
                     service.analysts = ['fundamentals', 'technicals', 'valuation', 'sentiment']
-
                     analyses, usage = service.run_analysis(date.today())
                 finally:
                     if not was_enabled:
@@ -993,23 +1241,19 @@ class StockResearchService:
                                     points.append(f'• _{k}_: {v[:300]}')
                                 elif isinstance(v, (int, float)):
                                     points.append(f'• _{k}_: {v}')
-                                elif isinstance(v, list) and v:
-                                    points.append(f'• _{k}_: {", ".join(str(x)[:100] for x in v[:5])}')
                             if points:
                                 msg += '\n' + '\n'.join(points[:8])
                         elif isinstance(reasoning, str):
                             msg += f'\n{reasoning[:800]}'
                     self.bot.send_message(chat_id, msg)
 
-                # Consensus
                 consensus = analysis.consensus_signal or 'neutral'
                 conf = analysis.consensus_confidence or 0
                 emoji = '🟢' if consensus == 'bullish' else '🔴' if consensus == 'bearish' else '🟡'
                 self.bot.send_message(
                     chat_id,
                     f'\n*{ticker} — AI Consensus*\n'
-                    f'{emoji} Signal: *{consensus.upper()}* ({conf}% confidence)\n\n'
-                    f'_Based on 4 independent AI analyst agents analyzing fundamentals, technicals, valuation, and sentiment._',
+                    f'{emoji} Signal: *{consensus.upper()}* ({conf}% confidence)',
                 )
 
         except Exception as e:
@@ -1024,19 +1268,31 @@ class StockResearchService:
         """Generate a comprehensive LLM-powered investment summary."""
         self.bot.send_message(chat_id, f'🧠 *{ticker} — Generating AI Investment Summary...*')
 
+        is_llm = data.get('_source') == 'llm'
+
         try:
             from app.integrations.llm_gateway import LLMGateway
 
             with self.app.app_context():
                 llm = LLMGateway()
-
-                # Build a data package for the LLM
                 data_summary = self._build_data_summary(ticker, data)
 
                 system_prompt = """You are a senior equity research analyst writing an investment brief.
 You produce concise, data-driven analysis. Always cite specific numbers.
 Use Telegram Markdown formatting (*bold*, _italic_).
 Structure your response with clear sections."""
+
+                # In LLM mode, add multi-perspective analysis to compensate for skipped Phase 9
+                extra_section = ""
+                if is_llm:
+                    extra_section = """
+7. *Multi-Perspective Analysis* (provide these since live AI agents were unavailable)
+   - Fundamentals Analyst: signal (bullish/bearish/neutral) + 1-sentence reasoning with numbers
+   - Technical Analyst: signal + 1-sentence reasoning
+   - Valuation Analyst: signal + 1-sentence reasoning
+   - Sentiment Analyst: signal + 1-sentence reasoning
+   - Overall Consensus: signal + confidence percentage
+"""
 
                 user_prompt = f"""Write a comprehensive investment summary for {ticker} based on this data:
 
@@ -1050,14 +1306,14 @@ Structure your response as:
 
 3. *Bear Case* (3-4 bullet points with specific numbers supporting caution)
 
-4. *Future Outlook* (3-4 sentences on what to expect next quarter and next 12 months based on current trends — revenue trajectory, margin expansion/compression, catalysts, headwinds)
+4. *Future Outlook* (3-4 sentences on what to expect next quarter and next 12 months)
 
-5. *Key Metrics to Watch* (3-4 metrics that will determine near-term direction, with current values and thresholds)
+5. *Key Metrics to Watch* (3-4 metrics with current values and thresholds)
 
 6. *Verdict* (1-2 sentences with clear directional bias and confidence level)
-
-Be specific with numbers throughout. Do not hedge excessively — take a clear analytical stance.
-Keep the total response under 2500 characters for Telegram readability."""
+{extra_section}
+Be specific with numbers throughout. Take a clear analytical stance.
+Keep the total response under {"3000" if is_llm else "2500"} characters for Telegram readability."""
 
                 result = llm.call(
                     messages=[
@@ -1066,7 +1322,7 @@ Keep the total response under 2500 characters for Telegram readability."""
                     ],
                     purpose=f'research.summary.{ticker}',
                     section='research',
-                    max_tokens=1500,
+                    max_tokens=2000 if is_llm else 1500,
                 )
 
                 summary = result['content'].strip()
@@ -1075,7 +1331,7 @@ Keep the total response under 2500 characters for Telegram readability."""
 
                 msg = f'🧠 *{ticker} — AI Investment Summary*\n\n{summary}'
                 msg += f'\n\n_Generated by {model} | Cost: ${cost:.4f}_'
-                msg += f'\n_Data source: {DATA_SOURCE}_'
+                msg += f'\n{self._data_cite(data)}'
 
                 self.bot.send_message(chat_id, msg)
 
@@ -1087,7 +1343,6 @@ Keep the total response under 2500 characters for Telegram readability."""
         """Build a compact text summary of all fetched data for LLM consumption."""
         parts = []
 
-        # Company info
         co = data.get('company')
         if co:
             parts.append(f"Company: {co.name or ticker}")
@@ -1099,7 +1354,6 @@ Keep the total response under 2500 characters for Telegram readability."""
         if mc:
             parts.append(f"Market Cap: {_fmt(mc)}")
 
-        # Price data
         prices_df = data.get('prices_df')
         if prices_df is not None and not prices_df.empty:
             close = prices_df['close']
@@ -1108,57 +1362,25 @@ Keep the total response under 2500 characters for Telegram readability."""
             low_52w = prices_df['low'].min()
             parts.append(f"\nPrice: ${current:.2f} | 52w High: ${high_52w:.2f} | 52w Low: ${low_52w:.2f}")
 
-            # Returns
-            for label, days in [('1M', 21), ('3M', 63), ('6M', 126), ('1Y', 252)]:
-                if len(close) > days:
-                    old = close.iloc[-days - 1]
+            for label, months in [('1M', 1), ('3M', 3), ('6M', 6), ('1Y', 12)]:
+                if len(close) > months:
+                    old = close.iloc[-months - 1]
                     chg = (current - old) / old
                     parts.append(f"{label} return: {_pct(chg)}")
 
-            # SMAs
-            if len(close) >= 50:
-                sma50 = close.rolling(50).mean().iloc[-1]
-                parts.append(f"50 SMA: ${sma50:.2f} ({'above' if current > sma50 else 'below'})")
-            if len(close) >= 200:
-                sma200 = close.rolling(200).mean().iloc[-1]
-                parts.append(f"200 SMA: ${sma200:.2f} ({'above' if current > sma200 else 'below'})")
-
-            # RSI
-            if len(close) >= 15:
-                delta = close.diff()
-                gain = delta.clip(lower=0).rolling(14).mean()
-                loss = (-delta.clip(upper=0)).rolling(14).mean()
-                rs = gain.iloc[-1] / loss.iloc[-1] if loss.iloc[-1] != 0 else 0
-                rsi = 100 - (100 / (1 + rs))
-                parts.append(f"RSI-14: {rsi:.1f}")
-
-        # Metrics
         metrics = data.get('metrics', [])
         if metrics:
             m = metrics[0]
             parts.append(f"\nFundamentals ({m.report_period}):")
             for attr, label in [
-                ('price_to_earnings_ratio', 'P/E'),
-                ('price_to_book_ratio', 'P/B'),
-                ('price_to_sales_ratio', 'P/S'),
-                ('enterprise_value_to_ebitda_ratio', 'EV/EBITDA'),
-                ('peg_ratio', 'PEG'),
-                ('free_cash_flow_yield', 'FCF Yield'),
-                ('gross_margin', 'Gross Margin'),
-                ('operating_margin', 'Op Margin'),
-                ('net_margin', 'Net Margin'),
-                ('return_on_equity', 'ROE'),
-                ('return_on_assets', 'ROA'),
-                ('return_on_invested_capital', 'ROIC'),
-                ('revenue_growth', 'Revenue Growth'),
-                ('earnings_per_share_growth', 'EPS Growth'),
-                ('free_cash_flow_growth', 'FCF Growth'),
-                ('current_ratio', 'Current Ratio'),
-                ('debt_to_equity', 'D/E'),
-                ('interest_coverage', 'Interest Coverage'),
+                ('price_to_earnings_ratio', 'P/E'), ('price_to_book_ratio', 'P/B'),
+                ('price_to_sales_ratio', 'P/S'), ('enterprise_value_to_ebitda_ratio', 'EV/EBITDA'),
+                ('peg_ratio', 'PEG'), ('free_cash_flow_yield', 'FCF Yield'),
+                ('gross_margin', 'Gross Margin'), ('operating_margin', 'Op Margin'),
+                ('net_margin', 'Net Margin'), ('return_on_equity', 'ROE'),
+                ('revenue_growth', 'Revenue Growth'), ('earnings_per_share_growth', 'EPS Growth'),
+                ('current_ratio', 'Current Ratio'), ('debt_to_equity', 'D/E'),
                 ('earnings_per_share', 'EPS'),
-                ('book_value_per_share', 'BVPS'),
-                ('free_cash_flow_per_share', 'FCFPS'),
             ]:
                 val = getattr(m, attr, None)
                 if val is not None:
@@ -1167,41 +1389,31 @@ Keep the total response under 2500 characters for Telegram readability."""
                     else:
                         parts.append(f"  {label}: {val:.2f}")
 
-        # Line items
         line_items = data.get('line_items', [])
         if line_items:
             li = line_items[0]
             parts.append(f"\nFinancials ({li.report_period}):")
             for attr, label in [
-                ('revenue', 'Revenue'),
-                ('net_income', 'Net Income'),
-                ('operating_income', 'Op Income'),
-                ('gross_profit', 'Gross Profit'),
-                ('free_cash_flow', 'FCF'),
-                ('total_assets', 'Total Assets'),
-                ('total_liabilities', 'Total Liabilities'),
-                ('total_debt', 'Total Debt'),
+                ('revenue', 'Revenue'), ('net_income', 'Net Income'),
+                ('free_cash_flow', 'FCF'), ('total_debt', 'Total Debt'),
                 ('cash_and_equivalents', 'Cash'),
             ]:
                 val = getattr(li, attr, None)
                 if val is not None:
                     parts.append(f"  {label}: {_fmt(val)}")
 
-        # Insider trades summary
         trades = data.get('insider_trades', [])
         if trades:
             buys = sum(1 for t in trades if t.transaction_shares and t.transaction_shares > 0)
             sells = sum(1 for t in trades if t.transaction_shares and t.transaction_shares < 0)
-            parts.append(f"\nInsider Trading (90d): {buys} buys, {sells} sells")
+            parts.append(f"\nInsider Trading: {buys} buys, {sells} sells")
 
-        # News sentiment
         news = data.get('news', [])
         if news:
             sentiments = [n.sentiment for n in news if n.sentiment]
             pos = sum(1 for s in sentiments if s.lower() in ('positive', 'bullish'))
             neg = sum(1 for s in sentiments if s.lower() in ('negative', 'bearish'))
-            parts.append(f"\nNews (30d): {len(news)} articles, {pos} positive, {neg} negative")
-            # Include top 3 headlines
+            parts.append(f"\nNews: {len(news)} articles, {pos} positive, {neg} negative")
             for n in news[:3]:
                 parts.append(f"  - {n.title} ({n.source}, {n.date[:10]})")
 

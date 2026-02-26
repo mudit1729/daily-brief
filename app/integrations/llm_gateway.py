@@ -49,10 +49,11 @@ class LLMGateway:
         return bool(self.xai_api_key)
 
     def call(self, messages, purpose, section=None, brief_id=None,
-             max_tokens=None, provider='openai'):
+             max_tokens=None, provider='openai', model=None):
         """
         Central LLM call. Checks budget, makes call, logs cost.
         provider: 'openai' (default) or 'xai' for Grok.
+        model: optional per-call model override (e.g. 'gpt-4.1-nano').
         Returns: {content, prompt_tokens, completion_tokens, total_tokens, cost_usd}
         """
         remaining = self._get_remaining_budget(section)
@@ -64,7 +65,7 @@ class LLMGateway:
         if provider == 'xai':
             model, result = self._call_xai(messages, effective_max, purpose)
         else:
-            model, result = self._call_openai(messages, effective_max, purpose)
+            model, result = self._call_openai(messages, effective_max, purpose, model=model)
 
         latency_ms = result['latency_ms']
         usage = result['usage']
@@ -84,15 +85,16 @@ class LLMGateway:
             'model': model,
         }
 
-    def _call_openai(self, messages, max_tokens, purpose):
+    def _call_openai(self, messages, max_tokens, purpose, model=None):
         """Make an OpenAI API call."""
         import openai
         client = openai.OpenAI(api_key=self.api_key)
+        effective_model = model or self.model
 
         start_ms = int(time.time() * 1000)
         try:
             response = client.chat.completions.create(
-                model=self.model,
+                model=effective_model,
                 messages=messages,
                 max_completion_tokens=max_tokens,
             )
@@ -100,7 +102,7 @@ class LLMGateway:
             logger.error(f"OpenAI call failed ({purpose}): {e}")
             raise
 
-        return self.model, {
+        return effective_model, {
             'content': response.choices[0].message.content,
             'usage': response.usage,
             'latency_ms': int(time.time() * 1000) - start_ms,
