@@ -28,6 +28,7 @@ class Config:
         'investment_thesis': 0.11,   # includes hedge fund analysis
         'timelines': 0.10,           # auto-update + auto-discover timelines
         'grok_analysis': 0.10,       # xAI Grok: news takes + timeline + stories enrichment
+        'research': 0.08,             # Telegram /research LLM data + summary
     }
 
     # xAI / Grok (secondary LLM provider)
@@ -50,6 +51,9 @@ class Config:
     SOURCE_FAILURE_THRESHOLD = int(os.getenv('SOURCE_FAILURE_THRESHOLD', '3'))
     SOURCE_AUTO_DISABLE_MINUTES = int(os.getenv('SOURCE_AUTO_DISABLE_MINUTES', '180'))
     SOURCE_LATENCY_ALPHA = float(os.getenv('SOURCE_LATENCY_ALPHA', '0.30'))
+
+    # Research — use LLM for financial data when API is unavailable
+    RESEARCH_USE_LLM_DATA = os.getenv('RESEARCH_USE_LLM_DATA', 'false').lower() == 'true'
 
     # Telegram Bot
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
