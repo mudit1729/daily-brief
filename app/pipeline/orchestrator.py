@@ -138,4 +138,13 @@ def run_daily_pipeline(target_date=None, force=False):
 
     logger.info(f"=== Pipeline complete for {target_date} ===")
     logger.info(f"Results: {results}")
-    return DailyBrief.query.filter_by(date=target_date).first()
+
+    # Notify Telegram users
+    brief = DailyBrief.query.filter_by(date=target_date).first()
+    try:
+        from app.routes.telegram import notify_pipeline_complete
+        notify_pipeline_complete(current_app._get_current_object(), target_date, brief)
+    except Exception as e:
+        logger.warning(f"Telegram notification failed: {e}")
+
+    return brief

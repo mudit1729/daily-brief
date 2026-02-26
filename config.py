@@ -51,6 +51,13 @@ class Config:
     SOURCE_AUTO_DISABLE_MINUTES = int(os.getenv('SOURCE_AUTO_DISABLE_MINUTES', '180'))
     SOURCE_LATENCY_ALPHA = float(os.getenv('SOURCE_LATENCY_ALPHA', '0.30'))
 
+    # Telegram Bot
+    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    TELEGRAM_ALLOWED_USERS = [
+        int(uid.strip()) for uid in os.getenv('TELEGRAM_ALLOWED_USERS', '').split(',')
+        if uid.strip().isdigit()
+    ]
+
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
@@ -65,3 +72,5 @@ class TestConfig(Config):
     LLM_DAILY_BUDGET_USD = 0.10
     OPENAI_API_KEY = 'test-key'
     XAI_API_KEY = None  # Disable xAI in tests by default
+    TELEGRAM_BOT_TOKEN = None
+    TELEGRAM_ALLOWED_USERS = []
