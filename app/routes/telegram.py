@@ -108,6 +108,8 @@ def _handle_command(chat_id, command, args):
         '/help': _cmd_help,
         '/addtopic': _cmd_addtopic,
         '/addtimeline': _cmd_addtimeline,
+        '/removetopic': _cmd_removetopic,
+        '/removetimeline': _cmd_removetimeline,
         '/research': _cmd_research,
         '/brief': _cmd_brief,
         '/market': _cmd_market,
@@ -155,6 +157,8 @@ def _cmd_help(chat_id, args):
         '/timelines — Active timelines\n'
         '/addtopic name | description — Add tracked topic\n'
         '/addtimeline name | desc | entities — Add timeline\n'
+        '/removetopic name — Remove tracked topic\n'
+        '/removetimeline name — Remove timeline\n'
         '/pipeline — Trigger pipeline run\n'
         '/status — System status\n'
     ))
@@ -231,6 +235,54 @@ def _cmd_addtimeline(chat_id, args):
                     tb.send_message(chat_id, f'Timeline seeding failed: {e}')
 
         threading.Thread(target=seed, daemon=True).start()
+
+
+def _cmd_removetopic(chat_id, args):
+    """Remove a tracked topic. Format: /removetopic name"""
+    bot = _get_bot()
+    if not args:
+        bot.send_message(chat_id, 'Usage: `/removetopic topic name`')
+        return
+
+    from app.models.topic import TrackedTopic
+
+    name = args.strip()
+    topic = TrackedTopic.query.filter(
+        db.func.lower(TrackedTopic.name) == name.lower()
+    ).first()
+
+    if not topic:
+        bot.send_message(chat_id, f'Topic "{name}" not found.')
+        return
+
+    topic_name = topic.name
+    topic.is_active = False
+    db.session.commit()
+    bot.send_message(chat_id, f'Topic *{topic_name}* deactivated. Stories will no longer be tracked.')
+
+
+def _cmd_removetimeline(chat_id, args):
+    """Remove a timeline. Format: /removetimeline name"""
+    bot = _get_bot()
+    if not args:
+        bot.send_message(chat_id, 'Usage: `/removetimeline timeline name`')
+        return
+
+    from app.models.timeline import Timeline
+
+    name = args.strip()
+    timeline = Timeline.query.filter(
+        db.func.lower(Timeline.name) == name.lower()
+    ).first()
+
+    if not timeline:
+        bot.send_message(chat_id, f'Timeline "{name}" not found.')
+        return
+
+    tl_name = timeline.name
+    timeline.is_active = False
+    db.session.commit()
+    bot.send_message(chat_id, f'Timeline *{tl_name}* deactivated.')
 
 
 def _cmd_research(chat_id, args):
