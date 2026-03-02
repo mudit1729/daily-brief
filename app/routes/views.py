@@ -879,7 +879,7 @@ def delete_topic(topic_id):
 
 @views_bp.route('/prep')
 def prep_page():
-    """Prep — algorithm visualizer link + markdown notes viewer."""
+    """Prep — algorithm visualizer link + categorized markdown notes viewer."""
     import os
     notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
     # Resolve relative to project root
@@ -887,16 +887,62 @@ def prep_page():
         notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
     notes_dir = os.path.abspath(notes_dir)
 
-    notes = []
+    all_notes = []
     if os.path.isdir(notes_dir):
         for fname in sorted(os.listdir(notes_dir)):
             if fname.lower().endswith('.md'):
-                notes.append(fname)
+                all_notes.append(fname)
+
+    # Categorize notes into sections
+    # Each category: { 'label': str, 'icon': str, 'notes': [filename, ...] }
+    CATEGORIES = [
+        {
+            'label': 'Coding',
+            'icon': 'code',
+            'match': ['Amazon-150', 'Blind-75'],
+        },
+        {
+            'label': 'ML Coding',
+            'icon': 'cpu',
+            'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer'],
+        },
+        {
+            'label': 'ML Theory',
+            'icon': 'book',
+            'match': ['ML-Comprehensive-Guide', 'Attention-Is-All-You-Need'],
+        },
+    ]
+
+    categorized = []
+    categorized_files = set()
+    for cat in CATEGORIES:
+        cat_notes = []
+        for note in all_notes:
+            name_no_ext = note.rsplit('.', 1)[0]
+            if any(m.lower() in name_no_ext.lower() for m in cat['match']):
+                cat_notes.append(note)
+                categorized_files.add(note)
+        if cat_notes:
+            categorized.append({
+                'label': cat['label'],
+                'icon': cat['icon'],
+                'notes': cat_notes,
+            })
+
+    # Uncategorized notes go into "Other"
+    other = [n for n in all_notes if n not in categorized_files and n != 'README.md']
+    if other:
+        categorized.append({
+            'label': 'Other',
+            'icon': 'file',
+            'notes': other,
+        })
 
     return render_template(
         'pages/prep.html',
         active_tab='prep',
-        notes=notes,
+        categories=categorized,
+        has_notes=bool(all_notes),
         brief=_get_brief(),
     )
 
