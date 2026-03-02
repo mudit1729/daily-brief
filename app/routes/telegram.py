@@ -35,10 +35,13 @@ def webhook():
     data = request.get_json(silent=True) or {}
     chat_id, user_id, text, username = TelegramBot.parse_update(data)
 
+    logger.info(f"[Webhook] chat={chat_id} user={user_id} text={text!r}")
+
     if not chat_id or not text:
         return jsonify({'ok': True})
 
     if not _is_authorized(user_id):
+        logger.warning(f"[Webhook] Unauthorized user {user_id} ({username})")
         bot = _get_bot()
         if bot:
             bot.send_message(chat_id, 'Unauthorized. Your user ID is not in the allowed list.')
@@ -50,6 +53,7 @@ def webhook():
         parts = text.split(None, 1)
         command = parts[0].lower().split('@')[0]  # strip @botname
         args = parts[1] if len(parts) > 1 else ''
+        logger.info(f"[Webhook] Routing command={command} args={args!r}")
         _handle_command(chat_id, command, args)
     else:
         bot = _get_bot()
@@ -106,6 +110,7 @@ def _handle_command(chat_id, command, args):
     handlers = {
         '/start': _cmd_start,
         '/help': _cmd_help,
+        '/ping': _cmd_ping,
         '/addtopic': _cmd_addtopic,
         '/addtimeline': _cmd_addtimeline,
         '/createtimeline': _cmd_addtimeline,
@@ -137,6 +142,13 @@ def _handle_command(chat_id, command, args):
 
 
 # --------------- Command handlers ---------------
+
+def _cmd_ping(chat_id, args):
+    """Simple ping — used to verify the bot is alive and can send messages."""
+    bot = _get_bot()
+    result = bot.send_message(chat_id, 'pong', parse_mode=None)
+    logger.info(f"[Ping] send_message result: {result}")
+
 
 def _cmd_start(chat_id, args):
     bot = _get_bot()
