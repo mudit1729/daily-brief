@@ -916,6 +916,11 @@ def prep_page():
             'icon': 'eye',
             'match': ['BEV-'],
         },
+        {
+            'label': 'Paper Summaries',
+            'icon': 'paper',
+            'match': ['Paper-'],
+        },
     ]
 
     categorized = []
