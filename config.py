@@ -62,6 +62,9 @@ class Config:
         if uid.strip().isdigit()
     ]
 
+    # Site-wide password gate (set on Railway to lock the site)
+    SITE_PASSWORD = os.getenv('SITE_PASSWORD')
+
     # Prep notes
     PREP_NOTES_DIR = os.getenv('PREP_NOTES_DIR', 'notes')
 
@@ -72,6 +75,7 @@ class Config:
 class TestConfig(Config):
     TESTING = True
     ADMIN_API_KEY = 'test-admin-key'
+    SITE_PASSWORD = None  # no password gate in tests
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     SQLALCHEMY_ENGINE_OPTIONS = {}  # SQLite doesn't support pool_size
     SCHEDULER_ENABLED = False

@@ -2,9 +2,10 @@
 Views blueprint — serves HTML pages via Jinja2.
 Queries the database directly (same models as API routes).
 """
+import hmac
 import logging
 from datetime import date, timedelta, datetime, timezone
-from flask import Blueprint, render_template, request, abort, jsonify, current_app
+from flask import Blueprint, render_template, request, abort, jsonify, current_app, session, redirect, url_for
 
 from app.extensions import db, scheduler
 from app.models.brief import DailyBrief, BriefSection
@@ -25,6 +26,46 @@ from app.services.scheduler_config_service import SchedulerConfigService
 logger = logging.getLogger(__name__)
 
 views_bp = Blueprint('views', __name__)
+
+
+# ── Site-wide password gate ───────────────────────────
+
+@views_bp.before_request
+def require_site_password():
+    """If SITE_PASSWORD is set, require login before any page."""
+    password = current_app.config.get('SITE_PASSWORD')
+    if not password:
+        return  # no password configured — site is open
+    if request.endpoint in ('views.login', 'static'):
+        return  # allow the login page and static assets through
+    if session.get('site_authenticated'):
+        return  # already logged in
+    return redirect(url_for('views.login', next=request.path))
+
+
+@views_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Simple password gate."""
+    password = current_app.config.get('SITE_PASSWORD')
+    if not password:
+        return redirect(url_for('views.index'))
+
+    error = None
+    if request.method == 'POST':
+        entered = request.form.get('password', '')
+        if hmac.compare_digest(entered, password):
+            session['site_authenticated'] = True
+            next_url = request.args.get('next', '/')
+            return redirect(next_url)
+        error = 'Wrong password.'
+
+    return render_template('pages/login.html', error=error)
+
+
+@views_bp.route('/logout')
+def logout():
+    session.pop('site_authenticated', None)
+    return redirect(url_for('views.login'))
 
 
 # ── Jinja filters ──────────────────────────────────────
@@ -929,29 +970,52 @@ def calendar_page():
 
 @views_bp.route('/api/calendar/events')
 def calendar_events():
-    """List calendar events for a given month (YYYY-MM)."""
-    month_str = request.args.get('month')
-    if month_str:
+    """List calendar events for a date range.
+
+    Query params:
+      start  – YYYY-MM-DD  (required)
+      end    – YYYY-MM-DD  (required)
+      month  – YYYY-MM     (legacy shorthand; start/end take precedence)
+    """
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
+    if start_str and end_str:
         try:
-            year, month = month_str.split('-')
-            start = date(int(year), int(month), 1)
-        except (ValueError, TypeError):
-            start = date.today().replace(day=1)
+            range_start = date.fromisoformat(start_str)
+            range_end = date.fromisoformat(end_str)
+        except ValueError:
+            range_start = date.today().replace(day=1)
+            range_end = range_start + timedelta(days=31)
     else:
-        start = date.today().replace(day=1)
+        month_str = request.args.get('month')
+        if month_str:
+            try:
+                year, month = month_str.split('-')
+                range_start = date(int(year), int(month), 1)
+            except (ValueError, TypeError):
+                range_start = date.today().replace(day=1)
+        else:
+            range_start = date.today().replace(day=1)
+        if range_start.month == 12:
+            range_end = date(range_start.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            range_end = date(range_start.year, range_start.month + 1, 1) - timedelta(days=1)
 
-    # End of month
-    if start.month == 12:
-        end = date(start.year + 1, 1, 1)
-    else:
-        end = date(start.year, start.month + 1, 1)
+    # Fetch all events that *could* have occurrences in this range:
+    # non-recurring in range  OR  recurring that started on or before range_end
+    candidates = CalendarEvent.query.filter(
+        db.or_(
+            db.and_(CalendarEvent.recurrence.is_(None), CalendarEvent.event_date >= range_start, CalendarEvent.event_date <= range_end),
+            db.and_(CalendarEvent.recurrence.isnot(None), CalendarEvent.event_date <= range_end),
+        )
+    ).all()
 
-    events = CalendarEvent.query.filter(
-        CalendarEvent.event_date >= start,
-        CalendarEvent.event_date < end,
-    ).order_by(CalendarEvent.event_date, CalendarEvent.event_time).all()
-
-    return jsonify([e.to_dict() for e in events])
+    results = []
+    for evt in candidates:
+        for occ_date in evt.occurrences_in_range(range_start, range_end):
+            results.append(evt.to_dict(override_date=occ_date))
+    results.sort(key=lambda e: (e['event_date'], e['event_time'] or ''))
+    return jsonify(results)
 
 
 @views_bp.route('/api/calendar/events', methods=['POST'])
@@ -969,8 +1033,17 @@ def calendar_event_create():
             time_type.fromisoformat(data['event_time'])
             if data.get('event_time') else None
         ),
+        end_time=(
+            time_type.fromisoformat(data['end_time'])
+            if data.get('end_time') else None
+        ),
         description=data.get('description', ''),
         color=data.get('color', '#6366f1'),
+        recurrence=data.get('recurrence') or None,
+        recurrence_end=(
+            date.fromisoformat(data['recurrence_end'])
+            if data.get('recurrence_end') else None
+        ),
     )
     db.session.add(evt)
     db.session.commit()
@@ -993,10 +1066,22 @@ def calendar_event_update(event_id):
             time_type.fromisoformat(data['event_time'])
             if data['event_time'] else None
         )
+    if 'end_time' in data:
+        evt.end_time = (
+            time_type.fromisoformat(data['end_time'])
+            if data['end_time'] else None
+        )
     if 'description' in data:
         evt.description = data['description']
     if 'color' in data:
         evt.color = data['color']
+    if 'recurrence' in data:
+        evt.recurrence = data['recurrence'] or None
+    if 'recurrence_end' in data:
+        evt.recurrence_end = (
+            date.fromisoformat(data['recurrence_end'])
+            if data['recurrence_end'] else None
+        )
 
     db.session.commit()
     return jsonify(evt.to_dict())
