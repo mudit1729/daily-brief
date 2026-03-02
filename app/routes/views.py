@@ -911,6 +911,11 @@ def prep_page():
             'icon': 'book',
             'match': ['ML-Comprehensive-Guide', 'Attention-Is-All-You-Need'],
         },
+        {
+            'label': 'BEV Seminal Papers',
+            'icon': 'eye',
+            'match': ['BEV-'],
+        },
     ]
 
     categorized = []
