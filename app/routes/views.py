@@ -928,6 +928,25 @@ def prep_note(filename):
         extras=['fenced-code-blocks', 'tables', 'code-friendly', 'header-ids'],
     )
 
+    # Strip Pygments' inline-styled spans so highlight.js can re-highlight client-side.
+    # Converts <div class="codehilite"><pre ...><code><span style="...">text</span></code></pre></div>
+    # into clean <pre><code class="language-X">text</code></pre>
+    def _clean_pygments(m):
+        block = m.group(0)
+        # Extract language from codehilite class or data attribute if present
+        import re as _re
+        # Strip all <span ...> and </span> tags, keeping text content
+        clean = _re.sub(r'</?span[^>]*>', '', block)
+        # Remove codehilite wrapper div
+        clean = _re.sub(r'<div[^>]*class="codehilite"[^>]*>\s*', '', clean)
+        clean = _re.sub(r'\s*</div>', '', clean)
+        # Remove inline styles from pre tag
+        clean = _re.sub(r'<pre[^>]*>', '<pre>', clean)
+        # Decode HTML entities back for highlight.js
+        clean = clean.replace('&#39;', "'").replace('&amp;', '&')
+        return clean
+    html = re.sub(r'<div[^>]*class="codehilite"[^>]*>.*?</div>', _clean_pygments, html, flags=re.DOTALL)
+
     # Rewrite relative image paths to point to the notes image route
     html = re.sub(
         r'<img\s+([^>]*?)src="(?!https?://|/)([^"]+)"',
