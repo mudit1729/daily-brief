@@ -74,6 +74,7 @@
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: var(--sb-space-4);
+  height: calc(100vh - 200px);
   min-height: 400px;
   border-radius: var(--sb-radius-lg);
   border: 1px solid var(--sb-border);
@@ -152,6 +153,8 @@
 .sb-notes-content .md-body a { color: var(--sb-accent); text-decoration: none; }
 .sb-notes-content .md-body a:hover { text-decoration: underline; }
 .sb-notes-content .md-body hr { border: none; border-top: 1px solid var(--sb-border); margin: var(--sb-space-5) 0; }
+.sb-notes-content .md-body img { max-width: 100%; height: auto; border-radius: var(--sb-radius-md); margin: var(--sb-space-3) 0; background: var(--sb-surface-elevated); }
+.sb-notes-content .md-body em { color: var(--sb-text-muted); font-size: var(--sb-text-sm); }
 
 /* Expand button */
 .sb-notes-expand-btn {

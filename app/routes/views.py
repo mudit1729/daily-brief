@@ -864,6 +864,7 @@ def prep_page():
 def prep_note(filename):
     """Render a markdown note to HTML."""
     import os
+    import re
     import markdown2
 
     notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
@@ -885,7 +886,35 @@ def prep_note(filename):
         raw,
         extras=['fenced-code-blocks', 'tables', 'code-friendly', 'header-ids'],
     )
+
+    # Rewrite relative image paths to point to the notes image route
+    html = re.sub(
+        r'<img\s+([^>]*?)src="(?!https?://|/)([^"]+)"',
+        r'<img \1src="/api/prep/images/\2"',
+        html,
+    )
+
     return jsonify({'filename': filename, 'html': html})
+
+
+@views_bp.route('/api/prep/images/<path:filepath>')
+def prep_image(filepath):
+    """Serve images from the notes directory."""
+    import os
+    from flask import send_file
+
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    safe_path = os.path.normpath(os.path.join(notes_dir, filepath))
+    if not safe_path.startswith(notes_dir):
+        abort(403)
+    if not os.path.isfile(safe_path):
+        abort(404)
+
+    return send_file(safe_path)
 
 
 @views_bp.route('/calendar')
