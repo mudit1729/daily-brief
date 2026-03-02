@@ -4,7 +4,7 @@
 {% block content %}
 <header class="sb-page-header">
   <h1 class="sb-page-title">Calendar</h1>
-  <p class="sb-page-subtitle">Shared event calendar</p>
+  <p class="sb-page-subtitle">Shared event calendar · Pacific Time</p>
 </header>
 
 <div class="sb-cal">
@@ -21,14 +21,14 @@
 
     <!-- View switcher -->
     <div class="sb-cal__view-switcher" id="viewSwitcher">
-      <button class="sb-cal__view-btn active" data-view="month">Month</button>
+      <button class="sb-cal__view-btn" data-view="month">Month</button>
       <button class="sb-cal__view-btn" data-view="week">Week</button>
-      <button class="sb-cal__view-btn" data-view="day">Day</button>
+      <button class="sb-cal__view-btn active" data-view="day">Day</button>
     </div>
   </div>
 
   <!-- Month view -->
-  <div id="monthView">
+  <div id="monthView" style="display:none;">
     <div class="sb-cal__grid sb-cal__header">
       <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
     </div>
@@ -42,7 +42,7 @@
   </div>
 
   <!-- Day view -->
-  <div id="dayView" style="display:none;">
+  <div id="dayView">
     <div class="sb-cal__day-body" id="dayBody"></div>
   </div>
 </div>
