@@ -117,6 +117,7 @@ def _handle_command(chat_id, command, args):
         '/removetopic': _cmd_removetopic,
         '/removetimeline': _cmd_removetimeline,
         '/research': _cmd_research,
+        '/summarize': _cmd_summarize,
         '/brief': _cmd_brief,
         '/market': _cmd_market,
         '/stories': _cmd_stories,
@@ -166,6 +167,7 @@ def _cmd_help(chat_id, args):
         '/brief — Today\'s brief summary\n'
         '/market — Market snapshot\n'
         '/research TICKER — In-depth stock research\n'
+        '/summarize arxiv\\_link — Summarize paper (12-section)\n'
         '/topics — List tracked topics\n'
         '/stories — Tracked stories by topic\n'
         '/timelines — Active timelines\n'
@@ -346,6 +348,52 @@ def _cmd_research(chat_id, args):
     t = threading.Thread(target=run, daemon=True)
     _research_threads[chat_id] = t
     t.start()
+
+
+def _cmd_summarize(chat_id, args):
+    """Summarize an arxiv paper into a 12-section implementation-focused markdown.
+    Format: /summarize <arxiv_link_or_id>"""
+    bot = _get_bot()
+    if not args:
+        bot.send_message(chat_id, (
+            'Usage:\n'
+            '`/summarize https://arxiv.org/abs/2112.11790`\n'
+            '`/summarize 2112.11790`\n\n'
+            'Generates a detailed 12-section implementation-focused summary '
+            'and uploads it to the Prep page.'
+        ))
+        return
+
+    from app.services.paper_summary_service import _extract_arxiv_id
+    arxiv_id = _extract_arxiv_id(args.strip())
+    if not arxiv_id:
+        bot.send_message(chat_id, 'Could not parse an arxiv ID. Send a link like `https://arxiv.org/abs/2112.11790` or just the ID `2112.11790`.')
+        return
+
+    bot.send_message(chat_id, f'Fetching arxiv paper {arxiv_id} and generating 12-section summary... This may take 2-3 minutes.')
+
+    app = current_app._get_current_object()
+
+    def run():
+        with app.app_context():
+            from app.services.paper_summary_service import PaperSummaryService
+            from app.integrations.telegram_bot import TelegramBot
+            tb = TelegramBot(app.config['TELEGRAM_BOT_TOKEN'])
+            try:
+                svc = PaperSummaryService()
+                result = svc.summarize_arxiv(args.strip())
+                tb.send_message(chat_id, (
+                    f'Paper summary complete!\n\n'
+                    f'*{result["title"]}*\n'
+                    f'arxiv: {result["arxiv_id"]}\n'
+                    f'Tokens: {result["tokens_used"]:,} (${result["cost_usd"]:.4f})\n\n'
+                    f'View on Prep page: `{result["filename"]}`'
+                ))
+            except Exception as e:
+                logger.error(f"Paper summary failed: {e}", exc_info=True)
+                tb.send_message(chat_id, f'Paper summary failed: {e}')
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 def _cmd_brief(chat_id, args):
