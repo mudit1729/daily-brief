@@ -62,6 +62,9 @@ class Config:
         if uid.strip().isdigit()
     ]
 
+    # Prep notes
+    PREP_NOTES_DIR = os.getenv('PREP_NOTES_DIR', 'notes')
+
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 

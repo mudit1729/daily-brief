@@ -13,6 +13,7 @@ from app.models.investment import InvestmentThesis
 from app.models.hedge_fund import HedgeFundAnalysis
 from app.models.timeline import Timeline, TimelineEvent
 from app.models.system_setting import SystemSetting
+from app.models.calendar_event import CalendarEvent
 
 __all__ = [
     'Source', 'Article', 'ArticleEmbedding',
@@ -26,4 +27,5 @@ __all__ = [
     'ClaimLedger', 'InvestmentThesis', 'HedgeFundAnalysis',
     'Timeline', 'TimelineEvent',
     'SystemSetting',
+    'CalendarEvent',
 ]

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Pulse — Calendar{% endblock %}
+
+{% block content %}
+<header class="sb-page-header">
+  <h1 class="sb-page-title">Calendar</h1>
+  <p class="sb-page-subtitle">Shared event calendar</p>
+</header>
+
+<div class="sb-cal">
+  <!-- Month navigation -->
+  <div class="sb-cal__nav">
+    <button class="sb-cal__nav-btn" id="calPrev" aria-label="Previous month">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <h2 class="sb-cal__month-label" id="calMonthLabel"></h2>
+    <button class="sb-cal__nav-btn" id="calNext" aria-label="Next month">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <button class="sb-cal__today-btn" id="calToday">Today</button>
+  </div>
+
+  <!-- Day headers -->
+  <div class="sb-cal__grid sb-cal__header">
+    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+  </div>
+
+  <!-- Calendar grid (populated by JS) -->
+  <div class="sb-cal__grid sb-cal__days" id="calGrid"></div>
+</div>
+
+<!-- Event modal -->
+<div class="sb-modal-overlay" id="eventModal" style="display:none;">
+  <div class="sb-modal">
+    <div class="sb-modal__header">
+      <h3 class="sb-modal__title" id="modalTitle">Add Event</h3>
+      <button class="sb-modal__close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <form id="eventForm" autocomplete="off">
+      <input type="hidden" id="eventId">
+      <div class="sb-modal__field">
+        <label for="eventTitleInput">Title</label>
+        <input type="text" id="eventTitleInput" required placeholder="Event title">
+      </div>
+      <div class="sb-modal__row">
+        <div class="sb-modal__field">
+          <label for="eventDateInput">Date</label>
+          <input type="date" id="eventDateInput" required>
+        </div>
+        <div class="sb-modal__field">
+          <label for="eventTimeInput">Time</label>
+          <input type="time" id="eventTimeInput">
+        </div>
+      </div>
+      <div class="sb-modal__field">
+        <label for="eventDescInput">Description</label>
+        <textarea id="eventDescInput" rows="2" placeholder="Optional description"></textarea>
+      </div>
+      <div class="sb-modal__field">
+        <label>Color</label>
+        <div class="sb-color-picker" id="colorPicker">
+          <button type="button" class="sb-color-swatch" data-color="#6366f1" style="background:#6366f1;" title="Indigo"></button>
+          <button type="button" class="sb-color-swatch" data-color="#ef4444" style="background:#ef4444;" title="Red"></button>
+          <button type="button" class="sb-color-swatch" data-color="#22c55e" style="background:#22c55e;" title="Green"></button>
+          <button type="button" class="sb-color-swatch" data-color="#f59e0b" style="background:#f59e0b;" title="Amber"></button>
+          <button type="button" class="sb-color-swatch" data-color="#3b82f6" style="background:#3b82f6;" title="Blue"></button>
+          <button type="button" class="sb-color-swatch" data-color="#ec4899" style="background:#ec4899;" title="Pink"></button>
+          <button type="button" class="sb-color-swatch" data-color="#a3a3a3" style="background:#a3a3a3;" title="Gray"></button>
+        </div>
+      </div>
+      <div class="sb-modal__actions">
+        <button type="button" class="sb-modal__btn sb-modal__btn--danger" id="eventDeleteBtn" style="display:none;">Delete</button>
+        <div style="flex:1;"></div>
+        <button type="button" class="sb-modal__btn" id="eventCancelBtn">Cancel</button>
+        <button type="submit" class="sb-modal__btn sb-modal__btn--primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/calendar.js') }}" defer></script>
+{% endblock %}
