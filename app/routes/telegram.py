@@ -159,7 +159,7 @@ def _cmd_help(chat_id, args):
         '/timelines — Active timelines\n'
         '/timeline name — View timeline events\n'
         '/addtopic name | description — Add tracked topic\n'
-        '/addtimeline name | desc | entities — Add timeline\n'
+        '/addtimeline topic — Research & build timeline with citations\n'
         '/removetopic name — Remove tracked topic\n'
         '/removetimeline name — Remove timeline\n'
         '/pipeline — Trigger pipeline run\n'
@@ -192,18 +192,36 @@ def _cmd_addtopic(chat_id, args):
 
 
 def _cmd_addtimeline(chat_id, args):
-    """Add a timeline. Format: /addtimeline name | desc | entity1, entity2"""
+    """Add a timeline with AI-generated events.
+
+    Formats:
+      /addtimeline <topic>                    — auto-generates name, desc, entities
+      /addtimeline name | desc | e1, e2       — explicit (legacy)
+    """
     bot = _get_bot()
     if not args:
-        bot.send_message(chat_id, 'Usage: `/addtimeline name | description | entity1, entity2`')
+        bot.send_message(chat_id, (
+            'Usage:\n'
+            '`/addtimeline antarctic deep core drills`\n'
+            '`/addtimeline AI regulation in the EU`\n\n'
+            'Just provide a topic and I\'ll research and build a full timeline with citations.'
+        ))
         return
 
     from app.services.timeline_service import TimelineService
 
-    parts = [p.strip() for p in args.split('|')]
-    name = parts[0]
-    desc = parts[1] if len(parts) > 1 else ''
-    entities = [e.strip() for e in parts[2].split(',')] if len(parts) > 2 else []
+    # Support both simple topic and legacy pipe-separated format
+    if '|' in args:
+        parts = [p.strip() for p in args.split('|')]
+        name = parts[0]
+        desc = parts[1] if len(parts) > 1 else ''
+        entities = [e.strip() for e in parts[2].split(',')] if len(parts) > 2 else []
+    else:
+        # Simple topic mode — use the topic as the name
+        topic = args.strip()
+        name = topic[:80]
+        desc = f'Timeline tracking key events and developments related to: {topic}'
+        entities = []  # LLM will figure out the entities
 
     svc = TimelineService()
     try:
@@ -217,28 +235,28 @@ def _cmd_addtimeline(chat_id, args):
         msg += f'\nEntities: {", ".join(entities)}'
     bot.send_message(chat_id, msg)
 
-    # Seed with LLM if entities are provided
-    if entities:
-        bot.send_message(chat_id, 'Seeding historical events with AI...')
-        app = current_app._get_current_object()
-        timeline_id = timeline.id
+    # Always seed with LLM — deep research with citations
+    topic_prompt = f'{name}: {desc}' if desc else name
+    bot.send_message(chat_id, '🔍 Researching and building timeline with citations... This may take a minute.')
+    app = current_app._get_current_object()
+    timeline_id = timeline.id
 
-        def seed():
-            with app.app_context():
-                try:
-                    svc2 = TimelineService()
-                    result = svc2.generate_timeline_with_llm(timeline_id, f'{name}: {desc}')
-                    events_added = result.get('events_added', 0)
-                    from app.integrations.telegram_bot import TelegramBot
-                    tb = TelegramBot(app.config['TELEGRAM_BOT_TOKEN'])
-                    tb.send_message(chat_id, f'Timeline *{name}* seeded with {events_added} events.\nUse /timeline {name} to view.')
-                except Exception as e:
-                    logger.error(f"Timeline seeding failed: {e}", exc_info=True)
-                    from app.integrations.telegram_bot import TelegramBot
-                    tb = TelegramBot(app.config['TELEGRAM_BOT_TOKEN'])
-                    tb.send_message(chat_id, f'Timeline seeding failed: {e}')
+    def seed():
+        with app.app_context():
+            try:
+                svc2 = TimelineService()
+                result = svc2.generate_timeline_with_llm(timeline_id, topic_prompt)
+                events_added = result.get('events_added', 0)
+                from app.integrations.telegram_bot import TelegramBot
+                tb = TelegramBot(app.config['TELEGRAM_BOT_TOKEN'])
+                tb.send_message(chat_id, f'✅ Timeline *{name}* seeded with {events_added} events.\nUse /timeline {name} to view.')
+            except Exception as e:
+                logger.error(f"Timeline seeding failed: {e}", exc_info=True)
+                from app.integrations.telegram_bot import TelegramBot
+                tb = TelegramBot(app.config['TELEGRAM_BOT_TOKEN'])
+                tb.send_message(chat_id, f'❌ Timeline seeding failed: {e}')
 
-        threading.Thread(target=seed, daemon=True).start()
+    threading.Thread(target=seed, daemon=True).start()
 
 
 def _cmd_removetopic(chat_id, args):

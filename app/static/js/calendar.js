@@ -24,9 +24,24 @@
   const recSelect = document.getElementById('eventRecurrence');
   const recEndField = document.getElementById('recEndField');
 
-  let currentView = 'month';
+  let currentView = 'day';
   let currentDate = new Date(); // anchor date
   let events = [];
+
+  // Get current time in PST (America/Los_Angeles)
+  function getPSTDate() {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  }
+
+  function getPSTHour() {
+    const pst = getPSTDate();
+    return pst.getHours();
+  }
+
+  function getPSTMinute() {
+    const pst = getPSTDate();
+    return pst.getMinutes();
+  }
 
   /* ── Init ─────────────────────────────────── */
   function init() {
@@ -58,7 +73,11 @@
 
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-    render();
+    // Set default view to day
+    switchView('day');
+
+    // Update time indicator every minute
+    setInterval(updateTimeIndicators, 60000);
   }
 
   /* ── Navigation ──────────────────────────── */
@@ -74,7 +93,7 @@
   }
 
   function goToday() {
-    currentDate = new Date();
+    currentDate = getPSTDate();
     render();
   }
 
@@ -271,6 +290,13 @@
         openModal(cell.dataset.date, null, cell.dataset.hour);
       });
     });
+
+    // Add current time indicator for today's column
+    const todayStr = fmtDate(getPSTDate());
+    addTimeIndicator(weekBody, '.sb-cal__week-cell', todayStr);
+
+    // Auto-scroll to current hour
+    scrollToCurrentTime(weekBody);
   }
 
   /* ── Day view ────────────────────────────── */
@@ -319,6 +345,12 @@
         openModal(cell.dataset.date, null, cell.dataset.hour);
       });
     });
+
+    // Add current time indicator if viewing today
+    addTimeIndicator(dayBody, '.sb-cal__day-cell', dateStr);
+
+    // Auto-scroll to current hour
+    scrollToCurrentTime(dayBody);
   }
 
   /* ── Modal ───────────────────────────────── */
@@ -388,6 +420,60 @@
       .then(r => { if (!r.ok) throw new Error('Delete failed'); return r.json(); })
       .then(() => { closeModal(); render(); })
       .catch(err => alert('Error: ' + err.message));
+  }
+
+  /* ── Time indicator ─────────────────────── */
+  function addTimeIndicator(container, cellSelector, todayStr) {
+    const pstNow = getPSTDate();
+    const today = fmtDate(pstNow);
+    if (todayStr !== today && cellSelector === '.sb-cal__day-cell') return;
+
+    const hour = getPSTHour();
+    const min = getPSTMinute();
+
+    // For day view, find the cell for the current hour
+    if (cellSelector === '.sb-cal__day-cell') {
+      const cell = container.querySelector(cellSelector + '[data-hour="' + hour + '"]');
+      if (cell) {
+        cell.style.position = 'relative';
+        const line = document.createElement('div');
+        line.className = 'sb-cal__now-line';
+        line.style.top = (min / 60 * 100) + '%';
+        cell.appendChild(line);
+      }
+    } else {
+      // Week view — add indicator to today's column
+      const cell = container.querySelector(cellSelector + '[data-date="' + today + '"][data-hour="' + hour + '"]');
+      if (cell) {
+        cell.style.position = 'relative';
+        const line = document.createElement('div');
+        line.className = 'sb-cal__now-line';
+        line.style.top = (min / 60 * 100) + '%';
+        cell.appendChild(line);
+      }
+    }
+  }
+
+  function scrollToCurrentTime(container) {
+    const hour = getPSTHour();
+    // Scroll to 1 hour before current time for context
+    const scrollHour = Math.max(0, hour - 1);
+    const rows = container.querySelectorAll('.sb-cal__day-row, .sb-cal__week-row');
+    if (rows.length > scrollHour) {
+      rows[scrollHour].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function updateTimeIndicators() {
+    // Remove existing indicators and re-add
+    document.querySelectorAll('.sb-cal__now-line').forEach(el => el.remove());
+    if (currentView === 'day') {
+      const dateStr = fmtDate(currentDate);
+      addTimeIndicator(dayBody, '.sb-cal__day-cell', dateStr);
+    } else if (currentView === 'week') {
+      const todayStr = fmtDate(getPSTDate());
+      addTimeIndicator(weekBody, '.sb-cal__week-cell', todayStr);
+    }
   }
 
   /* ── Helpers ─────────────────────────────── */
