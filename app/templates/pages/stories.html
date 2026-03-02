@@ -14,19 +14,22 @@
 
 {% if topics_data %}
   {% for td in topics_data %}
-  <section class="sb-section">
-    <h2 class="sb-section__title">
-      {{ td.topic.name }}
+  <section class="sb-section" data-topic-id="{{ td.topic.id }}">
+    <h2 class="sb-section__title" style="display:flex;align-items:center;gap:var(--sb-space-2);">
+      <span style="flex:1;">{{ td.topic.name }}</span>
       {% if td.topic.description %}
       <span class="sb-section__badge" title="{{ td.topic.description }}">
         {{ td.stories | length }} stories / {{ td.event_count }} events
       </span>
       {% endif %}
+      <button class="sb-delete-btn" onclick="deleteTopic({{ td.topic.id }}, this)" title="Remove topic">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
     </h2>
 
     {% if td.stories %}
       {% for sd in td.stories %}
-      <div style="margin-bottom:var(--sb-space-4);">
+      <div style="margin-bottom:var(--sb-space-4);" data-story-id="{{ sd.story.id }}">
         {% set status_class = 'success' if sd.story.status in ['developing', 'ongoing'] else ('danger' if sd.story.status == 'stale' else 'warning') %}
         <div class="sb-story-toggle" data-story-toggle>
           <svg class="sb-story-toggle__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -38,6 +41,9 @@
           </span>
           <span class="sb-badge">{{ sd.event_count }} events</span>
           <span class="sb-source-row__section">{{ sd.quiet_days }}d ago</span>
+          <button class="sb-delete-btn" onclick="event.stopPropagation();deleteStory({{ sd.story.id }}, this)" title="Remove story">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         <div class="sb-story-content" data-story-content>
@@ -93,4 +99,31 @@
   {% set empty_text = 'Story tracking is populated as the pipeline runs. Enable FF_STORY_TRACKING for full functionality.' %}
   {% include "partials/empty_state.html" %}
 {% endif %}
+
+<script>
+function deleteStory(id, btn) {
+  if (!confirm('Remove this story?')) return;
+  fetch('/stories/' + id + '/delete', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      const wrap = btn.closest('[data-story-id]');
+      wrap.style.transition = 'opacity 0.3s';
+      wrap.style.opacity = '0';
+      setTimeout(() => wrap.remove(), 300);
+    })
+    .catch(e => alert('Failed to delete: ' + e));
+}
+function deleteTopic(id, btn) {
+  if (!confirm('Remove this topic and stop tracking its stories?')) return;
+  fetch('/topics/' + id + '/delete', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      const section = btn.closest('[data-topic-id]');
+      section.style.transition = 'opacity 0.3s';
+      section.style.opacity = '0';
+      setTimeout(() => section.remove(), 300);
+    })
+    .catch(e => alert('Failed to delete: ' + e));
+}
+</script>
 {% endblock %}

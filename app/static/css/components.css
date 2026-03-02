@@ -654,6 +654,47 @@ body {
 .sb-action-btn--upvote.is-active { color: var(--sb-positive); border-color: var(--sb-positive); }
 .sb-action-btn--downvote.is-active { color: var(--sb-negative); border-color: var(--sb-negative); }
 
+/* Delete button */
+.sb-delete-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--sb-radius-md);
+  padding: var(--sb-space-1);
+  color: var(--sb-text-muted);
+  cursor: pointer;
+  transition: all var(--sb-transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--sb-text-xs);
+  opacity: 0;
+}
+.sb-delete-btn:hover {
+  color: var(--sb-negative);
+  border-color: var(--sb-negative);
+  background: rgba(239, 68, 68, 0.08);
+}
+.sb-timeline-card-wrap:hover .sb-delete-btn,
+.sb-section:hover > h2 .sb-delete-btn,
+.sb-story-toggle:hover .sb-delete-btn,
+.sb-delete-btn:focus {
+  opacity: 1;
+}
+.sb-timeline-card-wrap {
+  position: relative;
+}
+.sb-timeline-card-wrap > .sb-delete-btn {
+  position: absolute;
+  top: var(--sb-space-2);
+  right: var(--sb-space-2);
+  z-index: 2;
+}
+.sb-delete-btn--header {
+  opacity: 1;
+  border-color: var(--sb-border);
+  padding: var(--sb-space-1) var(--sb-space-3);
+}
+
 /* Responsive: stack on mobile */
 @media (max-width: 640px) {
   .sb-card {

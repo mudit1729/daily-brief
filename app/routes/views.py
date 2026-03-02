@@ -808,6 +808,33 @@ def timeline_detail(timeline_id):
     )
 
 
+@views_bp.route('/timelines/<int:timeline_id>/delete', methods=['POST'])
+def delete_timeline(timeline_id):
+    """Soft-delete a timeline (set is_active=False)."""
+    timeline = Timeline.query.get_or_404(timeline_id)
+    timeline.is_active = False
+    db.session.commit()
+    return jsonify({'status': 'ok', 'id': timeline_id})
+
+
+@views_bp.route('/stories/<int:story_id>/delete', methods=['POST'])
+def delete_story(story_id):
+    """Soft-delete a story (set status to 'removed')."""
+    story = Story.query.get_or_404(story_id)
+    story.status = 'removed'
+    db.session.commit()
+    return jsonify({'status': 'ok', 'id': story_id})
+
+
+@views_bp.route('/topics/<int:topic_id>/delete', methods=['POST'])
+def delete_topic(topic_id):
+    """Soft-delete a tracked topic (set is_active=False)."""
+    topic = TrackedTopic.query.get_or_404(topic_id)
+    topic.is_active = False
+    db.session.commit()
+    return jsonify({'status': 'ok', 'id': topic_id})
+
+
 @views_bp.route('/history')
 def history_page():
     """Paginated brief archive."""

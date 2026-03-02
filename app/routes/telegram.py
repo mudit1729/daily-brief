@@ -108,6 +108,7 @@ def _handle_command(chat_id, command, args):
         '/help': _cmd_help,
         '/addtopic': _cmd_addtopic,
         '/addtimeline': _cmd_addtimeline,
+        '/createtimeline': _cmd_addtimeline,
         '/removetopic': _cmd_removetopic,
         '/removetimeline': _cmd_removetimeline,
         '/research': _cmd_research,
@@ -116,6 +117,7 @@ def _handle_command(chat_id, command, args):
         '/stories': _cmd_stories,
         '/topics': _cmd_topics,
         '/timelines': _cmd_timelines,
+        '/timeline': _cmd_timeline_detail,
         '/pipeline': _cmd_pipeline,
         '/status': _cmd_status,
     }
@@ -155,6 +157,7 @@ def _cmd_help(chat_id, args):
         '/topics — List tracked topics\n'
         '/stories — Tracked stories by topic\n'
         '/timelines — Active timelines\n'
+        '/timeline name — View timeline events\n'
         '/addtopic name | description — Add tracked topic\n'
         '/addtimeline name | desc | entities — Add timeline\n'
         '/removetopic name — Remove tracked topic\n'
@@ -218,16 +221,17 @@ def _cmd_addtimeline(chat_id, args):
     if entities:
         bot.send_message(chat_id, 'Seeding historical events with AI...')
         app = current_app._get_current_object()
+        timeline_id = timeline.id
 
         def seed():
             with app.app_context():
                 try:
                     svc2 = TimelineService()
-                    svc2.generate_timeline_with_llm(timeline.id, f'{name}: {desc}')
+                    result = svc2.generate_timeline_with_llm(timeline_id, f'{name}: {desc}')
+                    events_added = result.get('events_added', 0)
                     from app.integrations.telegram_bot import TelegramBot
                     tb = TelegramBot(app.config['TELEGRAM_BOT_TOKEN'])
-                    count = len(timeline.events)
-                    tb.send_message(chat_id, f'Timeline *{name}* seeded with events.')
+                    tb.send_message(chat_id, f'Timeline *{name}* seeded with {events_added} events.\nUse /timeline {name} to view.')
                 except Exception as e:
                     logger.error(f"Timeline seeding failed: {e}", exc_info=True)
                     from app.integrations.telegram_bot import TelegramBot
@@ -456,6 +460,82 @@ def _cmd_timelines(chat_id, args):
         lines.append(f'{icon} *{tl.name}* — {count} events')
         if tl.entities_json:
             lines.append(f'   Entities: {", ".join(tl.entities_json[:5])}')
+    bot.send_message(chat_id, '\n'.join(lines))
+
+
+def _cmd_timeline_detail(chat_id, args):
+    """View timeline events. Format: /timeline name"""
+    bot = _get_bot()
+    if not args:
+        bot.send_message(chat_id, 'Usage: `/timeline timeline name`')
+        return
+
+    from app.models.timeline import Timeline, TimelineEvent
+
+    name = args.strip()
+    timeline = Timeline.query.filter(
+        db.func.lower(Timeline.name) == name.lower()
+    ).first()
+
+    if not timeline:
+        # Try partial match
+        timeline = Timeline.query.filter(
+            db.func.lower(Timeline.name).contains(name.lower())
+        ).first()
+
+    if not timeline:
+        bot.send_message(chat_id, f'Timeline "{name}" not found.\nUse /timelines to see available timelines.')
+        return
+
+    events = TimelineEvent.query.filter_by(
+        timeline_id=timeline.id
+    ).order_by(TimelineEvent.event_date.desc()).all()
+
+    if not events:
+        bot.send_message(chat_id, f'{timeline.icon or "📅"} *{timeline.name}*\n_{timeline.description or ""}_\n\nNo events yet.')
+        return
+
+    lines = [
+        f'{timeline.icon or "📅"} *{timeline.name}*',
+    ]
+    if timeline.description:
+        lines.append(f'_{timeline.description}_')
+    if timeline.entities_json:
+        lines.append(f'Entities: {", ".join(timeline.entities_json)}')
+    lines.append(f'{len(events)} events | {events[-1].event_date.strftime("%b %Y")} — {events[0].event_date.strftime("%b %Y")}')
+    lines.append('')
+
+    # Group by month
+    current_month = None
+    shown = 0
+    max_events = 20
+    for ev in events:
+        if shown >= max_events:
+            lines.append(f'\n_...showing top {max_events} of {len(events)} events_')
+            break
+
+        month_key = ev.event_date.strftime('%B %Y')
+        if month_key != current_month:
+            current_month = month_key
+            lines.append(f'\n*{month_key}*')
+
+        sig_star = '⭐' if ev.significance and ev.significance >= 8 else '•'
+        date_str = ev.event_date.strftime('%b %d')
+        lines.append(f'{sig_star} *{ev.title}* ({date_str})')
+        if ev.summary:
+            lines.append(f'  {ev.summary[:150]}')
+        meta_parts = []
+        if ev.entity:
+            meta_parts.append(ev.entity)
+        if ev.event_type:
+            meta_parts.append(ev.event_type)
+        if ev.significance:
+            meta_parts.append(f'{ev.significance}/10')
+        if meta_parts:
+            lines.append(f'  _{" · ".join(meta_parts)}_')
+
+        shown += 1
+
     bot.send_message(chat_id, '\n'.join(lines))
 
 

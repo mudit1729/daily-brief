@@ -52,10 +52,14 @@ class TimelineService:
         return event
 
     def generate_timeline_with_llm(self, timeline_id, topic_prompt, brief_id=None):
-        """Use LLM to generate historical timeline events for a topic.
+        """Use dual-LLM approach to generate rich, citation-filled timeline events.
 
-        This is used for initial seeding of timelines with historical context.
-        The LLM generates structured event data based on its knowledge.
+        Phase 1 — XAI/Grok (real-time web access): generates events with real
+        citations, URLs, and up-to-date facts.
+        Phase 2 — OpenAI (best model): enriches/verifies events, adds deeper
+        context, fills gaps, and ensures citation quality.
+
+        Falls back to single-provider if the other is unavailable.
         """
         config = current_app.config
         llm = LLMGateway(config)
@@ -64,32 +68,87 @@ class TimelineService:
         if not timeline:
             raise ValueError(f"Timeline {timeline_id} not found")
 
-        system_prompt = """You are a precise timeline generator. Given a topic, generate a chronological list of key events.
+        entities_str = ', '.join(timeline.entities_json or [])
+        total_tokens = 0
+        total_cost = 0.0
 
-Output ONLY a JSON array of events. Each event must have:
-- "date": ISO date string (YYYY-MM-DD)
-- "title": Short event title (max 100 chars)
-- "summary": 1-2 sentence description
-- "entity": Primary entity/actor involved
+        # ── Phase 1: XAI/Grok for real-time events + citations ────────
+        grok_events = []
+        if llm.xai_available:
+            grok_events = self._generate_events_xai(
+                llm, timeline, topic_prompt, entities_str, brief_id
+            )
+            total_tokens += grok_events.pop('_tokens', 0) if isinstance(grok_events, dict) else 0
+
+        # ── Phase 2: OpenAI for deep enrichment ───────────────────────
+        openai_events = self._generate_events_openai(
+            llm, timeline, topic_prompt, entities_str, grok_events, brief_id
+        )
+
+        # Merge: deduplicate by date+title similarity, prefer richer version
+        merged = self._merge_events(grok_events, openai_events)
+
+        # ── Persist ───────────────────────────────────────────────────
+        events_added = 0
+        for ev in merged:
+            try:
+                event_date = date.fromisoformat(ev['date'])
+                event = TimelineEvent(
+                    timeline_id=timeline_id,
+                    event_date=event_date,
+                    title=ev['title'][:512],
+                    summary=ev.get('summary', ''),
+                    entity=ev.get('entity', ''),
+                    event_type=ev.get('event_type', 'announcement'),
+                    significance=min(max(ev.get('significance', 5), 1), 10),
+                    source_urls_json=ev.get('source_urls', [])[:3],
+                    metadata_json=ev.get('metadata'),
+                )
+                db.session.add(event)
+                events_added += 1
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Skipping malformed event: {e}")
+                continue
+
+        db.session.commit()
+        logger.info(f"Generated {events_added} events for timeline '{timeline.name}' (dual-LLM)")
+        return {
+            'events_added': events_added,
+        }
+
+    def _generate_events_xai(self, llm, timeline, topic_prompt, entities_str, brief_id):
+        """Phase 1: Use Grok for real-time, citation-rich event generation."""
+        system_prompt = """You are an expert timeline researcher with access to real-time information. Given a topic, generate a detailed chronological timeline of key events.
+
+Your strength is providing REAL, VERIFIABLE citations with actual URLs. For each event, provide:
+- Precise dates (YYYY-MM-DD)
+- Detailed summaries with specific numbers, names, and facts
+- Real source URLs from official announcements, major news outlets, or press releases
+
+Output ONLY a JSON array. Each event:
+- "date": ISO date (YYYY-MM-DD)
+- "title": Descriptive title (max 120 chars)
+- "summary": 2-3 sentence detailed description with specific facts, numbers, and quotes where relevant
+- "entity": Primary entity/actor
 - "event_type": One of: release, policy, partnership, funding, conflict, diplomacy, regulation, announcement, research, milestone
-- "significance": 1-10 (10 = most significant)
-- "source_urls": Array of 0-2 relevant URLs (use real, official URLs when possible)
+- "significance": 1-10
+- "source_urls": Array of 1-3 REAL URLs (official blogs, Reuters, Bloomberg, AP, etc.)
 
-Return ONLY the JSON array, no other text. Generate 15-25 events covering the most important developments."""
+Generate 15-25 events. Prioritize recency and accuracy. Include the most recent developments."""
 
         user_prompt = f"""Topic: {topic_prompt}
+Entities: {entities_str}
 
-Entities to track: {', '.join(timeline.entities_json or [])}
+Generate a comprehensive, citation-rich timeline. Include:
+- Major product launches, releases, and version updates
+- Key policy decisions, executive statements, leadership changes
+- Significant partnerships, acquisitions, or competitive moves
+- Funding rounds, revenue milestones, market cap changes
+- Regulatory actions, lawsuits, investigations
+- Research breakthroughs, patents, technical achievements
+- Recent developments from the last 3-6 months
 
-Generate a comprehensive timeline of the most important events. Focus on:
-- Major product launches and releases
-- Key policy decisions and announcements
-- Significant partnerships or conflicts
-- Funding rounds or financial milestones
-- Regulatory actions
-- Research breakthroughs
-
-Be precise with dates. If you're unsure of the exact date, use the closest known date."""
+Be specific: include dollar amounts, user counts, percentages, and direct quotes where possible."""
 
         try:
             result = llm.call(
@@ -97,46 +156,129 @@ Be precise with dates. If you're unsure of the exact date, use the closest known
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt},
                 ],
-                purpose=f'timeline.generate.{timeline.id}',
+                purpose=f'timeline.generate.xai.{timeline.id}',
                 section='timelines',
                 brief_id=brief_id,
-                max_tokens=4000,
+                max_tokens=5000,
+                provider='xai',
             )
-
             content = result['content'].strip()
-            events_data = _parse_json_response(content)
-
-            events_added = 0
-            for ev in events_data:
-                try:
-                    event_date = date.fromisoformat(ev['date'])
-                    event = TimelineEvent(
-                        timeline_id=timeline_id,
-                        event_date=event_date,
-                        title=ev['title'][:512],
-                        summary=ev.get('summary', ''),
-                        entity=ev.get('entity', ''),
-                        event_type=ev.get('event_type', 'announcement'),
-                        significance=min(max(ev.get('significance', 5), 1), 10),
-                        source_urls_json=ev.get('source_urls', []),
-                    )
-                    db.session.add(event)
-                    events_added += 1
-                except (ValueError, KeyError) as e:
-                    logger.warning(f"Skipping malformed event: {e}")
-                    continue
-
-            db.session.commit()
-            logger.info(f"Generated {events_added} events for timeline '{timeline.name}'")
-            return {
-                'events_added': events_added,
-                'tokens': result['total_tokens'],
-                'cost': result['cost_usd'],
-            }
-
+            events = _parse_json_response(content)
+            logger.info(f"XAI generated {len(events)} events for '{timeline.name}'")
+            return events
         except Exception as e:
-            logger.error(f"Failed to generate timeline events: {e}")
-            raise
+            logger.warning(f"XAI timeline generation failed for '{timeline.name}': {e}")
+            return []
+
+    def _generate_events_openai(self, llm, timeline, topic_prompt, entities_str,
+                                 existing_events, brief_id):
+        """Phase 2: Use OpenAI to generate/enrich events with deep analysis."""
+        # If we already have Grok events, ask OpenAI to verify + fill gaps
+        if existing_events:
+            existing_summary = json.dumps(
+                [{'date': e.get('date'), 'title': e.get('title')} for e in existing_events[:20]],
+                indent=None,
+            )
+            system_prompt = f"""You are a meticulous timeline analyst. You have been given a draft timeline and must:
+
+1. VERIFY events: flag any with incorrect dates or facts
+2. FILL GAPS: add 5-10 important events that are missing
+3. ENRICH: for any event you add, provide detailed summaries with specific facts
+4. CITE: include real, verifiable source URLs
+
+The draft timeline already covers these events (do NOT duplicate them):
+{existing_summary}
+
+Output ONLY a JSON array of NEW events to add (not duplicates of the above). Each event:
+- "date": ISO date (YYYY-MM-DD)
+- "title": Descriptive title (max 120 chars)
+- "summary": 2-3 sentence description with specific facts and context
+- "entity": Primary entity/actor
+- "event_type": One of: release, policy, partnership, funding, conflict, diplomacy, regulation, announcement, research, milestone
+- "significance": 1-10
+- "source_urls": Array of 0-2 relevant URLs
+
+Return ONLY the JSON array. Generate 5-10 gap-filling events."""
+        else:
+            system_prompt = """You are an expert timeline researcher. Generate a detailed, citation-rich chronological timeline.
+
+Output ONLY a JSON array. Each event:
+- "date": ISO date (YYYY-MM-DD)
+- "title": Descriptive title (max 120 chars)
+- "summary": 2-3 sentence description with specific facts, numbers, dollar amounts, and context
+- "entity": Primary entity/actor
+- "event_type": One of: release, policy, partnership, funding, conflict, diplomacy, regulation, announcement, research, milestone
+- "significance": 1-10
+- "source_urls": Array of 0-2 relevant URLs (use official sources where possible)
+
+Generate 15-25 events covering the full history of major developments."""
+
+        user_prompt = f"""Topic: {topic_prompt}
+Entities: {entities_str}
+
+Generate a comprehensive timeline focusing on:
+- Major product launches and releases with version details
+- Key leadership decisions and organizational changes
+- Significant partnerships, acquisitions, or competitive dynamics
+- Funding rounds and financial milestones with dollar amounts
+- Regulatory actions and legal developments
+- Research breakthroughs and technical achievements
+
+Be precise with dates and include specific numbers wherever possible."""
+
+        try:
+            result = llm.call(
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                purpose=f'timeline.generate.openai.{timeline.id}',
+                section='timelines',
+                brief_id=brief_id,
+                max_tokens=5000,
+            )
+            content = result['content'].strip()
+            events = _parse_json_response(content)
+            logger.info(f"OpenAI generated {len(events)} events for '{timeline.name}'")
+            return events
+        except Exception as e:
+            logger.warning(f"OpenAI timeline generation failed for '{timeline.name}': {e}")
+            return []
+
+    def _merge_events(self, grok_events, openai_events):
+        """Merge events from both providers, deduplicating by date + title similarity."""
+        if not grok_events:
+            return openai_events or []
+        if not openai_events:
+            return grok_events or []
+
+        merged = list(grok_events)  # Grok events are primary (real-time)
+        existing_keys = set()
+        for ev in merged:
+            key = (ev.get('date', ''), ev.get('title', '').lower()[:40])
+            existing_keys.add(key)
+
+        for ev in openai_events:
+            key = (ev.get('date', ''), ev.get('title', '').lower()[:40])
+            # Check for date + rough title match
+            is_dup = key in existing_keys
+            if not is_dup:
+                # Also check same-date events with similar titles
+                ev_date = ev.get('date', '')
+                ev_title = ev.get('title', '').lower()
+                for ekey in existing_keys:
+                    if ekey[0] == ev_date and (
+                        ekey[1] in ev_title or ev_title[:30] in ekey[1]
+                    ):
+                        is_dup = True
+                        break
+            if not is_dup:
+                merged.append(ev)
+                existing_keys.add(key)
+
+        # Sort by date descending
+        merged.sort(key=lambda e: e.get('date', ''), reverse=True)
+        return merged[:35]  # Cap at 35 events
 
     # ── Auto-update: append today's matching clusters as events ──────
 
