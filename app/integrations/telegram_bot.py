@@ -17,7 +17,9 @@ class TelegramBot:
 
     def _call(self, method, **params):
         url = TELEGRAM_API.format(token=self.token, method=method)
-        resp = requests.post(url, json=params, timeout=30)
+        # Filter out None values — Telegram API rejects null fields
+        clean = {k: v for k, v in params.items() if v is not None}
+        resp = requests.post(url, json=clean, timeout=30)
         data = resp.json()
         if not data.get('ok'):
             logger.error(f"Telegram API error: {method} → {data}")
@@ -38,13 +40,16 @@ class TelegramBot:
             )
             # Retry without parse_mode if Markdown caused the failure
             if not result.get('ok') and parse_mode:
-                logger.warning(f"Markdown send failed, retrying as plain text")
+                logger.warning(f"Markdown send failed for chat {chat_id}, retrying as plain text. Error: {result}")
                 result = self._call(
                     'sendMessage',
                     chat_id=chat_id,
                     text=chunk,
+                    parse_mode=None,
                     disable_web_page_preview=True,
                 )
+            if not result.get('ok'):
+                logger.error(f"send_message failed for chat {chat_id}: {result}")
             results.append(result)
         return results[-1] if results else None
 
