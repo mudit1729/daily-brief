@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pulse — Login</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--sb-bg-primary);
+      color: var(--sb-text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+      padding: 2.5rem 2rem;
+      background: var(--sb-surface-elevated);
+      border: 1px solid var(--sb-border);
+      border-radius: var(--sb-radius-xl, 16px);
+      text-align: center;
+    }
+    .login-card h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: .25rem;
+    }
+    .login-card .subtitle {
+      color: var(--sb-text-secondary);
+      font-size: .875rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Pattern grid */
+    .pattern-grid {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin: 0 auto 1rem;
+      touch-action: none;
+    }
+    .pattern-grid canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 240px;
+      height: 240px;
+    }
+    .dot {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--sb-text-secondary);
+      opacity: .35;
+      transition: transform .15s, opacity .15s, box-shadow .15s;
+      pointer-events: none;
+    }
+    .dot.active {
+      opacity: 1;
+      background: var(--sb-accent, #6366f1);
+      transform: scale(1.5);
+      box-shadow: 0 0 12px var(--sb-accent, #6366f1);
+    }
+
+    .hint {
+      color: var(--sb-text-secondary);
+      font-size: .8rem;
+      margin-top: .5rem;
+      min-height: 1.2em;
+    }
+    .error {
+      color: #ef4444;
+      font-size: .85rem;
+      margin-top: .5rem;
+    }
+    .shake {
+      animation: shake .4s ease-in-out;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card" id="card">
+    <h1>Pulse</h1>
+    <p class="subtitle" id="quip"></p>
+    <script>
+      const quips = [
+        "the algo gods demand a sacrifice",
+        "draw the sacred runes to enter",
+        "only sigma pattern-drawers may pass",
+        "your vibe check starts now",
+        "LeetCode won't save you here",
+        "connect the dots. literally.",
+        "no password managers allowed, chief",
+        "swipe like your interview depends on it",
+      ];
+      document.getElementById('quip').textContent = quips[Math.floor(Math.random() * quips.length)];
+    </script>
+
+    <div class="pattern-grid" id="grid">
+      <canvas id="lines" width="480" height="480"></canvas>
+      <!-- 9 dots placed by JS -->
+    </div>
+    <div class="hint" id="hint">draw your pattern</div>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <form method="POST" id="patternForm" style="display:none">
+      <input type="hidden" name="password" id="patternInput">
+    </form>
+  </div>
+
+  <script>
+  (function() {
+    const grid = document.getElementById('grid');
+    const canvas = document.getElementById('lines');
+    const ctx = canvas.getContext('2d');
+    const hint = document.getElementById('hint');
+    const form = document.getElementById('patternForm');
+    const patternInput = document.getElementById('patternInput');
+    const card = document.getElementById('card');
+
+    // Dot centres (3x3 grid, 80px spacing, offset 40px)
+    const SPACING = 80, OFFSET = 40, HIT = 36;
+    const dots = [];
+    const centres = [];
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const cx = OFFSET + c * SPACING;
+        const cy = OFFSET + r * SPACING;
+        centres.push({ x: cx, y: cy });
+        const el = document.createElement('div');
+        el.className = 'dot';
+        el.style.left = (cx - 10) + 'px';
+        el.style.top = (cy - 10) + 'px';
+        grid.appendChild(el);
+        dots.push(el);
+      }
+    }
+
+    let selected = [];
+    let drawing = false;
+    let currentPos = null;
+    const ACCENT = getComputedStyle(document.documentElement).getPropertyValue('--sb-accent').trim() || '#6366f1';
+
+    function getPos(e) {
+      const rect = grid.getBoundingClientRect();
+      const t = e.touches ? e.touches[0] : e;
+      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    }
+
+    function nearest(pos) {
+      for (let i = 0; i < centres.length; i++) {
+        const dx = pos.x - centres[i].x, dy = pos.y - centres[i].y;
+        if (Math.sqrt(dx*dx + dy*dy) < HIT) return i;
+      }
+      return -1;
+    }
+
+    function drawLines() {
+      ctx.clearRect(0, 0, 480, 480);
+      if (selected.length === 0) return;
+      ctx.strokeStyle = ACCENT;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      const s = 2; // canvas is 2x for retina
+      ctx.moveTo(centres[selected[0]].x * s, centres[selected[0]].y * s);
+      for (let i = 1; i < selected.length; i++) {
+        ctx.lineTo(centres[selected[i]].x * s, centres[selected[i]].y * s);
+      }
+      if (drawing && currentPos) {
+        ctx.lineTo(currentPos.x * s, currentPos.y * s);
+      }
+      ctx.stroke();
+    }
+
+    function reset() {
+      selected = [];
+      drawing = false;
+      currentPos = null;
+      dots.forEach(d => d.classList.remove('active'));
+      drawLines();
+    }
+
+    function start(e) {
+      e.preventDefault();
+      reset();
+      drawing = true;
+      hint.textContent = '';
+      move(e);
+    }
+
+    function move(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      currentPos = pos;
+      const idx = nearest(pos);
+      if (idx >= 0 && !selected.includes(idx)) {
+        selected.push(idx);
+        dots[idx].classList.add('active');
+      }
+      drawLines();
+    }
+
+    function end(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      drawing = false;
+      currentPos = null;
+      drawLines();
+
+      if (selected.length < 3) {
+        hint.textContent = 'connect at least 3 dots';
+        setTimeout(reset, 600);
+        return;
+      }
+
+      // Submit
+      patternInput.value = selected.join(',');
+      form.submit();
+    }
+
+    grid.addEventListener('mousedown', start);
+    grid.addEventListener('mousemove', move);
+    grid.addEventListener('mouseup', end);
+    grid.addEventListener('mouseleave', end);
+    grid.addEventListener('touchstart', start, { passive: false });
+    grid.addEventListener('touchmove', move, { passive: false });
+    grid.addEventListener('touchend', end, { passive: false });
+
+    // Shake on error
+    {% if error %}
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 500);
+    {% endif %}
+  })();
+  </script>
+</body>
+</html>
