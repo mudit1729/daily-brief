@@ -24,7 +24,8 @@ class TelegramBot:
         return data
 
     def send_message(self, chat_id, text, parse_mode='Markdown'):
-        """Send a text message. Auto-chunks if >4096 chars."""
+        """Send a text message. Auto-chunks if >4096 chars.
+        Falls back to plain text if Markdown parsing fails."""
         chunks = self._chunk_text(text)
         results = []
         for chunk in chunks:
@@ -35,6 +36,15 @@ class TelegramBot:
                 parse_mode=parse_mode,
                 disable_web_page_preview=True,
             )
+            # Retry without parse_mode if Markdown caused the failure
+            if not result.get('ok') and parse_mode:
+                logger.warning(f"Markdown send failed, retrying as plain text")
+                result = self._call(
+                    'sendMessage',
+                    chat_id=chat_id,
+                    text=chunk,
+                    disable_web_page_preview=True,
+                )
             results.append(result)
         return results[-1] if results else None
 
