@@ -21,6 +21,10 @@ function loadNote(filename, btn) {
       content.innerHTML = '<div class="md-body">' + data.html + '</div>';
       content.prepend(expandBtn);
       expandBtn.style.display = '';
+      // Apply syntax highlighting to all code blocks
+      content.querySelectorAll('pre code').forEach(block => {
+        if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+      });
     })
     .catch(err => {
       content.innerHTML = '<div class="sb-notes-empty"><p>Error: ' + err.message + '</p></div>';
