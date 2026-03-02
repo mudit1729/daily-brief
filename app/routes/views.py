@@ -17,6 +17,7 @@ from app.models.user import DailyInsight, FeedbackAction
 from app.models.timeline import Timeline, TimelineEvent
 from app.models.cluster import Cluster, ClusterMembership
 from app.models.article import Article
+from app.models.calendar_event import CalendarEvent
 from app.services.cost_service import CostService
 from app.services.timeline_service import TimelineService
 from app.services.scheduler_config_service import SchedulerConfigService
@@ -833,6 +834,152 @@ def delete_topic(topic_id):
     topic.is_active = False
     db.session.commit()
     return jsonify({'status': 'ok', 'id': topic_id})
+
+
+@views_bp.route('/prep')
+def prep_page():
+    """Prep — algorithm visualizer link + markdown notes viewer."""
+    import os
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    # Resolve relative to project root
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    notes = []
+    if os.path.isdir(notes_dir):
+        for fname in sorted(os.listdir(notes_dir)):
+            if fname.lower().endswith('.md'):
+                notes.append(fname)
+
+    return render_template(
+        'pages/prep.html',
+        active_tab='prep',
+        notes=notes,
+        brief=_get_brief(),
+    )
+
+
+@views_bp.route('/api/prep/notes/<path:filename>')
+def prep_note(filename):
+    """Render a markdown note to HTML."""
+    import os
+    import markdown2
+
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    # Prevent path traversal
+    safe_path = os.path.normpath(os.path.join(notes_dir, filename))
+    if not safe_path.startswith(notes_dir):
+        abort(403)
+    if not os.path.isfile(safe_path):
+        abort(404)
+
+    with open(safe_path, 'r', encoding='utf-8') as f:
+        raw = f.read()
+
+    html = markdown2.markdown(
+        raw,
+        extras=['fenced-code-blocks', 'tables', 'code-friendly', 'header-ids'],
+    )
+    return jsonify({'filename': filename, 'html': html})
+
+
+@views_bp.route('/calendar')
+def calendar_page():
+    """Shared calendar page."""
+    return render_template(
+        'pages/calendar.html',
+        active_tab='calendar',
+        brief=_get_brief(),
+    )
+
+
+@views_bp.route('/api/calendar/events')
+def calendar_events():
+    """List calendar events for a given month (YYYY-MM)."""
+    month_str = request.args.get('month')
+    if month_str:
+        try:
+            year, month = month_str.split('-')
+            start = date(int(year), int(month), 1)
+        except (ValueError, TypeError):
+            start = date.today().replace(day=1)
+    else:
+        start = date.today().replace(day=1)
+
+    # End of month
+    if start.month == 12:
+        end = date(start.year + 1, 1, 1)
+    else:
+        end = date(start.year, start.month + 1, 1)
+
+    events = CalendarEvent.query.filter(
+        CalendarEvent.event_date >= start,
+        CalendarEvent.event_date < end,
+    ).order_by(CalendarEvent.event_date, CalendarEvent.event_time).all()
+
+    return jsonify([e.to_dict() for e in events])
+
+
+@views_bp.route('/api/calendar/events', methods=['POST'])
+def calendar_event_create():
+    """Create a calendar event."""
+    data = request.get_json(force=True)
+    if not data.get('title') or not data.get('event_date'):
+        return jsonify({'error': 'title and event_date required'}), 400
+
+    from datetime import time as time_type
+    evt = CalendarEvent(
+        title=data['title'],
+        event_date=date.fromisoformat(data['event_date']),
+        event_time=(
+            time_type.fromisoformat(data['event_time'])
+            if data.get('event_time') else None
+        ),
+        description=data.get('description', ''),
+        color=data.get('color', '#6366f1'),
+    )
+    db.session.add(evt)
+    db.session.commit()
+    return jsonify(evt.to_dict()), 201
+
+
+@views_bp.route('/api/calendar/events/<int:event_id>', methods=['PUT'])
+def calendar_event_update(event_id):
+    """Update a calendar event."""
+    evt = CalendarEvent.query.get_or_404(event_id)
+    data = request.get_json(force=True)
+
+    from datetime import time as time_type
+    if 'title' in data:
+        evt.title = data['title']
+    if 'event_date' in data:
+        evt.event_date = date.fromisoformat(data['event_date'])
+    if 'event_time' in data:
+        evt.event_time = (
+            time_type.fromisoformat(data['event_time'])
+            if data['event_time'] else None
+        )
+    if 'description' in data:
+        evt.description = data['description']
+    if 'color' in data:
+        evt.color = data['color']
+
+    db.session.commit()
+    return jsonify(evt.to_dict())
+
+
+@views_bp.route('/api/calendar/events/<int:event_id>', methods=['DELETE'])
+def calendar_event_delete(event_id):
+    """Delete a calendar event."""
+    evt = CalendarEvent.query.get_or_404(event_id)
+    db.session.delete(evt)
+    db.session.commit()
+    return jsonify({'status': 'ok', 'id': event_id})
 
 
 @views_bp.route('/history')
