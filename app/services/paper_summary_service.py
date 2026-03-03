@@ -90,11 +90,17 @@ def _html_to_text(html: str) -> str:
 
 
 def _slugify(title: str) -> str:
-    """Convert paper title to a filesystem-safe slug."""
-    slug = title.lower()
-    slug = re.sub(r'[^a-z0-9]+', '-', slug)
-    slug = slug.strip('-')[:60]
-    return slug
+    """Convert paper title to a readable, filesystem-safe Title-Case slug.
+    e.g. 'Lift, Splat, Shoot: Encoding Images...' → 'Lift-Splat-Shoot'
+    """
+    # Remove subtitle after colon (usually verbose)
+    short = title.split(':')[0].split('—')[0].strip()
+    # Keep only alphanumeric and spaces
+    short = re.sub(r'[^a-zA-Z0-9 ]+', ' ', short)
+    # Title-case each word, join with dashes
+    words = short.split()[:6]  # max 6 words
+    slug = '-'.join(w.capitalize() for w in words)
+    return slug[:60]
 
 
 # --------------- System prompt (12-section skill) ---------------

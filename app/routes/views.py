@@ -921,6 +921,11 @@ def prep_page():
             'icon': 'paper',
             'match': ['Paper-'],
         },
+        {
+            'label': 'Async Processing',
+            'icon': 'async',
+            'match': ['Async-'],
+        },
     ]
 
     categorized = []

@@ -336,18 +336,108 @@ mark.user-highlight {
   margin: 0 auto;
 }
 
-/* Mobile */
+/* ── Back button (mobile only) ─────────────────── */
+.sb-notes-toolbar__back {
+  display: none;  /* hidden on desktop */
+}
+
+/* ── Mobile: master-detail pattern ─────────────── */
 @media (max-width: 640px) {
   .sb-notes-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
+    height: calc(100vh - 160px);
   }
+
+  /* Default: sidebar visible, content hidden */
   .sb-notes-sidebar {
     border-right: none;
-    border-bottom: 1px solid var(--sb-border);
-    max-height: 200px;
+    max-height: none;
+    overflow-y: auto;
   }
+
+  .sb-notes-main {
+    display: none;
+  }
+
+  /* When viewing a note: hide sidebar, show content */
+  .sb-notes-layout--viewing .sb-notes-sidebar {
+    display: none;
+  }
+
+  .sb-notes-layout--viewing .sb-notes-main {
+    display: flex;
+  }
+
+  /* Show back button on mobile */
+  .sb-notes-toolbar__back {
+    display: inline-flex;
+  }
+
+  /* Hide text labels on toolbar buttons */
   .sb-notes-toolbar__btn span {
     display: none;
+  }
+  /* But show back button text */
+  .sb-notes-toolbar__back span {
+    display: inline;
+  }
+
+  /* Content padding tighter on mobile */
+  .sb-notes-content {
+    padding: var(--sb-space-3);
+  }
+
+  /* Markdown responsive fixes */
+  .sb-notes-content .md-body h1 { font-size: 1.3rem; }
+  .sb-notes-content .md-body h2 { font-size: 1.15rem; }
+  .sb-notes-content .md-body h3 { font-size: 1.05rem; }
+  .sb-notes-content .md-body p { line-height: 1.6; }
+
+  /* Tables: horizontal scroll wrapper */
+  .sb-notes-content .md-body table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  .sb-notes-content .md-body th,
+  .sb-notes-content .md-body td {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 80px;
+  }
+
+  /* Code blocks: smaller text, scroll */
+  .sb-notes-content .md-body pre {
+    padding: var(--sb-space-3);
+    font-size: 12px;
+  }
+
+  .sb-notes-content .md-body pre code {
+    font-size: 12px;
+  }
+
+  .sb-notes-content .md-body code {
+    font-size: 0.8em;
+    word-break: break-word;
+  }
+
+  /* Fullscreen on mobile: no sidebar */
+  .sb-notes-layout--fullscreen {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-notes-layout--fullscreen .sb-notes-sidebar {
+    display: none;
+  }
+
+  .sb-notes-layout--fullscreen .sb-notes-main {
+    display: flex;
+  }
+
+  .sb-notes-layout--fullscreen .sb-notes-content {
+    padding: var(--sb-space-4);
   }
 }

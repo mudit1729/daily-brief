@@ -2,6 +2,10 @@
 
 let _currentNote = null;
 
+function _isMobile() {
+  return window.innerWidth <= 640;
+}
+
 function loadNote(filename, btn) {
   // Mark active
   document.querySelectorAll('.sb-notes-list__item').forEach(el => el.classList.remove('active'));
@@ -10,8 +14,15 @@ function loadNote(filename, btn) {
   _currentNote = filename;
   const content = document.getElementById('notesContent');
   const toolbar = document.getElementById('notesToolbar');
+  const layout = document.getElementById('notesLayout');
   content.innerHTML = '<div class="sb-notes-empty"><p>Loading...</p></div>';
   toolbar.style.display = '';
+
+  // Mobile: switch to content view and scroll to it
+  if (_isMobile()) {
+    layout.classList.add('sb-notes-layout--viewing');
+    layout.scrollIntoView({ behavior: 'instant' });
+  }
 
   fetch('/api/prep/notes/' + encodeURIComponent(filename))
     .then(r => {
@@ -26,10 +37,19 @@ function loadNote(filename, btn) {
       });
       // Restore highlights from localStorage
       _restoreHighlights();
+      // Scroll content to top
+      content.scrollTop = 0;
     })
     .catch(err => {
       content.innerHTML = '<div class="sb-notes-empty"><p>Error: ' + err.message + '</p></div>';
     });
+}
+
+/* ── Mobile back button ────────────────────────── */
+
+function mobileBackToSidebar() {
+  const layout = document.getElementById('notesLayout');
+  layout.classList.remove('sb-notes-layout--viewing');
 }
 
 /* ── Fullscreen ────────────────────────────────── */
