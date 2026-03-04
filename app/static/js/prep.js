@@ -84,7 +84,7 @@ document.addEventListener('keydown', function (e) {
 function _getDisplayName(filename) {
   var name = filename.replace(/\.md$/i, '').replace(/-/g, ' ').replace(/_/g, ' ');
   // Strip known prefixes
-  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper '];
+  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper ', 'Planner '];
   for (var i = 0; i < prefixes.length; i++) {
     if (name.startsWith(prefixes[i])) {
       name = name.substring(prefixes[i].length);
@@ -670,6 +670,8 @@ function autoResizeChatInput() {
 
 /* ── Section selection for chat context ──────────── */
 
+var _pendingContextText = null; // Stores selected text when "Use as context" button appears
+
 document.addEventListener('mouseup', function (e) {
   // Don't show "Use as context" in highlight mode or if chat isn't open
   if (_highlightMode) return;
@@ -679,18 +681,26 @@ document.addEventListener('mouseup', function (e) {
   var content = document.getElementById('notesContent');
   if (!content || !content.contains(e.target)) return;
 
-  var sel = window.getSelection();
+  // Ignore mouseup on the context button itself
   var btn = document.getElementById('chatUseContextBtn');
+  if (btn && (e.target === btn || btn.contains(e.target))) return;
+
+  var sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.rangeCount || !btn) {
     btn.style.display = 'none';
+    _pendingContextText = null;
     return;
   }
 
   var text = sel.toString().trim();
   if (text.length < 20) {
     btn.style.display = 'none';
+    _pendingContextText = null;
     return;
   }
+
+  // Store the text now — by the time the button is clicked the selection will be gone
+  _pendingContextText = text;
 
   // Position button near the selection
   var range = sel.getRangeAt(0);
@@ -702,22 +712,26 @@ document.addEventListener('mouseup', function (e) {
   btn.style.left = (rect.left - mainRect.left + rect.width / 2 - 60) + 'px';
 });
 
-// Hide context button on click elsewhere
+// Hide context button on click elsewhere (but NOT on the button itself)
 document.addEventListener('mousedown', function (e) {
   var btn = document.getElementById('chatUseContextBtn');
   if (btn && e.target !== btn && !btn.contains(e.target)) {
     btn.style.display = 'none';
+    _pendingContextText = null;
   }
 });
 
 function setChatSectionFromSelection() {
-  var sel = window.getSelection();
-  if (!sel || sel.isCollapsed) return;
-  var text = sel.toString().trim();
+  // Use the stored text — selection is already collapsed by the time onclick fires
+  var text = _pendingContextText;
   if (!text) return;
 
   _selectedSection = text;
-  sel.removeAllRanges();
+  _pendingContextText = null;
+
+  // Clear any remaining selection
+  var sel = window.getSelection();
+  if (sel) sel.removeAllRanges();
 
   // Update UI
   var contextBar = document.getElementById('chatContext');
