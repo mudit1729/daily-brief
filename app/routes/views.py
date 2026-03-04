@@ -984,7 +984,7 @@ def prep_note(filename):
 
     html = markdown2.markdown(
         raw,
-        extras=['fenced-code-blocks', 'tables', 'code-friendly', 'header-ids'],
+        extras=['fenced-code-blocks', 'tables', 'code-friendly', 'header-ids', 'cuddled-lists'],
     )
 
     # Strip Pygments' inline-styled spans so highlight.js can re-highlight client-side.
