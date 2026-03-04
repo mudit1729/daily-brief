@@ -29,11 +29,11 @@ The book emphasizes the fundamental principle: sequences are determined to be no
 
 ### 3 Key Takeaways to Remember
 
-1. **Kolmogorov complexity quantifies information content** - The complexity K(x) of a string x is the length of the shortest program that produces x; it measures how "incompressible" or "random-looking" the object is.
-
-2. **Algorithmic randomness is definitional and testable** - A sequence is Martin-Löf random if it passes all effective statistical tests for randomness, creating a rigorous mathematical definition of randomness independent of probability distributions.
-
-3. **Uncomputability is fundamental** - The Kolmogorov complexity function K(x) is uncomputable (equivalent to the halting problem); we can approximate it from above but not below, creating profound limits on what we can know about data compression.
+> 1. **Kolmogorov complexity quantifies information content** - The complexity K(x) of a string x is the length of the shortest program that produces x; it measures how "incompressible" or "random-looking" the object is.
+>
+> 2. **Algorithmic randomness is definitional and testable** - A sequence is Martin-Lof random if it passes all effective statistical tests for randomness, creating a rigorous mathematical definition of randomness independent of probability distributions.
+>
+> 3. **Uncomputability is fundamental** - The Kolmogorov complexity function K(x) is uncomputable (equivalent to the halting problem); we can approximate it from above but not below, creating profound limits on what we can know about data compression.
 
 ---
 
@@ -47,7 +47,9 @@ Classical probability theory asks: "If we know the probability distribution, how
 
 **Kolmogorov complexity** of a string x is defined as:
 
+```math
 K(x) = min{|p| : U(p) = x}
+```
 
 where U is a universal Turing machine and |p| is the length of program p. In other words, K(x) measures the length of the shortest binary string that, when fed to a universal computer, produces x as output.
 
@@ -562,10 +564,10 @@ For any x, we can compute upper bounds on K(x):
 - Process: enumerate all programs of length ≤ n, check output; if x appears from program p, then K(x) ≤ |p|
 
 **Algorithm for upper bounds:**
-```
-function upperBoundK(x, maxLength):
-    for length = 1 to maxLength:
-        for all programs p of length = length:
+```python
+def upperBoundK(x, maxLength):
+    for length in range(1, maxLength + 1):
+        for p in all_programs(length):
             if U(p) == x:
                 return length
     return NOT_FOUND

@@ -21,11 +21,11 @@
 - Combines dense BEV grid (like LSS) with transformer attention (like DETR3D) — gets benefits of both
 - BEVFormer v2 adds perspective supervision and an adaptive history mechanism [BEVFormerV2]
 
-**If you only remember 3 things:**
-
-1. Dense BEV query grid + deformable spatial cross-attention to multi-view images (project BEV locations to cameras at multiple heights)
-2. Temporal self-attention: BEV queries attend to ego-aligned previous BEV features (recurrent memory)
-3. Bridges LSS-style dense BEV and DETR3D-style query-based reasoning
+> **If you only remember 3 things:**
+>
+> 1. Dense BEV query grid + deformable spatial cross-attention to multi-view images (project BEV locations to cameras at multiple heights)
+> 2. Temporal self-attention: BEV queries attend to ego-aligned previous BEV features (recurrent memory)
+> 3. Bridges LSS-style dense BEV and DETR3D-style query-based reasoning
 
 ---
 
@@ -245,7 +245,7 @@ BEVFormer uses either CenterPoint-style or Deformable-DETR-style detection head.
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -290,6 +290,8 @@ BEVFormer uses either CenterPoint-style or Deformable-DETR-style detection head.
 ## 10) Results Summary + Ablations
 
 - Not specified in provided inputs. Plausible defaults (not from paper): summarize main benchmark numbers directly from cited tables.
+
+---
 
 ## 11) Practical Insights
 
@@ -355,9 +357,6 @@ BEVFormer uses either CenterPoint-style or Deformable-DETR-style detection head.
 **Script 1:** Visualize which cameras each BEV position attends to → should match expected FOV
 **Script 2:** Overfit 4 scenes → mAP > 0.6 in 2000 steps
 **Script 3:** Visualize temporal BEV features across consecutive frames → should be smooth/consistent
-
----
----
 
 ---
 

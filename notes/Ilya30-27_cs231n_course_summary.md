@@ -28,11 +28,11 @@ Through three hands-on assignments and a final project, students:
 
 ### Three Things to Remember
 
-1. **Neural Networks are Universal Function Approximators:** The course emphasizes that neural networks, through composition of simple linear transformations and nonlinearities, can learn to approximate virtually any function. Understanding computational graphs, backpropagation, and gradient flow is fundamental to leveraging this power.
-
-2. **Convolutional Structure Encodes Spatial Invariance:** Convolutional neural networks succeed because they explicitly encode assumptions about images (local connectivity, weight sharing, pooling for spatial invariance). This architectural choice dramatically reduces parameters and improves generalization compared to fully connected networks.
-
-3. **Transfer Learning is the Practical Default:** Rather than training CNNs from scratch, the modern approach is to download pretrained models (typically trained on ImageNet) and finetune them on your specific task. This "don't be a hero" philosophy reflects practical reality: pretraining on large datasets provides powerful feature representations that transfer across diverse visual domains.
+> 1. **Neural Networks are Universal Function Approximators:** The course emphasizes that neural networks, through composition of simple linear transformations and nonlinearities, can learn to approximate virtually any function. Understanding computational graphs, backpropagation, and gradient flow is fundamental to leveraging this power.
+>
+> 2. **Convolutional Structure Encodes Spatial Invariance:** Convolutional neural networks succeed because they explicitly encode assumptions about images (local connectivity, weight sharing, pooling for spatial invariance). This architectural choice dramatically reduces parameters and improves generalization compared to fully connected networks.
+>
+> 3. **Transfer Learning is the Practical Default:** Rather than training CNNs from scratch, the modern approach is to download pretrained models (typically trained on ImageNet) and finetune them on your specific task. This "don't be a hero" philosophy reflects practical reality: pretraining on large datasets provides powerful feature representations that transfer across diverse visual domains.
 
 ---
 
@@ -297,7 +297,7 @@ Flatten + FC layers for classification
 **Breakthrough:** Won ILSVRC 2015; solved the degradation problem with **skip connections** (residual connections).
 
 **Key Innovation:**
-```
+```math
 y = F(x) + x  (where F is several CONV layers)
 ```
 Instead of learning H(x), learn the residual R(x) = H(x) - x, then compute H(x) = R(x) + x.
@@ -385,7 +385,7 @@ Instead of learning H(x), learn the residual R(x) = H(x) - x, then compute H(x) 
 **Solution:** Normalize activations at each layer to have zero mean and unit variance.
 
 **Mathematical Operation:**
-```
+```math
 x_norm = (x - batch_mean) / sqrt(batch_variance + epsilon)
 y = gamma × x_norm + beta
 ```
@@ -637,7 +637,7 @@ Feature maps + proposals → ROI pooling → Classification + Bounding box regre
 2. Generator update: Minimize discriminator's ability to distinguish (fool it)
 
 **Mathematical Framework:**
-```
+```math
 L = E_x[log D(x)] + E_z[log(1 - D(G(z)))]
 Generator minimizes log(1 - D(G(z)))
 Discriminator maximizes entire loss
@@ -679,7 +679,7 @@ Discriminator maximizes entire loss
 **Idea:** For each output position, compute weighted sum of all input positions; weights learned based on relevance.
 
 **Attention Mechanism:**
-```
+```math
 Attention(Q, K, V) = softmax(Q × K^T / sqrt(d_k)) × V
 ```
 - Q (Query): What are we looking for?

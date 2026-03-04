@@ -1,14 +1,16 @@
 # Recurrent Neural Network Regularization - Comprehensive Paper Summary
 
-**Paper:** Recurrent Neural Network Regularization
-**Authors:** Wojciech Zaremba, Ilya Sutskever, Oriol Vinyals
-**ArXiv ID:** 1409.2329
-**Year:** 2014
-**Citation:** [ArXiv](https://arxiv.org/abs/1409.2329)
+| | |
+|---|---|
+| **Paper** | Recurrent Neural Network Regularization |
+| **Authors** | Wojciech Zaremba, Ilya Sutskever, Oriol Vinyals |
+| **ArXiv ID** | 1409.2329 |
+| **Year** | 2014 |
+| **Citation** | [ArXiv](https://arxiv.org/abs/1409.2329) |
 
 ---
 
-## Section 1: One-Page Overview
+## 1. One-Page Overview
 
 ### Metadata & Publication
 - **Published:** September 2014 (arXiv preprint)
@@ -19,7 +21,8 @@
 Dropout, the most successful regularization technique for deep feedforward networks, fails catastrophically when naively applied to RNNs. Standard dropout perturbs recurrent (temporal) connections with different masks at each timestep, destroying the LSTM's ability to store and propagate information across long sequences. This results in worse overfitting rather than improvement.
 
 ### Key Novelty
-The paper introduces a **dropout schedule that applies dropout ONLY to non-recurrent (feedforward) connections**:
+
+> The paper introduces a **dropout schedule that applies dropout ONLY to non-recurrent (feedforward) connections**:
 - No dropout on recurrent-to-recurrent connections (hidden state transitions)
 - Dropout applied to: input→LSTM, LSTM-layer→LSTM-layer (between layers), LSTM→output
 - Same dropout mask applied across all timesteps for a given connection
@@ -32,9 +35,10 @@ The paper introduces a **dropout schedule that applies dropout ONLY to non-recur
 4. **Image Captioning** - MSCOCO dataset
 
 ### If You Only Remember 3 Things
-1. **Apply dropout only to non-recurrent connections** - Recurrent weights should NOT be masked
-2. **Use consistent masks across timesteps** - Different dropout patterns at each timestep destroy LSTM memory
-3. **Larger models + higher dropout rates needed** - 1500-unit LSTM with 65% dropout dramatically outperforms 650-unit LSTM with 50% dropout
+
+> 1. **Apply dropout only to non-recurrent connections** - Recurrent weights should NOT be masked
+> 2. **Use consistent masks across timesteps** - Different dropout patterns at each timestep destroy LSTM memory
+> 3. **Larger models + higher dropout rates needed** - 1500-unit LSTM with 65% dropout dramatically outperforms 650-unit LSTM with 50% dropout
 
 ### Key Results Summary
 | Task | Model | Improvement |
@@ -44,7 +48,7 @@ The paper introduces a **dropout schedule that applies dropout ONLY to non-recur
 
 ---
 
-## Section 2: Problem Setup and Outputs
+## 2. Problem Setup and Outputs
 
 ### Problem Definition: Language Modeling on Penn Treebank
 
@@ -101,7 +105,7 @@ Batch size: 20 sequences processed in parallel
 
 ---
 
-## Section 3: Coordinate Frames and Geometry
+## 3. Coordinate Frames and Geometry
 
 ### Token Embedding Space
 
@@ -166,7 +170,7 @@ Output:
 
 ---
 
-## Section 4: Architecture Deep Dive
+## 4. Architecture Deep Dive
 
 ### Block Diagram: Two-Layer Regularized LSTM
 
@@ -246,7 +250,7 @@ h_t = o_t ⊙ tanh(c_t)                                            [Hidden state
 
 ---
 
-## Section 5: Forward Pass Pseudocode
+## 5. Forward Pass Pseudocode
 
 ### High-Level Forward Pass (Language Modeling)
 
@@ -378,7 +382,7 @@ Dropout masks (training only):
 
 ---
 
-## Section 6: Heads, Targets, and Losses
+## 6. Heads, Targets, and Losses
 
 ### Language Modeling Task Definition
 
@@ -464,7 +468,7 @@ Where L_dataset is the average cross-entropy loss over ALL test tokens
 
 ---
 
-## Section 7: Data Pipeline and Augmentations
+## 7. Data Pipeline and Augmentations
 
 ### Penn Treebank Dataset Overview
 
@@ -573,7 +577,7 @@ The focus is on the regularization technique (dropout placement) rather than dat
 
 ---
 
-## Section 8: Training Pipeline
+## 8. Training Pipeline
 
 ### Optimization Algorithm
 
@@ -752,7 +756,7 @@ epoch 13:   decay again
 
 ---
 
-## Section 9: Dataset + Evaluation Protocol
+## 9. Dataset and Evaluation Protocol
 
 ### Penn Treebank Language Modeling Dataset
 
@@ -855,7 +859,7 @@ The paper's result is substantially better than all prior work.
 
 ---
 
-## Section 10: Results Summary + Ablations
+## 10. Results Summary and Ablations
 
 ### Main Results: Test Perplexity
 
@@ -962,7 +966,7 @@ Epoch  Train PPL  Valid PPL  Learning Rate
 
 ---
 
-## Section 11: Practical Insights
+## 11. Practical Insights
 
 ### 10 Engineering Takeaways
 
@@ -1088,7 +1092,7 @@ Epoch  Train PPL  Valid PPL  Learning Rate
 
 ---
 
-## Section 12: Minimal Reimplementation Checklist
+## 12. Minimal Reimplementation Checklist
 
 ### Architecture Must-Haves
 

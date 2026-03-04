@@ -21,11 +21,11 @@
 - Task-specific head: CenterPoint-style center-based detection head on BEV features [BEVDet | Sec 3.3]
 - BEVDet4D extension: concatenates BEV features from adjacent timestamps with ego-motion alignment for temporal fusion [BEVDet4D | Sec 3]
 
-**If you only remember 3 things:**
-
-1. LSS view transformer + CenterPoint head = BEVDet (modular 4-part design)
-2. BEV-space augmentation (flip, rotate, scale in BEV) is surprisingly important — often the single biggest contributor
-3. BEVDet4D adds temporal by concatenating ego-aligned BEV features from previous frames
+> **If you only remember 3 things:**
+>
+> 1. LSS view transformer + CenterPoint head = BEVDet (modular 4-part design)
+> 2. BEV-space augmentation (flip, rotate, scale in BEV) is surprisingly important — often the single biggest contributor
+> 3. BEVDet4D adds temporal by concatenating ego-aligned BEV features from previous frames
 
 ---
 
@@ -249,7 +249,7 @@ This is applied AFTER the view transformer and BEFORE the BEV encoder.
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -357,9 +357,6 @@ Not specified. Plausible defaults (not from paper): use DETR3D-style nuScenes ev
 **Script 1:** Visualize BEV features (sum channels) + GT heatmap overlay → should align
 **Script 2:** Overfit 2 scenes without augmentation → heatmap loss < 0.1 in 1000 steps
 **Script 3:** Decode predicted boxes and plot in BEV alongside GT → should overlap
-
----
----
 
 ---
 

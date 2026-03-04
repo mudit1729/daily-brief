@@ -21,16 +21,18 @@
 | **Code Impact** | Foundation for subsequent ResNet variants (ResNeXt, DenseNet patterns) |
 
 ### Key Novelty: Pre-Activation Architecture
-The paper proves through gradient flow analysis that **placing batch normalization and ReLU activation BEFORE the convolution** (instead of after) enables:
+
+> The paper proves through gradient flow analysis that **placing batch normalization and ReLU activation BEFORE the convolution** (instead of after) enables:
 - Cleaner gradient propagation through identity mappings
 - Training of extremely deep networks (1001 layers) without degradation
 - Removal of activation in skip paths (identity flows unmolested)
 - Better regularization through pre-activation non-linearities
 
 ### The 3 Things to Remember
-1. **Identity Mappings Matter:** The most direct path through deep networks should be linear (identity) to enable gradient flow. Non-linearities belong on the "residual branch," not the identity path.
-2. **Pre-Activation > Post-Activation:** BN-ReLU-Conv ordering proves superior to Conv-BN-ReLU for training very deep networks. The activation applied before convolution acts as a regularizer.
-3. **Empirical Proof of Depth:** 1001-layer ResNet on CIFAR achieves lower training/test error than 100-layer baseline, definitively settling whether depth helps when gradient flow is optimized.
+
+> 1. **Identity Mappings Matter:** The most direct path through deep networks should be linear (identity) to enable gradient flow. Non-linearities belong on the "residual branch," not the identity path.
+> 2. **Pre-Activation > Post-Activation:** BN-ReLU-Conv ordering proves superior to Conv-BN-ReLU for training very deep networks. The activation applied before convolution acts as a regularizer.
+> 3. **Empirical Proof of Depth:** 1001-layer ResNet on CIFAR achieves lower training/test error than 100-layer baseline, definitively settling whether depth helps when gradient flow is optimized.
 
 ---
 
@@ -63,7 +65,7 @@ FC + Softmax: [B, 1000]            (logits → probabilities)
 
 ### Standard Training Objective
 **Cross-Entropy Loss:**
-```
+```math
 L = - (1/B) * Σ_i Σ_c y_{i,c} * log(p_{i,c})
 where:
   y_{i,c} = 1 if sample i has class c, else 0
@@ -79,13 +81,13 @@ where:
 The fundamental insight: In residual networks, the identity mapping is the **primary information highway**. Non-linear transformations are applied to the residual branch.
 
 **Mathematical Formulation:**
-```
+```math
 x_{l+1} = x_l + F(x_l)                    (standard residual)
 where x_l ∈ ℝ^{H×W×C} is layer output
 ```
 
 **Gradient Perspective (Backpropagation):**
-```
+```math
 ∂L/∂x_l = ∂L/∂x_{l+1} * ∂x_{l+1}/∂x_l
         = ∂L/∂x_{l+1} * (1 + ∂F/∂x_l)
         = ∂L/∂x_{l+1} * (identity + residual gradient)

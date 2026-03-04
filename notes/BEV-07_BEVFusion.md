@@ -24,11 +24,11 @@
 - LiDAR branch: VoxelNet or PointPillars → BEV features via 3D sparse convolution
 - Demonstrates that camera BEV + LiDAR BEV fusion outperforms either modality alone, especially for segmentation tasks
 
-**If you only remember 3 things:**
-
-1. Camera and LiDAR each produce independent BEV features → concatenate → fuse with convolutions
-2. Efficient BEV pooling (CUDA kernel) removes the camera branch as a computational bottleneck
-3. Multi-task heads (detection + segmentation) on shared fused BEV
+> **If you only remember 3 things:**
+>
+> 1. Camera and LiDAR each produce independent BEV features → concatenate → fuse with convolutions
+> 2. Efficient BEV pooling (CUDA kernel) removes the camera branch as a computational bottleneck
+> 3. Multi-task heads (detection + segmentation) on shared fused BEV
 
 ---
 
@@ -219,7 +219,7 @@ def forward(images, lidar_points, intrinsics, extrinsics):
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -250,6 +250,8 @@ def forward(images, lidar_points, intrinsics, extrinsics):
 ## 10) Results Summary + Ablations
 
 - Not specified in provided inputs. Plausible defaults (not from paper): summarize main benchmark numbers directly from cited tables.
+
+---
 
 ## 11) Practical Insights
 
@@ -302,9 +304,6 @@ def forward(images, lidar_points, intrinsics, extrinsics):
 **Script 1:** Overlay camera BEV and LiDAR BEV → same objects should appear at same locations
 **Script 2:** Overfit 2 scenes → mAP > 0.9
 **Script 3:** Ablate: camera-only, LiDAR-only, fusion → fusion should be best
-
----
----
 
 ---
 

@@ -19,9 +19,10 @@
 This groundbreaking PhD dissertation presents a formal mathematical definition of machine intelligence and superintelligence based on universal artificial intelligence theory. Building upon Marcus Hutter's AIXI model and Ray Solomonoff's foundational work on algorithmic probability, Legg develops the Universal Intelligence Measure (UIM)—a rigorous, mathematically precise definition that captures intelligence as an agent's ability to maximize reward across a diverse set of computable environments, weighted by their algorithmic simplicity. The thesis establishes that AIXI represents an optimal (though incomputable) machine intelligence agent that achieves Pareto optimality and demonstrates self-optimization in environments where such is possible.
 
 **Three Things to Remember:**
-1. **Universal Intelligence is Formal and General**: Intelligence can be rigorously defined mathematically without reference to specific tasks or domains, applicable to humans, animals, and machines alike.
-2. **AIXI is Theoretically Optimal but Practically Incomputable**: The AIXI agent represents the limit of intelligence with infinite computational resources, establishing an upper bound against which all computable agents can be measured.
-3. **Simplicity Weighting is Essential**: The intelligence measure must weight environments by their algorithmic simplicity (Kolmogorov complexity) to avoid trivial solutions and capture the intuition that learning should prefer simpler explanations.
+
+> 1. **Universal Intelligence is Formal and General**: Intelligence can be rigorously defined mathematically without reference to specific tasks or domains, applicable to humans, animals, and machines alike.
+> 2. **AIXI is Theoretically Optimal but Practically Incomputable**: The AIXI agent represents the limit of intelligence with infinite computational resources, establishing an upper bound against which all computable agents can be measured.
+> 3. **Simplicity Weighting is Essential**: The intelligence measure must weight environments by their algorithmic simplicity (Kolmogorov complexity) to avoid trivial solutions and capture the intuition that learning should prefer simpler explanations.
 
 ---
 
@@ -72,7 +73,9 @@ A formal definition of intelligence enables:
 
 The Universal Intelligence Measure Φ(π) of an agent π is formally defined as the agent's expected reward, averaged across all computable probability distributions weighted by their algorithmic simplicity:
 
+```math
 Φ(π) = Σ 2^(-|μ|) V_μ^π
+```
 
 Where:
 - π represents an agent (a function mapping histories to actions)
@@ -100,7 +103,9 @@ AIXI (pronounced "ack-see") is the universal optimal agent derived by Marcus Hut
 
 Formally, AIXI selects at each time step the action that maximizes expected future reward given its entire history of observations and rewards:
 
+```math
 a_t = argmax_a Σ_o r Σ_μ P(o_t | a_t, h_t, μ) V_μ^{π_{AIXI}} (h_t a_t o_t r)
+```
 
 Where:
 - a_t is the action at time t
@@ -152,9 +157,11 @@ Superintelligence is formally characterized as:
 
 The Universal Intelligence Measure is elegantly simple yet profound:
 
-**Φ(π) = Σ_{μ ∈ M} 2^(-|μ|) · V_μ^π**
+```math
+Φ(π) = Σ_{μ ∈ M} 2^(-|μ|) · V_μ^π
+```
 
-This single equation captures the essential idea: an agent's intelligence is its average performance across all computable probability distributions, with simpler environments weighted more heavily.
+> This single equation captures the essential idea: an agent's intelligence is its average performance across all computable probability distributions, with simpler environments weighted more heavily.
 
 **Mathematical Properties**
 

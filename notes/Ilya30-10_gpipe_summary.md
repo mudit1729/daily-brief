@@ -1,9 +1,11 @@
 # GPipe: Easy Scaling with Micro-Batch Pipeline Parallelism - Detailed Paper Summary
 
-**Authors:** Yanping Huang, Youlong Cheng, Ankur Bapna, Orhan Firat, Dehao Chen, et al. (Google)
-**Published:** NeurIPS 2019
-**ArXiv:** 1811.06965
-**Publication Date:** November 2018
+| | |
+|---|---|
+| **Authors** | Yanping Huang, Youlong Cheng, Ankur Bapna, Orhan Firat, Dehao Chen, et al. (Google) |
+| **Published** | NeurIPS 2019 |
+| **ArXiv** | 1811.06965 |
+| **Publication Date** | November 2018 |
 
 ---
 
@@ -34,9 +36,10 @@ Unlike naive pipeline parallelism where only one accelerator is active at a time
 This transforms O(K) pipeline bubbles (idle time) into O(1) relative overhead, enabling 128+ device clusters.
 
 ### Three Things to Remember
-1. **Pipeline Parallelism ≠ Data Parallelism**: Model is divided into sequential stages; communication patterns differ
-2. **Micro-Batches are Essential**: Without them, only 1 device works at a time; with M micro-batches, ~M devices work simultaneously
-3. **Re-materialization Trades Compute for Memory**: Forward pass activations are recomputed during backprop, enabling larger models on limited VRAM
+
+> 1. **Pipeline Parallelism ≠ Data Parallelism**: Model is divided into sequential stages; communication patterns differ
+> 2. **Micro-Batches are Essential**: Without them, only 1 device works at a time; with M micro-batches, ~M devices work simultaneously
+> 3. **Re-materialization Trades Compute for Memory**: Forward pass activations are recomputed during backprop, enabling larger models on limited VRAM
 
 ### What This Paper Contributes
 - First practical pipeline parallelism method for deep learning with near-linear scaling
@@ -1013,7 +1016,7 @@ Key trade-off: Save 500× memory, pay 30% compute cost (worthwhile!)
 
 ---
 
-## 9. Dataset + Evaluation Protocol
+## 9. Dataset and Evaluation Protocol
 
 ### ImageNet Evaluation Setup
 
@@ -1138,7 +1141,7 @@ Scaling results from paper:
 
 ---
 
-## 10. Results Summary + Ablations
+## 10. Results Summary and Ablations
 
 ### AmoebaNet-B (557M) on ImageNet
 

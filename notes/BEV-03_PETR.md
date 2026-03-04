@@ -21,11 +21,11 @@
 - Simple architecture: backbone → 3D PE → standard transformer decoder → detection heads [PETR | Sec 3]
 - Extends to temporal via PETRv2 (concatenating multi-frame features with aligned 3D PEs) [PETRv2]
 
-**If you only remember 3 things:**
-
-1. 3D position embeddings on image features replace explicit geometric projection
-2. Standard cross-attention (not feature sampling) — queries attend to all 3D-PE features
-3. Simpler than DETR3D (no projection + grid_sample), but more compute for cross-attention
+> **If you only remember 3 things:**
+>
+> 1. 3D position embeddings on image features replace explicit geometric projection
+> 2. Standard cross-attention (not feature sampling) — queries attend to all 3D-PE features
+> 3. Simpler than DETR3D (no projection + grid_sample), but more compute for cross-attention
 
 ---
 
@@ -219,7 +219,7 @@ Similar to DETR3D. Key difference: if image augmentation changes the geometry (r
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -322,9 +322,6 @@ Not specified. Plausible defaults (not from paper): use DETR3D-style nuScenes ev
 **Script 1:** Visualize 3D PE by coloring image pixels by their 3D z-coordinate → should show depth gradient
 **Script 2:** Overfit 4 scenes → mAP > 0.7 in 3000 steps
 **Script 3:** Compare PETR predictions with GT boxes projected onto BEV → should overlap
-
----
----
 
 ---
 

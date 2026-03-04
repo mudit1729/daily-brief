@@ -7,7 +7,7 @@
 
 ---
 
-## 1. ONE-PAGE OVERVIEW
+## 1. One-Page Overview
 
 ### Metadata
 - **Paper Title:** Relational Recurrent Neural Networks
@@ -19,7 +19,7 @@
 
 ### Key Novelty: Relational Memory Core (RMC)
 
-The paper introduces a paradigm shift in how RNNs maintain and interact with memory:
+> The paper introduces a paradigm shift in how RNNs maintain and interact with memory.
 
 **Traditional RNN Memory:**
 - Single hidden state vector (LSTM/GRU)
@@ -34,15 +34,15 @@ The paper introduces a paradigm shift in how RNNs maintain and interact with mem
 
 ### 3 Things to Remember
 
-1. **Slot-Based Memory Architecture:** RMC maintains M memory slots (typically 4-128) that interact through attention, allowing the network to model multiple independent relations and facts simultaneously.
-
-2. **Multi-Head Attention as Memory Update Rule:** Instead of traditional gates, RMC uses multi-head self-attention over memory slots. Each head learns different attention patterns, providing diverse update pathways for memory.
-
-3. **Scalability & Generalization:** RMC demonstrates improvements over LSTMs on language modeling (WikiText-103, GigaWord) and shows stronger compositional generalization in relational reasoning tasks, suggesting attention-based memory is more suitable for reasoning than compressed vector representations.
+> 1. **Slot-Based Memory Architecture:** RMC maintains M memory slots (typically 4-128) that interact through attention, allowing the network to model multiple independent relations and facts simultaneously.
+>
+> 2. **Multi-Head Attention as Memory Update Rule:** Instead of traditional gates, RMC uses multi-head self-attention over memory slots. Each head learns different attention patterns, providing diverse update pathways for memory.
+>
+> 3. **Scalability & Generalization:** RMC demonstrates improvements over LSTMs on language modeling (WikiText-103, GigaWord) and shows stronger compositional generalization in relational reasoning tasks, suggesting attention-based memory is more suitable for reasoning than compressed vector representations.
 
 ---
 
-## 2. PROBLEM SETUP AND OUTPUTS
+## 2. Problem Setup and Outputs
 
 ### Sequential Relational Reasoning
 
@@ -90,7 +90,7 @@ Output:             y_t ∈ ℝ^(B × D_out)         [Batch × Output Dim]
 
 ---
 
-## 3. COORDINATE FRAMES AND GEOMETRY
+## 3. Coordinate Frames and Geometry
 
 ### Memory Slot Organization
 
@@ -139,7 +139,7 @@ Each slot attends to all other slots (and itself), learning:
 
 ---
 
-## 4. ARCHITECTURE DEEP DIVE
+## 4. Architecture Deep Dive
 
 ### ASCII Diagram: Relational Memory Core
 
@@ -283,7 +283,7 @@ For N=4, D_m=256, D_in=256, H=4: ≈500K parameters
 
 ---
 
-## 5. FORWARD PASS PSEUDOCODE
+## 5. Forward Pass Pseudocode
 
 ### RMC Forward Pass with Shape Annotations
 
@@ -493,7 +493,7 @@ END FUNCTION
 
 ---
 
-## 6. HEADS, TARGETS, AND LOSSES
+## 6. Heads, Targets, and Losses
 
 ### Output Heads
 
@@ -596,7 +596,7 @@ L_total = α * L_lm + β * L_aux_task + γ * L_regularization
 
 ---
 
-## 7. DATA PIPELINE
+## 7. Data Pipeline
 
 ### Language Modeling Datasets
 
@@ -727,7 +727,7 @@ train_loader = DataLoader(
 
 ---
 
-## 8. TRAINING PIPELINE
+## 8. Training Pipeline
 
 ### Hyperparameter Configuration Table
 
@@ -875,7 +875,7 @@ def train(model, train_loader, val_loader, num_epochs=300, device='cuda'):
 
 ---
 
-## 9. DATASET + EVALUATION PROTOCOL
+## 9. Dataset + Evaluation Protocol
 
 ### WikiText-103 Evaluation
 
@@ -1036,7 +1036,7 @@ CNN+RMC (8 slots)   71.8%               82.1%                76.9%
 
 ---
 
-## 10. RESULTS SUMMARY + ABLATIONS
+## 10. Results Summary + Ablations
 
 ### Main Results
 
@@ -1177,7 +1177,7 @@ only project e_t            63.4        53.7         (Δ = -1.6)
 
 ---
 
-## 11. PRACTICAL INSIGHTS
+## 11. Practical Insights
 
 ### 10 Engineering Takeaways
 
@@ -1320,7 +1320,7 @@ For language modeling:
 
 ---
 
-## 12. MINIMAL REIMPLEMENTATION CHECKLIST
+## 12. Minimal Reimplementation Checklist
 
 ### Core Components Checklist
 

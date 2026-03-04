@@ -1,11 +1,13 @@
 # The First Law of Complexodynamics - Summary
 
-**Author:** Scott Aaronson
-**Type:** Blog Post / Theoretical Framework
-**Date:** ~2011
-**URL:** https://scottaaronson.blog/?p=762
-**Field:** Complexity Theory, Thermodynamics, Information Theory
-**Status:** Conceptual conjecture (not yet formally proven)
+| | |
+|---|---|
+| **Author** | Scott Aaronson |
+| **Type** | Blog Post / Theoretical Framework |
+| **Date** | ~2011 |
+| **URL** | https://scottaaronson.blog/?p=762 |
+| **Field** | Complexity Theory, Thermodynamics, Information Theory |
+| **Status** | Conceptual conjecture (not yet formally proven) |
 
 ---
 
@@ -19,15 +21,16 @@
 - **Key Audience:** Physicists, computer scientists, complexity theorists
 
 ### Core Thesis
-Aaronson proposes a fundamental "law" that explains the temporal evolution of complexity in physical systems: **complexity is small at both early and late times, but large at intermediate times.** This contrasts with entropy, which monotonically increases according to the second law of thermodynamics.
+
+> Aaronson proposes a fundamental "law" that explains the temporal evolution of complexity in physical systems: **complexity is small at both early and late times, but large at intermediate times.** This contrasts with entropy, which monotonically increases according to the second law of thermodynamics.
 
 ### If You Only Remember 3 Things:
 
-1. **The Complexity Paradox:** Physical systems exhibit low complexity initially (simple, ordered states), high complexity in the middle (mixed, evolving states), and potentially low complexity at the end (thermalized equilibrium). This is opposite to entropy's monotonic increase.
-
-2. **Complextropy Measure:** Aaronson proposes a complexity measure based on Kolmogorov complexity—the shortest program that can produce a probability distribution such that specific strings are not efficiently compressible.
-
-3. **Open Conjecture:** While the observation is intuitive and practically observable, Aaronson does not provide a complete formal proof. The challenge is rigorously defining complexity and proving it behaves as conjectured across physical systems.
+> 1. **The Complexity Paradox:** Physical systems exhibit low complexity initially (simple, ordered states), high complexity in the middle (mixed, evolving states), and potentially low complexity at the end (thermalized equilibrium). This is opposite to entropy's monotonic increase.
+>
+> 2. **Complextropy Measure:** Aaronson proposes a complexity measure based on *Kolmogorov complexity* -- the shortest program that can produce a probability distribution such that specific strings are not efficiently compressible.
+>
+> 3. **Open Conjecture:** While the observation is intuitive and practically observable, Aaronson does not provide a complete formal proof. The challenge is rigorously defining complexity and proving it behaves as conjectured across physical systems.
 
 ---
 
@@ -63,17 +66,12 @@ This observation seems contradictory—if entropy increases, how can complexity 
 
 ### Complexity vs. Entropy: The Crucial Distinction
 
-**Entropy (Statistical Entropy):**
-- Measures the number of possible microstates consistent with macroscopic observations
-- Always increases or remains constant in isolated systems
-- Monotonic function of time
-- Quantifies "disorder" in a thermodynamic sense
-
-**Complexity (Operational Complexity):**
-- Measures how difficult it is to describe or reproduce a system's state
-- Not monotonic; exhibits temporal variation
-- Quantifies "interestingness" or "structure"
-- Increases when patterns form, decreases when system becomes homogeneous
+| Property | **Entropy** (Statistical) | **Complexity** (Operational) |
+|---|---|---|
+| Measures | Number of possible microstates | Difficulty to describe/reproduce a system's state |
+| Monotonicity | Always increases or stays constant | Not monotonic; exhibits temporal variation |
+| Quantifies | "Disorder" in a thermodynamic sense | "Interestingness" or "structure" |
+| Behavior | Monotonic function of time | Increases when patterns form, decreases at homogeneity |
 
 ### Kolmogorov Complexity
 
@@ -145,10 +143,10 @@ Entropy tells us the system is heading toward homogeneity. Complexity tells us *
 
 ### Key Theoretical Insights
 
-1. **Complexity ≠ Randomness:** A fully random system has low complexity (it's compressible as "random"), not high
-2. **Complexity Requires Structure:** Systems must exhibit patterns that distinguish them from white noise
-3. **Time-Asymmetry:** Complexity breaks time-reversal symmetry, unlike entropy which appears symmetric at microscopic level
-4. **Thermodynamic Depth:** Related to Lloyd and Pagels' concept that useful systems must balance simplicity with unpredictability
+> 1. **Complexity ≠ Randomness:** A fully random system has low complexity (it's compressible as "random"), not high
+> 2. **Complexity Requires Structure:** Systems must exhibit patterns that distinguish them from white noise
+> 3. **Time-Asymmetry:** Complexity breaks time-reversal symmetry, unlike entropy which appears symmetric at microscopic level
+> 4. **Thermodynamic Depth:** Related to Lloyd and Pagels' concept that useful systems must balance simplicity with unpredictability
 
 ---
 
@@ -185,11 +183,14 @@ For a string s:
 ### Information-Theoretic Relationships
 
 **Decomposition Framework:**
+
 $$\text{Information} = \text{Entropy} + \text{Complexity} + \text{Redundancy}$$
 
-- High-entropy, low-complexity: thermal noise
-- Low-entropy, low-complexity: perfect order
-- High-entropy, high-complexity: transitional/interesting systems
+| Entropy | Complexity | System Type |
+|---|---|---|
+| High | Low | Thermal noise |
+| Low | Low | Perfect order |
+| High | High | Transitional / interesting systems |
 
 ---
 
@@ -628,7 +629,7 @@ The lack of formal proof is not weakness but strength: the work identifies preci
 
 ## Summary
 
-**The First Law of Complexodynamics** is Scott Aaronson's conceptual framework for understanding how complexity evolves in physical systems. Rather than monotonically increasing like entropy, complexity exhibits an arc: low initially, high during evolution, potentially low at equilibrium.
+> **The First Law of Complexodynamics** is Scott Aaronson's conceptual framework for understanding how complexity evolves in physical systems. Rather than monotonically increasing like entropy, complexity exhibits an arc: low initially, high during evolution, potentially low at equilibrium.
 
 The work proposes "complextropy" as a formal complexity measure based on Kolmogorov complexity and efficient samplability. While the conjecture remains unproven, it provides valuable insights into:
 

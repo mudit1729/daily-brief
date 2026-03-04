@@ -1,14 +1,16 @@
 # Paper Summary: "Keeping Neural Networks Simple by Minimizing the Description Length of the Weights"
 
-**Authors:** Geoffrey E. Hinton and Drew van Camp
-**Publication Year:** 1993
-**Conference:** COLT (Computational Learning Theory)
-**Full Citation:** Hinton, G. E., & van Camp, D. (1993). Keeping neural networks simple by minimizing the description length of the weights. In Proceedings of the sixth annual conference on computational learning theory (pp. 330-337).
-**PDF:** https://www.cs.toronto.edu/~hinton/absps/colt93.pdf
+| | |
+|---|---|
+| **Authors** | Geoffrey E. Hinton and Drew van Camp |
+| **Publication Year** | 1993 |
+| **Conference** | COLT (Computational Learning Theory) |
+| **Full Citation** | Hinton, G. E., & van Camp, D. (1993). *Keeping neural networks simple by minimizing the description length of the weights*. In Proceedings of the sixth annual conference on computational learning theory (pp. 330-337). |
+| **PDF** | https://www.cs.toronto.edu/~hinton/absps/colt93.pdf |
 
 ---
 
-## Section 1: One-Page Overview
+## 1. One-Page Overview
 
 ### Paper Metadata
 - **Domain:** Neural Network Regularization, Information Theory, Learning Theory
@@ -17,19 +19,21 @@
 - **Impact Level:** High – foundational work connecting information theory to neural network generalization
 
 ### Core Innovation
-This paper introduces a principled information-theoretic approach to neural network simplicity through MDL. Rather than ad-hoc regularization (weight decay), Hinton and van Camp propose explicitly minimizing the description length needed to encode the network weights. The key novelty is using **bits-back coding** to compute how many bits are required to transmit network weights given a particular weight distribution.
+
+> This paper introduces a principled information-theoretic approach to neural network simplicity through *Minimum Description Length* (MDL). Rather than ad-hoc regularization (weight decay), Hinton and van Camp propose explicitly minimizing the description length needed to encode the network weights. The key novelty is using **bits-back coding** to compute how many bits are required to transmit network weights given a particular weight distribution.
 
 ### Three Things to Remember
-1. **MDL Principle:** Network simplicity should be measured by how many bits needed to specify its weights – simpler networks need fewer bits
-2. **Bits-Back Coding:** A clever information-theoretic technique to compute the exact number of bits required to encode weights using a posterior distribution as the code
-3. **Connection to Bayes:** Minimizing description length is equivalent to performing Bayesian inference with a specific prior (the universal code prior)
+
+> 1. **MDL Principle:** Network simplicity should be measured by how many bits needed to specify its weights -- simpler networks need fewer bits
+> 2. **Bits-Back Coding:** A clever information-theoretic technique to compute the exact number of bits required to encode weights using a posterior distribution as the code
+> 3. **Connection to Bayes:** Minimizing description length is equivalent to performing Bayesian inference with a specific prior (the universal code prior)
 
 ### Why It Matters
 The paper bridges two communities: information theorists and machine learning practitioners. It provides theoretical justification for regularization through information theory and predates modern connections to Bayesian deep learning by ~25 years.
 
 ---
 
-## Section 2: Problem Setup and Outputs
+## 2. Problem Setup and Outputs
 
 ### The Core Problem
 Neural networks are prone to overfitting because they can memorize training data. How do we determine the appropriate network complexity?
@@ -65,7 +69,7 @@ Networks that explain data but require many bits for weights are penalized. Simp
 - The encoding cost is the KL divergence between posterior and prior
 
 **Formula:**
-```
+```math
 D_encoder = KL[P(w|D) || P(w)] = E_q[log(q(w)/p(w))]
 ```
 
@@ -78,7 +82,7 @@ This gives the exact number of bits needed to encode weights using the posterior
 
 ---
 
-## Section 3: Theoretical Framework
+## 3. Theoretical Framework
 
 ### Minimum Description Length (MDL) Principle
 **Origin:** Jorma Rissanen (1978, 1983)
@@ -118,7 +122,7 @@ The KL divergence between posterior and prior forms an information-geometric dis
 
 ---
 
-## Section 4: Architecture Deep Dive
+## 4. Architecture Deep Dive
 
 ### How MDL Applies to Weight Distributions
 
@@ -157,12 +161,12 @@ Where:
 
 ---
 
-## Section 5: Mathematical Formulation
+## 5. Mathematical Formulation
 
 ### Core Equations
 
 #### Total MDL Objective
-```
+```math
 MDL = min_w { KL[q(w|D) || p(w)] + L(w, D) }
 ```
 
@@ -184,7 +188,7 @@ KL[q(w) || p(w)] = ∫ q(w) [log q(w) - log p(w)] dw
 ```
 
 For normal posteriors q(w) = N(μ, σ²_q):
-```
+```math
 KL[N(μ, σ²_q) || N(0, σ²_p)] = log(σ_p/σ_q) + (σ²_q + μ²)/(2σ²_p) - 1/2
 ```
 
@@ -196,13 +200,13 @@ KL ≈ (w_learned)² / (2σ²_p) + const
 => Penalty = λ * ||w||² where λ = 1/(2σ²_p)
 ```
 
-**This shows weight decay emerges naturally from MDL!**
+> **This shows weight decay emerges naturally from MDL!**
 
 ### Variational Inference Connection
 The paper doesn't use this terminology (variational inference wasn't mainstream in 1993), but the approach is:
 
 **Variational Lower Bound:**
-```
+```math
 log p(D) ≥ E_q[log p(D|w)] - KL[q(w) || p(w)]
 ```
 
@@ -224,7 +228,7 @@ The paper proposes approximating q(w|D) using:
 
 ---
 
-## Section 6: Training with MDL
+## 6. Training with MDL
 
 ### Modified Objective Function
 Instead of minimizing only error:
@@ -275,7 +279,7 @@ An interesting observation: MDL-regularized networks may show better generalizat
 
 ---
 
-## Section 7: Connection to Bayesian Learning
+## 7. Connection to Bayesian Learning
 
 ### Bayesian Perspective
 **Prior:** p(w) = N(0, σ²)
@@ -283,7 +287,7 @@ An interesting observation: MDL-regularized networks may show better generalizat
 **Posterior:** p(w|D) ∝ p(D|w) p(w)
 
 ### Maximum A Posteriori (MAP) Estimation
-```
+```math
 w_MAP = argmax_w { log p(D|w) + log p(w) }
       = argmin_w { L(w,D) - log p(w) }
       = argmin_w { L(w,D) + λ||w||² }
@@ -342,7 +346,7 @@ This connection wouldn't be formalized for another 5-10 years in the machine lea
 
 ---
 
-## Section 8: Training Pipeline and Hyperparameters
+## 8. Training Pipeline and Hyperparameters
 
 ### Complete Training Procedure
 
@@ -442,7 +446,7 @@ Posterior Variance: σ²_q = 0.01 (fixed)
 
 ---
 
-## Section 9: Related Work and Context
+## 9. Related Work and Context
 
 ### Rissanen's MDL Principle
 **Jorma Rissanen, 1978, 1983**
@@ -520,7 +524,7 @@ Mathematical formalization of ancient principle through information theory.
 
 ---
 
-## Section 10: Results and Key Findings
+## 10. Results and Key Findings
 
 ### Experimental Setup
 The paper provides empirical validation on standard 1990s datasets:
@@ -621,7 +625,7 @@ For typical classification tasks:
 
 ---
 
-## Section 11: Practical Insights
+## 11. Practical Insights
 
 ### 10 Engineering Takeaways
 
@@ -736,7 +740,7 @@ Better network: argmin_A { L(w*, D) + KL[q(w*|D) || p(w)] }
 
 ---
 
-## Section 12: Legacy and Modern Connections
+## 12. Legacy and Modern Connections
 
 ### How This Paper Changed Machine Learning
 

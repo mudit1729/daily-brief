@@ -49,11 +49,12 @@ Dependency modeling:              Dependency modeling:
 ```
 
 ### 3 Things to Remember
-1. **No recurrence or convolution:** The Transformer processes entire sequences in parallel using self-attention. Each position attends to all other positions simultaneously—the foundation of modern LLMs.
 
-2. **Positional encoding is essential:** Without it, attention is permutation-invariant; we need additive positional signals (sinusoids) to make order matter. This is different from RNNs where order is implicit in state.
-
-3. **Multi-head attention captures different relationships:** With 8 heads of 64 dims each, different heads learn to attend to different types of dependencies (syntax, semantics, long-range references, etc.). This multi-representation ability is crucial.
+> 1. **No recurrence or convolution:** The Transformer processes entire sequences in parallel using self-attention. Each position attends to all other positions simultaneously---the foundation of modern LLMs.
+>
+> 2. **Positional encoding is essential:** Without it, attention is permutation-invariant; we need additive positional signals (sinusoids) to make order matter. This is different from RNNs where order is implicit in state.
+>
+> 3. **Multi-head attention captures different relationships:** With 8 heads of 64 dims each, different heads learn to attend to different types of dependencies (syntax, semantics, long-range references, etc.). This multi-representation ability is crucial.
 
 ---
 
@@ -137,7 +138,7 @@ sentences_2 = [cat, the, ate, dog, the]
 ### Solution 1: Sinusoidal Positional Encodings
 
 **Mathematical formula:**
-```
+```math
 PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
 PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
 
@@ -169,7 +170,7 @@ Pos 3:  [0.141,  -0.990,   0.279,   0.960,  ...]
 ### Attention Geometry: The Scaled Dot-Product
 
 **Raw attention weights** (before softmax):
-```
+```math
 Attention(Q, K, V) = softmax(Q·K^T / √d_k) · V
 
 where:

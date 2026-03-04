@@ -23,16 +23,18 @@
 **Solution:** Introduce an **attention mechanism** that allows the decoder to dynamically focus on different parts of the source sentence at each decoding step. Instead of relying solely on a fixed context vector, the model learns to "align" and "attend to" relevant source words when predicting each target word.
 
 ### Key Novelty
-The **attention mechanism** (also called "alignment model") enables:
+
+> The ***attention mechanism*** (also called *alignment model*) enables:
 1. **Dynamic context selection** - different context vectors for each decoder step
 2. **Interpretable alignments** - visualize which source words influence each target word
 3. **Improved handling of long sentences** - BLEU score improvement of ~7% on sentences >50 words
 4. **Gradient flow improvement** - attention weights help backprop traverse long sequences
 
 ### 3 Things to Remember
-1. **Attention scores as soft alignment:** Instead of hard discrete alignment, use softmax over source positions to create weighted combination of encoder hidden states
-2. **Query-Key-Value pattern:** Decoder state queries encoder states to compute attention weights, then uses weights to aggregate (context vector)
-3. **Significant empirical gains:** This paper established attention as essential for NMT; later became standard in virtually all seq2seq models
+
+> 1. **Attention scores as soft alignment:** Instead of hard discrete alignment, use softmax over source positions to create weighted combination of encoder hidden states
+> 2. **Query-Key-Value pattern:** Decoder state queries encoder states to compute attention weights, then uses weights to aggregate (context vector)
+> 3. **Significant empirical gains:** This paper established attention as essential for NMT; later became standard in virtually all seq2seq models
 
 ---
 
@@ -1393,7 +1395,7 @@ def beam_search(model, src_ids, beam_size=5, max_len=50):
 
 ## Summary: Why This Paper Matters
 
-This paper introduced the **attention mechanism**, one of the most important innovations in deep learning history:
+> This paper introduced the **attention mechanism**, one of the most important innovations in deep learning history.
 
 1. **Solved a real problem:** Fixed-size bottleneck in seq2seq for long sequences
 2. **Elegant solution:** Soft, learnable alignment between sequences
@@ -1401,7 +1403,7 @@ This paper introduced the **attention mechanism**, one of the most important inn
 4. **Interpretability:** Attention weights provide window into model reasoning
 5. **Lasting impact:** Attention is now standard in virtually all sequence models (Transformers, LLMs, etc.)
 
-The paper demonstrated that **allowing models to dynamically focus on relevant input** is far more powerful than static context compression. This principle, discovered for NMT, has become foundational to modern deep learning.
+> The paper demonstrated that **allowing models to dynamically focus on relevant input** is far more powerful than static context compression. This principle, discovered for NMT, has become foundational to modern deep learning.
 
 ---
 

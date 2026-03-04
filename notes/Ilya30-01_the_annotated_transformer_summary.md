@@ -1,14 +1,16 @@
 # The Annotated Transformer: Implementation Guide Summary
+
 ## for "Attention Is All You Need" (Vaswani et al., 2017)
 
-**Reference**: Sasha Rush et al. (https://nlp.seas.harvard.edu/annotated-transformer/)
-**Original Paper**: Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention Is All You Need. arXiv preprint arXiv:1706.03762
-
-**Created**: March 3, 2026
+| | |
+|---|---|
+| **Reference** | Sasha Rush et al. (https://nlp.seas.harvard.edu/annotated-transformer/) |
+| **Original Paper** | Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). *Attention Is All You Need*. arXiv preprint arXiv:1706.03762 |
+| **Created** | March 3, 2026 |
 
 ---
 
-## 1. ONE-PAGE OVERVIEW
+## 1. One-Page Overview
 
 ### Metadata
 - **Paper Title**: Attention Is All You Need
@@ -32,7 +34,8 @@ Previous sequence-to-sequence models relied on recurrent architectures (LSTMs, G
 The Transformer solves this by replacing recurrence entirely with a stack of multi-head self-attention layers and position-wise feedforward networks.
 
 ### Core Claim
-A pure attention-based architecture, with proper positional encoding, achieves superior performance on machine translation while enabling parallel training and supporting longer-range dependencies than RNNs.
+
+> A pure attention-based architecture, with proper positional encoding, achieves superior performance on machine translation while enabling parallel training and supporting longer-range dependencies than RNNs.
 
 ### Performance Highlights
 - **WMT 2014 English-German**: 28.4 BLEU (new SOTA, +2.0 over previous best)
@@ -43,7 +46,7 @@ A pure attention-based architecture, with proper positional encoding, achieves s
 
 ---
 
-## 2. PROBLEM SETUP AND OUTPUTS
+## 2. Problem Setup and Outputs
 
 ### Input/Output Specifications
 
@@ -92,13 +95,13 @@ A pure attention-based architecture, with proper positional encoding, achieves s
 
 ---
 
-## 3. COORDINATE FRAMES AND GEOMETRY
+## 3. Coordinate Frames and Geometry
 
 ### Token Position Encoding (Sinusoidal)
 
 The Transformer uses **absolute positional encoding** via sinusoidal functions:
 
-```
+```math
 PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
 PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
 ```
@@ -108,12 +111,12 @@ Where:
 - `i` = dimension index (0 to d_model/2 - 1)
 - Encoding shape: (L_src or L_tgt, d_model)
 
-**Key Property**: Position encodings form a consistent, non-learned pattern that the model learns to interpret. Different frequency components capture different scales of positional information.
+> **Key Property**: Position encodings form a consistent, non-learned pattern that the model learns to interpret. Different frequency components capture different scales of positional information.
 
 ### Attention Geometry: Multi-Head Structure
 
 #### Single Head (Scaled Dot-Product)
-```
+```math
 Attention(Q, K, V) = softmax(QK^T / √d_k) V
 ```
 
@@ -125,7 +128,7 @@ Attention(Q, K, V) = softmax(QK^T / √d_k) V
 - Output shape: (B, h, L, d_v) — Weighted values
 
 #### Multi-Head Assembly
-```
+```math
 MultiHead(Q, K, V) = Concat(head_1, ..., head_h) W^O
 where head_i = Attention(Q W_i^Q, K W_i^K, V W_i^V)
 ```
@@ -165,7 +168,7 @@ where head_i = Attention(Q W_i^Q, K W_i^K, V W_i^V)
 
 ---
 
-## 4. ARCHITECTURE DEEP DIVE
+## 4. Architecture Deep Dive
 
 ### Full Architecture Block Diagram
 
@@ -309,7 +312,7 @@ class DecoderLayer(nn.Module):
 
 ---
 
-## 5. FORWARD PASS PSEUDOCODE
+## 5. Forward Pass Pseudocode
 
 ### Shape-Annotated Forward Pass (Training Mode)
 
@@ -542,7 +545,7 @@ def decode_greedy(src_tokens, max_length=100):
 
 ---
 
-## 6. HEADS, TARGETS, AND LOSSES
+## 6. Heads, Targets, and Losses
 
 ### Multi-Head Attention: Purpose and Design
 
@@ -588,7 +591,7 @@ Analysis of trained attention heads reveals:
 
 #### Primary: Cross-Entropy Loss
 
-```
+```math
 L = -Σ_t log P(y_t | y_<t, x)
 ```
 
@@ -620,7 +623,7 @@ Where:
 | \<END\> | Yes | Helps model learn stopping condition |
 
 #### Total Training Loss
-```
+```math
 L_total = (1/B) Σ_b Σ_t L(logits[b,t], targets[b,t])
 ```
 
@@ -630,7 +633,7 @@ Where averaging is over non-padding tokens only.
 
 #### 1. Greedy Decoding
 - **Algorithm**: At each step, select token with highest probability
-```
+```math
 y_t = argmax_v P(v | y_<t, x)
 ```
 - **Speed**: O(L_tgt × L_src) forward passes (sequential)
@@ -639,7 +642,7 @@ y_t = argmax_v P(v | y_<t, x)
 
 #### 2. Beam Search
 - **Algorithm**: Keep B hypotheses (beams), expand each, keep top B
-```
+```math
 y^(b)_t = argmax_v^B P(v | y^(b)_<t, x)  for b ∈ {1..B}
 ```
 - **Speed**: O(B × L_tgt × L_src) forward passes
@@ -649,7 +652,7 @@ y^(b)_t = argmax_v^B P(v | y^(b)_<t, x)  for b ∈ {1..B}
 
 #### 3. Sampling
 - **Algorithm**: Sample from model's probability distribution (with optional temperature)
-```
+```math
 y_t ~ P(· | y_<t, x, T) where P[v] ∝ exp(logits[v]/T)
 ```
 - **Temperature T**:
@@ -661,7 +664,7 @@ y_t ~ P(· | y_<t, x, T) where P[v] ∝ exp(logits[v]/T)
 ### Evaluation Metrics
 
 #### Primary: BLEU Score
-```
+```math
 BLEU = BP · exp(Σ_n w_n log p_n)
 ```
 
@@ -683,7 +686,7 @@ Where:
 
 ---
 
-## 7. DATA PIPELINE AND AUGMENTATIONS
+## 7. Data Pipeline and Augmentations
 
 ### Dataset Specifications
 
@@ -739,7 +742,7 @@ Applied during training to prevent overfitting:
 | FFN output | 0.1 | Prevents co-adaptation of neurons |
 
 #### 3. Label Smoothing
-```
+```math
 CE_loss = -(1-ε) log P(y) + (ε/(V-1)) Σ_{v≠y} log P(v)
 ```
 
@@ -797,12 +800,12 @@ scores = scores.masked_fill(mask == 0, -1e9)  # before softmax
 
 ---
 
-## 8. TRAINING PIPELINE
+## 8. Training Pipeline
 
 ### Optimizer and Learning Rate Schedule
 
 #### Adam Optimizer
-```
+```math
 θ_{t+1} = θ_t - α_t * m̂_t / (√v̂_t + ε)
 ```
 
@@ -821,7 +824,7 @@ Where:
 
 #### Learning Rate Schedule: Linear Warmup + Decay
 
-```
+```math
 lr = d_model^(-0.5) * min(step_num^(-0.5), step_num * warmup_steps^(-1.5))
 ```
 
@@ -953,7 +956,7 @@ class LabelSmoothing(nn.Module):
 
 ---
 
-## 9. DATASET + EVALUATION PROTOCOL
+## 9. Dataset and Evaluation Protocol
 
 ### Benchmark Datasets
 
@@ -1183,7 +1186,7 @@ This is why the paper reports ensemble results (29.97 BLEU) as the final result 
 
 ---
 
-## 10. RESULTS SUMMARY + ABLATIONS
+## 10. Results Summary and Ablations
 
 ### Main Results
 
@@ -1222,7 +1225,7 @@ Relative improvement: +33% over previous best
 Training: 3.5 days vs. weeks for baselines
 ```
 
-**Key Insight**: Larger dataset (36M vs. 4.5M pairs) amplifies Transformer advantage due to better parallelization and data efficiency.
+> **Key Insight**: Larger dataset (36M vs. 4.5M pairs) amplifies Transformer advantage due to better parallelization and data efficiency.
 
 #### English Constituency Parsing
 
@@ -1297,7 +1300,7 @@ Transformer shows strong transfer learning capability, likely due to:
 
 ---
 
-## 11. PRACTICAL INSIGHTS
+## 11. Practical Insights
 
 ### 10 Engineering Takeaways
 
@@ -1461,7 +1464,7 @@ Combined effect: +1.5 BLEU, variable compute
 
 ---
 
-## 12. MINIMAL REIMPLEMENTATION CHECKLIST
+## 12. Minimal Reimplementation Checklist
 
 ### Core Components to Implement
 

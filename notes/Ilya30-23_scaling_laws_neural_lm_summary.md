@@ -30,11 +30,11 @@ These relationships span more than seven orders of magnitude and enable accurate
 
 ### The Three Things to Remember
 
-1. **Loss Follows Power Laws:** L(N) ≈ AN^(-αN), L(D) ≈ BD^(-αD), L(C) ≈ CC^(-αC) where exponents are empirically determined constants (~0.07 for N, ~0.095 for D, ~0.16 for C)
-
-2. **Larger Models Are More Data-Efficient:** Optimal compute-efficient training involves training very large models on relatively modest amounts of data and stopping before convergence—a counterintuitive finding that contradicts the typical approach of scaling data
-
-3. **Architecture Details Matter Less Than Scale:** Within a wide range, specific Transformer design choices (depth, width, number of attention heads) have minimal impact on scaling behavior; what matters most is the total parameter count and compute budget
+> 1. **Loss Follows Power Laws:** L(N) = AN^(-αN), L(D) = BD^(-αD), L(C) = CC^(-αC) where exponents are empirically determined constants (~0.07 for N, ~0.095 for D, ~0.16 for C)
+>
+> 2. **Larger Models Are More Data-Efficient:** Optimal compute-efficient training involves training very large models on relatively modest amounts of data and stopping before convergence -- a counterintuitive finding that contradicts the typical approach of scaling data
+>
+> 3. **Architecture Details Matter Less Than Scale:** Within a wide range, specific Transformer design choices (depth, width, number of attention heads) have minimal impact on scaling behavior; what matters most is the total parameter count and compute budget
 
 ---
 
@@ -44,7 +44,7 @@ These relationships span more than seven orders of magnitude and enable accurate
 
 Language modeling is fundamentally a supervised learning task where a model predicts the next token in a sequence given the preceding context. The training objective is to minimize **cross-entropy loss** (or equivalently, negative log-likelihood):
 
-```
+```math
 L = -E[log P(text)]
 ```
 
@@ -218,12 +218,12 @@ The Transformer is parameterized by four core design choices:
 
 ### Architecture Independence Finding
 
-**Critical Discovery:** The paper demonstrates that test loss depends primarily on N, D, and C, with weak dependence on:
-- How parameters are allocated between depth and width (nlayer vs. dmodel)
-- Number of attention heads
-- Feed-forward dimension (within factor of 2)
-
-**Implication:** Simply varying total parameter count is sufficient; detailed architecture choices can be made based on hardware efficiency rather than accuracy concerns.
+> **Critical Discovery:** The paper demonstrates that test loss depends primarily on N, D, and C, with weak dependence on:
+> - How parameters are allocated between depth and width (nlayer vs. dmodel)
+> - Number of attention heads
+> - Feed-forward dimension (within factor of 2)
+>
+> **Implication:** Simply varying total parameter count is sufficient; detailed architecture choices can be made based on hardware efficiency rather than accuracy concerns.
 
 ### Practical Architecture Specifications
 
@@ -250,7 +250,7 @@ All models use:
 
 All empirically observed relationships follow the form:
 
-```
+```math
 L(x) = A × x^(-α) + L_irreducible
 
 Where:
@@ -264,7 +264,7 @@ Where:
 ### Loss as a Function of Model Size N
 
 **Equation:**
-```
+```math
 L(N) = (N_c / N)^(α_N) + L_irreducible
 
 Or equivalently:
@@ -290,7 +290,7 @@ L(N) = A_N × N^(-α_N) + L_irreducible
 ### Loss as a Function of Dataset Size D
 
 **Equation:**
-```
+```math
 L(D) = (D_c / D)^(α_D) + L_irreducible
 
 Or equivalently:
@@ -317,7 +317,7 @@ L(D) = A_D × D^(-α_D) + L_irreducible
 ### Loss as a Function of Compute C
 
 **Equation:**
-```
+```math
 L(C) = (C_c / C)^(α_C) + L_irreducible
 
 Or equivalently:
@@ -344,7 +344,7 @@ L(C) = A_C × C^(-α_C) + L_irreducible
 ### Combined Model: Loss as Function of N and D
 
 **Equation (Chinchilla Form):**
-```
+```math
 L(N, D) = [A_N N^(-α_N) + B_D D^(-α_D)]
 
 With constraints from overfitting analysis:
@@ -353,7 +353,7 @@ L(N, D) ≈ B_D D^(-α_D) when D >> D_critical
 ```
 
 **Alternative Form (Optimal Allocation):**
-```
+```math
 If trained optimally with compute budget C:
 - Optimal N* ≈ C / (6 × D*)
 - Optimal D* ≈ 20 × N* (approximately)
@@ -368,7 +368,7 @@ If trained optimally with compute budget C:
 ### Overfitting and Loss Decomposition
 
 **Equation:**
-```
+```math
 L_test(N, D) = L_opt(D/N_opt) + ε_overfit(N, D)
 
 Where overfitting grows as:
@@ -383,7 +383,7 @@ L_overfit(N, D) ∝ (N / D)^β for some β ≈ 0.5 to 0.7
 ### Training Speed Scaling
 
 **Equation:**
-```
+```math
 Training speed (tokens/sec) ≈ K × N^(γ)
 
 Where:
@@ -902,7 +902,7 @@ The paper empirically establishes three main scaling law relationships through e
 ### Result 1: Scaling with Model Size L(N)
 
 **Empirical Fit:**
-```
+```math
 L(N) ≈ 406 × N^(-0.070) + 1.70
 
 R² = 0.98 (excellent fit)
@@ -930,7 +930,7 @@ Exponent uncertainty: ±0.01
 ### Result 2: Scaling with Dataset Size L(D)
 
 **Empirical Fit:**
-```
+```math
 L(D) ≈ 164 × D^(-0.095) + 1.70
 
 R² = 0.98 (excellent fit)
@@ -957,7 +957,7 @@ Exponent uncertainty: ±0.01
 ### Result 3: Scaling with Compute C
 
 **Empirical Fit:**
-```
+```math
 L(C) ≈ 541 × C^(-0.16) + 1.70
 
 R² = 0.99 (exceptional fit)
@@ -1015,7 +1015,7 @@ D_opt ≈ 20 × N_opt  (approximately)
 ### Result 5: Overfitting and Generalization Gap
 
 **Power-Law Fit for Overfitting:**
-```
+```math
 L_gap(N, D) ≈ A × (N / D)^β
 
 Where:
@@ -1407,19 +1407,12 @@ Scaling laws may be slightly optimistic for really small datasets
 - Key finding: **D/N ≈ 20 optimal ratio refined from Kaplan's observations**
 
 **Major Difference from Kaplan:**
-```
-Kaplan finding (on WebText2):
-- N optimal: C^(3/8)
-- D optimal: C^(5/8)
-- Implies D/N ≈ √(C) (not constant!)
 
-Chinchilla finding (on own data, more careful analysis):
-- N optimal: C^(1/3)
-- D optimal: C^(1/3)
-- Implies D/N ≈ 20 (constant, independent of C)
-
-Practical difference: Kaplan slightly overweights model size growth
-```
+> **Kaplan finding** (on WebText2): N optimal ~ C^(3/8), D optimal ~ C^(5/8). Implies D/N grows with C (not constant).
+>
+> **Chinchilla finding** (on own data, more careful analysis): N optimal ~ C^(1/3), D optimal ~ C^(1/3). Implies D/N ~ 20 (constant, independent of C).
+>
+> **Practical difference**: Kaplan slightly overweights model size growth.
 
 **Impact:** GPT-4 and modern LLMs increasingly follow Chinchilla ratios rather than earlier GPT-3 approach.
 

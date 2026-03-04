@@ -18,12 +18,16 @@
 How can we rigorously formalize and measure the rise-and-fall of complexity in a closed system, despite entropy increasing monotonically toward maximum disorder at equilibrium?
 
 ### Core Insight
-While the Second Law of Thermodynamics guarantees that entropy S increases monotonically in isolated systems, subjective measures of **"complexity"** or **"apparent organization"** exhibit non-monotonic behavior: starting low (simple initial state), rising during intermediate dynamics, then falling as the system approaches equilibrium (maximum entropy, simple final state). This paper quantifies this phenomenon using the "coffee automaton"—a minimal 2D cellular automaton model of cream mixing into coffee.
+
+> While the Second Law of Thermodynamics guarantees that entropy S increases monotonically in isolated systems, subjective measures of **"complexity"** or **"apparent organization"** exhibit non-monotonic behavior: starting low (simple initial state), rising during intermediate dynamics, then falling as the system approaches equilibrium (maximum entropy, simple final state).
+
+This paper quantifies this phenomenon using the ***coffee automaton***---a minimal 2D cellular automaton model of cream mixing into coffee.
 
 ### Three Things to Remember
-1. **Complexity ≠ Entropy:** A system can have high entropy yet low apparent complexity (equilibrium states), or moderate entropy with high complexity (intermediate transient states).
-2. **Formalization via Coarse-Graining:** By defining complexity as properties of low-resolution (coarse-grained) descriptions of a system, we capture the intuition that complexity emerges from intermediate scales of description.
-3. **The Coffee Automaton Demonstrates Universal Behavior:** A simple cellular automaton model exhibits the rise-and-fall pattern, suggesting this is a generic phenomenon in thermodynamic systems, not an artifact of specific physical laws.
+
+> 1. **Complexity does not equal Entropy:** A system can have high entropy yet low apparent complexity (equilibrium states), or moderate entropy with high complexity (intermediate transient states).
+> 2. **Formalization via Coarse-Graining:** By defining complexity as properties of low-resolution (coarse-grained) descriptions of a system, we capture the intuition that complexity emerges from intermediate scales of description.
+> 3. **The Coffee Automaton Demonstrates Universal Behavior:** A simple cellular automaton model exhibits the rise-and-fall pattern, suggesting this is a generic phenomenon in thermodynamic systems, not an artifact of specific physical laws.
 
 ---
 
@@ -572,17 +576,30 @@ Complexity peak is sharpest and highest for f_cream ≈ 0.5 (equal volume).
 ### Key Theoretical Results (Proven Formally)
 
 #### Theorem 1: Monotonicity of Entropy
+
 For the coffee automaton dynamics (and any isolated system):
-$$\frac{dS}{dt} \geq 0$$
+
+```math
+dS/dt >= 0
+```
+
 **Proof:** By detailed balance or phase-space volume preservation in deterministic dynamics (Liouville's theorem) or Jarzynski equality in stochastic dynamics. S_max is achieved when cream density is uniform throughout the grid.
 
 #### Theorem 2: Complexity Bound
-$$C(t) \leq S_{\max} - S(t)$$
-**Proof:** Complexity is defined as distance of coarse-grained distribution from equilibrium distribution. Since S(t) ≤ S_max (with equality at equilibrium), the bound is tight.
+
+```math
+C(t) <= S_max - S(t)
+```
+
+**Proof:** Complexity is defined as distance of coarse-grained distribution from equilibrium distribution. Since S(t) <= S_max (with equality at equilibrium), the bound is tight.
 
 #### Theorem 3: Complexity Peak in Finite Systems
+
 For finite L, there exists t_peak such that dC/dt changes sign at t_peak.
-$$C(0) < C(t_{\text{peak}}) > C(t_{\to \infty})$$
+
+```math
+C(0) < C(t_peak) > C(t -> infinity)
+```
 **Proof Sketch:**
 1. Initially: Coarse-grained state is simple (two blocks). Low C.
 2. At peak: Maximum number of "decision points" or features in coarse-grained description. High C.
@@ -590,8 +607,12 @@ $$C(0) < C(t_{\text{peak}}) > C(t_{\to \infty})$$
 Intermediate-scale description captures the rise-and-fall.
 
 #### Theorem 4: Scaling of Peak Time
-$$t_{\text{peak}} \sim L^2$$
-**Proof:** Peak occurs when diffusive mixing has created maximal interfacial complexity. Time scale is set by diffusion (L²/D). Complexity peaks when the interface has roughened to characteristic scale ~ L^α but hasn't yet fully dissolved (entropy hasn't reached max yet).
+
+```math
+t_peak ~ L^2
+```
+
+**Proof:** Peak occurs when diffusive mixing has created maximal interfacial complexity. Time scale is set by diffusion (L^2/D). Complexity peaks when the interface has roughened to characteristic scale ~ L^alpha but hasn't yet fully dissolved (entropy hasn't reached max yet).
 
 ### Figure Sketches
 
@@ -659,7 +680,7 @@ m (coarse-graining scale)
 
 ### Why Ilya Sutskever Includes This Paper
 
-**Context:** Ilya Sutskever (OpenAI, co-founder, Chief Scientist) has cited rise-and-fall of complexity as relevant to understanding deep learning and neural network training. The coffee automaton paper provides a rigorous mathematical framework for studying complexity dynamics in closed systems.
+> Ilya Sutskever has cited rise-and-fall of complexity as relevant to understanding deep learning and neural network training. The coffee automaton paper provides a rigorous mathematical framework for studying complexity dynamics in closed systems.
 
 **Key Relevance:**
 
@@ -985,7 +1006,9 @@ The coffee automaton suggests such transitions may be generic: whenever a system
 
 ## Concluding Remarks
 
-The "Coffee Automaton" paper elegantly demonstrates that apparent complexity—the rise and fall of organized structure—is not a violation of the Second Law of Thermodynamics, but rather an observer-dependent phenomenon arising from coarse-grained descriptions of a system's state. By formalizing complexity through the lens of information theory and cellular automata, Aaronson, Carroll, and Ouellette provide a framework for understanding how structure emerges during transient dynamics, reaches a peak of organization, and then dissolves into equilibrium.
+> The "Coffee Automaton" paper elegantly demonstrates that apparent complexity---the rise and fall of organized structure---is not a violation of the Second Law of Thermodynamics, but rather an observer-dependent phenomenon arising from coarse-grained descriptions of a system's state.
+
+By formalizing complexity through the lens of information theory and cellular automata, Aaronson, Carroll, and Ouellette provide a framework for understanding how structure emerges during transient dynamics, reaches a peak of organization, and then dissolves into equilibrium.
 
 The insights extend far beyond coffee and cream: they illuminate how neural networks self-organize during training, how biological complexity might have arisen from simple chemistry, and how the universe may have generated complexity despite the Second Law. The coffee automaton is both a pedagogical toy and a profound metaphor for the nature of order, information, and the role of observers in thermodynamics.
 

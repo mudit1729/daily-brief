@@ -21,11 +21,11 @@
 - 3D UNet-style decoder for coarse-to-fine refinement of occupancy predictions
 - Evaluated on nuScenes-Occupancy (Occ3D) benchmark
 
-**If you only remember 3 things:**
-
-1. Dense 3D occupancy prediction (not just boxes or BEV segmentation — full voxel grid)
-2. Coarse-to-fine 3D UNet refinement from multi-scale voxel features
-3. Novel dense GT generation pipeline from sparse LiDAR
+> **If you only remember 3 things:**
+>
+> 1. Dense 3D occupancy prediction (not just boxes or BEV segmentation — full voxel grid)
+> 2. Coarse-to-fine 3D UNet refinement from multi-scale voxel features
+> 3. Novel dense GT generation pipeline from sparse LiDAR
 
 ---
 
@@ -200,7 +200,7 @@ def forward(images, intrinsics, extrinsics):
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -236,6 +236,8 @@ def forward(images, intrinsics, extrinsics):
 ## 10) Results Summary + Ablations
 
 - Not specified in provided inputs. Plausible defaults (not from paper): summarize main benchmark numbers directly from cited tables.
+
+---
 
 ## 11) Practical Insights
 
@@ -288,9 +290,6 @@ def forward(images, intrinsics, extrinsics):
 **Script 1:** Visualize GT occupancy voxels colored by class → should match scene structure
 **Script 2:** Overfit 2 scenes at low resolution → mIoU > 0.6
 **Script 3:** Compare predicted occupancy with LiDAR point cloud → should align
-
----
----
 
 ---
 

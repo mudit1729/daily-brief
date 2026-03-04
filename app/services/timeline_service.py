@@ -112,15 +112,38 @@ class TimelineService:
 
         db.session.commit()
         logger.info(f"Generated {events_added} events for timeline '{timeline.name}' (dual-LLM)")
+
+        # ── Pick a topic-appropriate emoji icon ────────────────────────
+        if timeline.icon == '📅':
+            try:
+                icon_result = llm.call(
+                    messages=[
+                        {'role': 'system', 'content': 'Return ONLY a single emoji that best represents the given topic. No text, no explanation, just one emoji character.'},
+                        {'role': 'user', 'content': topic_prompt},
+                    ],
+                    purpose=f'timeline.icon.{timeline.id}',
+                    section='timelines',
+                    brief_id=brief_id,
+                    max_tokens=10,
+                    model='gpt-4.1-nano',
+                )
+                icon = icon_result['content'].strip()[:4]
+                if icon:
+                    timeline.icon = icon
+                    db.session.commit()
+                    logger.info(f"Set icon '{icon}' for timeline '{timeline.name}'")
+            except Exception as e:
+                logger.warning(f"Icon selection failed for timeline {timeline.id}: {e}")
+
         return {
             'events_added': events_added,
         }
 
     def _generate_events_xai(self, llm, timeline, topic_prompt, entities_str, brief_id):
         """Phase 1: Use Grok for real-time, citation-rich event generation."""
-        system_prompt = """You are an expert timeline researcher with access to real-time information. Given a topic, generate a detailed chronological timeline of key events.
+        system_prompt = """You are an expert timeline researcher with live web search access. Given a topic, search the web for real events and generate a detailed chronological timeline.
 
-Your strength is providing REAL, VERIFIABLE citations with actual URLs. For each event, provide:
+Use your web search to find real, verifiable information. For each event, provide:
 - Precise dates (YYYY-MM-DD)
 - Detailed summaries with specific numbers, names, and facts
 - Real source URLs from official announcements, major news outlets, or press releases
@@ -161,6 +184,7 @@ Be specific: include dollar amounts, user counts, percentages, and direct quotes
                 brief_id=brief_id,
                 max_tokens=5000,
                 provider='xai',
+                search=True,
             )
             content = result['content'].strip()
             events = _parse_json_response(content)

@@ -31,9 +31,10 @@
 - Reduced training time from weeks to days
 
 ### 3 Things to Remember
-1. **CTC Loss Handles Variable-Length I/O**: No need to pre-align audio-text pairs; CTC marginalizes over all possible alignments
-2. **Bidirectional RNNs + Batch Normalization**: Simple but effective combination; batch norm in RNNs was relatively novel in 2015
-3. **Spectrograms + RNNs > Traditional Acoustic Features**: Raw frequency-domain representations + deep learning outperform hand-engineered MFCC features
+
+> 1. **CTC Loss Handles Variable-Length I/O**: No need to pre-align audio-text pairs; CTC marginalizes over all possible alignments
+> 2. **Bidirectional RNNs + Batch Normalization**: Simple but effective combination; batch norm in RNNs was relatively novel in 2015
+> 3. **Spectrograms + RNNs > Traditional Acoustic Features**: Raw frequency-domain representations + deep learning outperform hand-engineered MFCC features
 
 ---
 
@@ -397,7 +398,7 @@ Index 3502:           Other symbols
 ### CTC Loss Function
 
 #### CTC Loss Formulation
-```
+```math
 L_CTC = -log P(y | x)
 
 where P(y | x) = Σ_{π ∈ Π(y)} P(π | x)
@@ -1063,111 +1064,122 @@ def evaluate_with_lm(model, lm, test_loader, beam_width=100):
 #### Architecture Ablations
 
 **Effect of RNN depth**:
-```
-1 BiGRU layer:    WER = 8.5%
-3 BiGRU layers:   WER = 5.9%
-5 BiGRU layers:   WER = 5.3%  ← Used in paper
-7 BiGRU layers:   WER = 5.2%  (minimal improvement)
-```
 
-**Conclusion**: Diminishing returns beyond 5 layers; 5 is sweet spot
+| Configuration | WER (%) | Notes |
+|---|---|---|
+| 1 BiGRU layer | 8.5 | |
+| 3 BiGRU layers | 5.9 | |
+| **5 BiGRU layers** | **5.3** | **Used in paper** |
+| 7 BiGRU layers | 5.2 | Minimal improvement |
+
+> **Conclusion**: Diminishing returns beyond 5 layers; 5 is the sweet spot.
 
 **Effect of RNN size**:
-```
-256 units:        WER = 6.1%
-512 units:        WER = 5.3%  ← Used in paper
-1024 units:       WER = 5.2%  (minimal improvement)
-```
 
-**Conclusion**: 512 is sufficient; larger models aren't worth training time
+| Units | WER (%) | Notes |
+|---|---|---|
+| 256 | 6.1 | |
+| **512** | **5.3** | **Used in paper** |
+| 1024 | 5.2 | Minimal improvement |
+
+> **Conclusion**: 512 is sufficient; larger models aren't worth the training time.
 
 **Convolutional layers**:
-```
-0 Conv layers (direct RNN):      WER = 7.2%
-1 Conv layer:                    WER = 6.0%
-2 Conv layers:                   WER = 5.3%  ← Used in paper
-3 Conv layers:                   WER = 5.4%  (slight degradation)
-```
 
-**Conclusion**: 2 conv layers optimal; deeper conv reduces frequency resolution
+| Configuration | WER (%) | Notes |
+|---|---|---|
+| 0 Conv layers (direct RNN) | 7.2 | |
+| 1 Conv layer | 6.0 | |
+| **2 Conv layers** | **5.3** | **Used in paper** |
+| 3 Conv layers | 5.4 | Slight degradation |
+
+> **Conclusion**: 2 conv layers optimal; deeper conv reduces frequency resolution.
 
 **Bidirectional vs. Unidirectional**:
-```
-Unidirectional LSTM:   WER = 7.1%
-Unidirectional GRU:    WER = 7.0%
-Bidirectional LSTM:    WER = 5.8%
-Bidirectional GRU:     WER = 5.3%  ← Best
-```
 
-**Conclusion**: Bidirectional essential; GRU slightly better than LSTM
+| Configuration | WER (%) | Notes |
+|---|---|---|
+| Unidirectional LSTM | 7.1 | |
+| Unidirectional GRU | 7.0 | |
+| Bidirectional LSTM | 5.8 | |
+| **Bidirectional GRU** | **5.3** | **Best** |
+
+> **Conclusion**: Bidirectional essential; GRU slightly better than LSTM.
 
 #### Training Ablations
 
 **Effect of Batch Normalization in RNNs**:
-```
-No BatchNorm:              WER = 6.8%  (training unstable)
-BatchNorm on RNN input:    WER = 5.3%  ← Used in paper
-BatchNorm on RNN hidden:   WER = 6.5%  (breaks gradient flow)
-LayerNorm on RNN input:    WER = 5.4%  (slight improvement)
-```
 
-**Conclusion**: BatchNorm on input = critical for stability
+| Configuration | WER (%) | Notes |
+|---|---|---|
+| No BatchNorm | 6.8 | Training unstable |
+| **BatchNorm on RNN input** | **5.3** | **Used in paper** |
+| BatchNorm on RNN hidden | 6.5 | Breaks gradient flow |
+| LayerNorm on RNN input | 5.4 | Slight improvement |
+
+> **Conclusion**: BatchNorm on input = critical for stability.
 
 **Effect of Gradient Clipping**:
-```
-No clipping:              Training diverges (NaN gradients)
-Clip at 100:              WER = 6.2% (still unstable)
-Clip at 400:              WER = 5.3%  ← Used in paper
-Clip at 1000:             WER = 5.3%  (no difference)
-```
 
-**Conclusion**: Gradient clipping mandatory for RNNs; 400 is safe
+| Configuration | WER (%) | Notes |
+|---|---|---|
+| No clipping | -- | Training diverges (NaN gradients) |
+| Clip at 100 | 6.2 | Still unstable |
+| **Clip at 400** | **5.3** | **Used in paper** |
+| Clip at 1000 | 5.3 | No difference |
+
+> **Conclusion**: Gradient clipping mandatory for RNNs; 400 is safe.
 
 **Effect of Learning Rate**:
-```
-lr = 1e-3:     Diverges
-lr = 1e-4:     Best performance (used)
-lr = 1e-5:     Convergence too slow
-lr = 1e-6:     No improvement from random baseline
-```
+
+| Learning Rate | Result |
+|---|---|
+| 1e-3 | Diverges |
+| **1e-4** | **Best performance (used)** |
+| 1e-5 | Convergence too slow |
+| 1e-6 | No improvement from random baseline |
 
 #### Data Augmentation Ablations
 
 **Effect of augmentation components**:
-```
-No augmentation:              WER = 5.9%
-+ Noise injection:            WER = 5.7%
-+ Speed perturbation:         WER = 5.5%
-+ Pitch shifting:             WER = 5.4%
-All augmentations combined:   WER = 5.3%  ← Paper
-```
 
-**Relative improvement**: 10% WER reduction from augmentation
+| Configuration | WER (%) | Notes |
+|---|---|---|
+| No augmentation | 5.9 | |
+| + Noise injection | 5.7 | |
+| + Speed perturbation | 5.5 | |
+| + Pitch shifting | 5.4 | |
+| **All augmentations combined** | **5.3** | **Paper** |
+
+> **Relative improvement**: 10% WER reduction from augmentation.
 
 **Effect of augmentation intensity**:
-```
-SNR range [20, 40] dB:   WER = 5.6%  (mild)
-SNR range [10, 30] dB:   WER = 5.3%  ← Used
-SNR range [5, 20] dB:    WER = 5.4%  (same)
-```
+
+| SNR Range | WER (%) | Notes |
+|---|---|---|
+| [20, 40] dB | 5.6 | Mild |
+| **[10, 30] dB** | **5.3** | **Used** |
+| [5, 20] dB | 5.4 | Same |
 
 #### Language Model Ablations
 
 **Effect of LM weight**:
-```
-lm_weight = 0.0:  WER = 6.2%  (no LM)
-lm_weight = 0.4:  WER = 5.7%
-lm_weight = 0.8:  WER = 5.3%  ← Optimal
-lm_weight = 1.2:  WER = 5.5%  (over-smoothing)
-```
+
+| LM Weight | WER (%) | Notes |
+|---|---|---|
+| 0.0 | 6.2 | No LM |
+| 0.4 | 5.7 | |
+| **0.8** | **5.3** | **Optimal** |
+| 1.2 | 5.5 | Over-smoothing |
 
 **Effect of n-gram order**:
-```
-2-gram LM:  WER = 5.8%
-3-gram LM:  WER = 5.4%
-4-gram LM:  WER = 5.3%  ← Used
-5-gram LM:  WER = 5.3%  (no improvement)
-```
+
+| N-gram Order | WER (%) | Notes |
+|---|---|---|
+| 2-gram LM | 5.8 | |
+| 3-gram LM | 5.4 | |
+| **4-gram LM** | **5.3** | **Used** |
+| 5-gram LM | 5.3 | No improvement |
 
 ### Cross-Linguistic Transfer
 
@@ -1457,8 +1469,9 @@ for epoch in range(20):
 5. **HPC techniques** (AllReduce, distributed training) enabling 7× speedup
 
 With 21,340 hours of training data and 8 GPUs, the model achieves:
-- **English**: 5.3% WER (beats 5.83% human baseline)
-- **Mandarin**: 3.7% CER (beats 4.6% human baseline)
+
+> - **English**: 5.3% WER (beats 5.83% human baseline)
+> - **Mandarin**: 3.7% CER (beats 4.6% human baseline)
 
 The architecture is elegantly simple (~110M parameters) yet highly effective, making it a landmark paper in speech recognition history.
 

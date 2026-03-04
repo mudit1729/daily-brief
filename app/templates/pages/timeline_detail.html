@@ -103,4 +103,25 @@
   <p class="sb-empty__text">No events yet for this timeline.</p>
 </div>
 {% endif %}
+
+<script>
+(function() {
+  var entityColors = {
+    {% for entity, color in entity_colors.items() %}
+    {{ entity | tojson }}: {{ color | tojson }},
+    {% endfor %}
+  };
+  document.querySelectorAll('.sb-timeline__event-summary').forEach(function(el) {
+    var html = el.textContent;
+    Object.keys(entityColors).forEach(function(entity) {
+      var escaped = entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      var regex = new RegExp('\\b(' + escaped + ')\\b', 'gi');
+      html = html.replace(regex,
+        '<mark class="sb-entity-highlight" style="--highlight-color: ' + entityColors[entity] + '">$1</mark>'
+      );
+    });
+    el.innerHTML = html;
+  });
+})();
+</script>
 {% endblock %}

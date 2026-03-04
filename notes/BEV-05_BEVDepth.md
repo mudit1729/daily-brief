@@ -21,11 +21,11 @@
 - Plug-and-play: can be added to any LSS-style pipeline (BEVDet, BEVFusion, etc.)
 - Demonstrates that explicit depth supervision is the single most impactful improvement for LSS-style BEV detection
 
-**If you only remember 3 things:**
-
-1. Project LiDAR to camera images → binary cross-entropy depth supervision → massive accuracy gain
-2. Camera-aware depth: encode intrinsics/extrinsics into depth prediction
-3. Drop-in improvement for any LSS-based architecture
+> **If you only remember 3 things:**
+>
+> 1. Project LiDAR to camera images → binary cross-entropy depth supervision → massive accuracy gain
+> 2. Camera-aware depth: encode intrinsics/extrinsics into depth prediction
+> 3. Drop-in improvement for any LSS-based architecture
 
 ---
 
@@ -206,7 +206,7 @@ Not specified. Plausible defaults (not from paper): follow BEVDet inputs and add
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -246,6 +246,8 @@ Same evaluation protocol as BEVDet.
 ## 10) Results Summary + Ablations
 
 - Not specified in provided inputs. Plausible defaults (not from paper): summarize main benchmark numbers directly from cited tables.
+
+---
 
 ## 11) Practical Insights
 
@@ -294,9 +296,6 @@ Same evaluation protocol as BEVDet.
 **Script 1:** Visualize projected LiDAR on camera images → should overlay on surfaces
 **Script 2:** Plot depth prediction distribution vs GT → should be sharp and aligned
 **Script 3:** Overfit 2 scenes → depth loss near 0, detection loss also improving
-
----
----
 
 ---
 

@@ -1439,6 +1439,14 @@ body {
   letter-spacing: 0.04em;
 }
 
+.sb-entity-highlight {
+  background: color-mix(in srgb, var(--highlight-color, #a3a3a3) 15%, transparent);
+  color: var(--highlight-color, inherit);
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
 .sb-event-type {
   font-size: 10px;
   font-weight: var(--sb-weight-medium);

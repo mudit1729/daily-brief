@@ -1,7 +1,10 @@
 # The Unreasonable Effectiveness of Recurrent Neural Networks
+
 ## Paper Summary - Andrej Karpathy (May 21, 2015)
 
-**Blog Post:** https://karpathy.github.io/2015/05/21/rnn-effectiveness/
+| | |
+|---|---|
+| **Blog Post** | https://karpathy.github.io/2015/05/21/rnn-effectiveness/ |
 
 ---
 
@@ -20,9 +23,10 @@
 3. **Sequence-to-sequence learning** enables diverse applications from text generation to mathematical notation
 
 ### If You Only Remember 3 Things
-1. RNNs can be trained at the character level to generate plausible text by predicting the next character conditioned on previous characters
-2. LSTM networks address the vanishing/exploding gradient problem in vanilla RNNs, enabling longer-term dependencies
-3. The same architecture works across wildly different domains (Shakespeare, code, math, Linux kernel), suggesting RNNs capture fundamental patterns in sequential data
+
+> 1. RNNs can be trained at the character level to generate plausible text by predicting the next character conditioned on previous characters
+> 2. LSTM networks address the vanishing/exploding gradient problem in vanilla RNNs, enabling longer-term dependencies
+> 3. The same architecture works across wildly different domains (Shakespeare, code, math, Linux kernel), suggesting RNNs capture fundamental patterns in sequential data
 
 ---
 
@@ -70,7 +74,7 @@ At inference time:
 ### Vanilla Recurrent Neural Network (RNN)
 
 **Core Equations:**
-```
+```math
 h_t = tanh(W_hh * h_(t-1) + W_xh * x_t + b_h)
 y_t = W_hy * h_t + b_y
 
@@ -94,7 +98,7 @@ where:
 **Core Idea:** Use gated mechanisms to control information flow and preserve gradients over long sequences.
 
 **LSTM Cell Equations:**
-```
+```math
 i_t = σ(W_ii * x_t + W_hi * h_(t-1) + b_i)      [input gate]
 f_t = σ(W_if * x_t + W_hf * h_(t-1) + b_f)      [forget gate]
 g_t = tanh(W_ig * x_t + W_hg * h_(t-1) + b_g)   [cell candidate]
@@ -299,7 +303,7 @@ def sample(h, seed_character, max_length, temperature=1.0):
 ### Loss Function
 
 **Character-level Cross-Entropy Loss:**
-```
+```math
 L = -1/(B·T) Σ_{b,t} log P(cₜ₊₁ | c₁...cₜ)
 
 where P(cₜ₊₁ | c₁...cₜ) = softmax(y_t)[ground_truth_idx]
@@ -739,21 +743,21 @@ GAB c2 d | efe d2 c | BAG FED | C2 ||
 ### Quantitative Results
 
 **Perplexity Metrics (Lower is Better):**
-```
-Dataset          | Character-level RNN | LSTM | Improvement
-Shakespeare      | ~1.4 perplexity     | ~1.2 | 14% better
-Wikipedia        | ~1.8 perplexity     | ~1.5 | 17% better
-LaTeX            | ~1.2 perplexity     | ~1.0 | 17% better
-Linux Source     | ~1.1 perplexity     | ~0.9 | 18% better
-```
+
+| Dataset | Character-level RNN | LSTM | Improvement |
+|---|---|---|---|
+| Shakespeare | ~1.4 perplexity | ~1.2 | 14% better |
+| Wikipedia | ~1.8 perplexity | ~1.5 | 17% better |
+| LaTeX | ~1.2 perplexity | ~1.0 | 17% better |
+| Linux Source | ~1.1 perplexity | ~0.9 | 18% better |
 
 **Model Capacity:**
-```
-Architecture         | Parameters    | Training Time (1 GPU)
-Vanilla RNN (D=256)  | ~280K        | 1-2 hours (small dataset)
-LSTM (D=256)         | ~1.1M        | 4-6 hours
-Deeper LSTM (2×256)  | ~2.3M        | 12-24 hours
-```
+
+| Architecture | Parameters | Training Time (1 GPU) |
+|---|---|---|
+| Vanilla RNN (D=256) | ~280K | 1-2 hours (small dataset) |
+| LSTM (D=256) | ~1.1M | 4-6 hours |
+| Deeper LSTM (2x256) | ~2.3M | 12-24 hours |
 
 ### Qualitative Observations
 

@@ -21,11 +21,11 @@
 - No NMS required (set-based prediction with Hungarian matching) [DETR3D | Sec 3.3]
 - Multi-camera fusion is implicit: each query's reference point projects to whichever cameras it's visible in [DETR3D | Sec 3.2]
 
-**If you only remember 3 things:**
-
-1. Learnable 3D reference points projected to 2D → sample image features → no explicit BEV grid
-2. DETR-style set prediction with Hungarian matching for 3D detection
-3. Inverse of LSS philosophy: instead of lifting all pixels to 3D, query specific 3D locations and pull 2D features
+> **If you only remember 3 things:**
+>
+> 1. Learnable 3D reference points projected to 2D → sample image features → no explicit BEV grid
+> 2. DETR-style set prediction with Hungarian matching for 3D detection
+> 3. Inverse of LSS philosophy: instead of lifting all pixels to 3D, query specific 3D locations and pull 2D features
 
 ---
 
@@ -274,7 +274,7 @@ def forward(images, intrinsics, extrinsics):
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -417,9 +417,6 @@ def forward(images, intrinsics, extrinsics):
 **Script 1:** Project GT box centers onto images; visualize as dots → should be on object centers
 **Script 2:** Overfit 4 scenes; should reach near-zero L1 loss within 2000 steps
 **Script 3:** Eval on training set; mAP should match training metric (no eval-time projection bugs)
-
----
----
 
 ---
 

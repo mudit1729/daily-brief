@@ -1,7 +1,10 @@
 # Order Matters: Sequence to Sequence for Sets - Paper Summary
-**Authors:** Oriol Vinyals, Samy Bengio, Manjunath Kudlur
-**Publication:** ICLR 2016 (arXiv:1511.06391)
-**Date:** November 19, 2015
+
+| | |
+|---|---|
+| **Authors** | Oriol Vinyals, Samy Bengio, Manjunath Kudlur |
+| **Publication** | ICLR 2016 (arXiv:1511.06391) |
+| **Date** | November 19, 2015 |
 
 ---
 
@@ -27,9 +30,10 @@
 - **Empirical Finding:** Sorting input and output by magnitude dramatically improves convergence and generalization
 
 ### Three Things to Remember
-1. **Sets ≠ Sequences:** Sequence models are biased by position; explicit sorting/ordering mechanisms needed for set inputs
-2. **Canonical Ordering is Learned:** Model discovers that sorting enables faster learning; not hand-crafted
-3. **Read-Process-Write is Modular:** Separating input processing (read), computation (process), and output generation (write) improves interpretability and performance
+
+> 1. **Sets ≠ Sequences:** Sequence models are biased by position; explicit sorting/ordering mechanisms needed for set inputs
+> 2. **Canonical Ordering is Learned:** Model discovers that sorting enables faster learning; not hand-crafted
+> 3. **Read-Process-Write is Modular:** Separating input processing (read), computation (process), and output generation (write) improves interpretability and performance
 
 ---
 
@@ -858,7 +862,7 @@ def init_weights(model):
 
 ---
 
-## 9. Dataset + Evaluation Protocol
+## 9. Dataset and Evaluation Protocol
 
 ### Datasets Used in Paper
 
@@ -1119,7 +1123,7 @@ def create_test_sets():
 
 ---
 
-## 10. Results Summary + Ablations
+## 10. Results Summary and Ablations
 
 ### Main Results
 

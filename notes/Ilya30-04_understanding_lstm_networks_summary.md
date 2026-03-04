@@ -1,11 +1,14 @@
 # Understanding LSTM Networks - Comprehensive Summary
-**Original Paper:** Christopher Olah (2015)
-**Source:** https://colah.github.io/posts/2015-08-Understanding-LSTMs/
-**Summary Created:** 2026-03-03
+
+| | |
+|---|---|
+| **Original Paper** | Christopher Olah (2015) |
+| **Source** | https://colah.github.io/posts/2015-08-Understanding-LSTMs/ |
+| **Summary Created** | 2026-03-03 |
 
 ---
 
-## 1. ONE-PAGE OVERVIEW
+## 1. One-Page Overview
 
 ### Metadata
 - **Author:** Christopher Olah
@@ -19,18 +22,20 @@
 Recurrent neural networks (RNNs) struggle with long-range dependencies in sequential data due to the vanishing/exploding gradient problem. LSTMs solve this with gated mechanisms that allow gradients to flow unchanged through the network.
 
 ### Three Things to Remember
-1. **The Vanishing Gradient Problem:** Standard RNNs multiply gradients across time steps, causing them to exponentially shrink (or grow), preventing the network from learning long-range dependencies.
 
-2. **Cell State as Memory:** LSTMs maintain a cell state that runs through the entire sequence, modified only through regulated addition/subtraction gates. This allows information to flow unchanged over long distances.
-
-3. **Three Gates Control Everything:** The forget gate (what to discard), input gate (what to add), and output gate (what to expose) are sigmoid-gated mechanisms that learn to control information flow without requiring derivative computation.
+> 1. **The Vanishing Gradient Problem:** Standard RNNs multiply gradients across time steps, causing them to exponentially shrink (or grow), preventing the network from learning long-range dependencies.
+>
+> 2. **Cell State as Memory:** LSTMs maintain a cell state that runs through the entire sequence, modified only through regulated addition/subtraction gates. This allows information to flow unchanged over long distances.
+>
+> 3. **Three Gates Control Everything:** The forget gate (what to discard), input gate (what to add), and output gate (what to expose) are sigmoid-gated mechanisms that learn to control information flow without requiring derivative computation.
 
 ### Key Innovation
-Replace RNN hidden state updates with a **separate cell state pipeline** that is additive rather than multiplicative, allowing gradient flow and making long-term learning possible.
+
+> Replace RNN hidden state updates with a **separate cell state pipeline** that is additive rather than multiplicative, allowing gradient flow and making long-term learning possible.
 
 ---
 
-## 2. PROBLEM SETUP
+## 2. Problem Setup
 
 ### The Sequence Modeling Challenge
 
@@ -80,7 +85,7 @@ Both prevent learning of long-range dependencies.
 
 ---
 
-## 3. VANILLA RNN REVIEW
+## 3. Vanilla RNN Review
 
 ### RNN Architecture: The Unrolled View
 
@@ -149,7 +154,7 @@ Tasks requiring memory of 10+ steps become nearly impossible for vanilla RNNs. N
 
 ---
 
-## 4. LSTM ARCHITECTURE DEEP DIVE
+## 4. LSTM Architecture Deep Dive
 
 ### The Core Innovation: Cell State
 
@@ -339,7 +344,7 @@ ASCII Diagram:
 
 ---
 
-## 5. GATE-BY-GATE PSEUDOCODE (Shape-Annotated)
+## 5. Gate-by-Gate Pseudocode (Shape-Annotated)
 
 ### Input Shapes
 ```
@@ -536,7 +541,7 @@ def lstm_step(h_prev, C_prev, x_t, params):
 
 ---
 
-## 6. STEP-BY-STEP LSTM WALKTHROUGH
+## 6. Step-by-Step LSTM Walkthrough
 
 ### Example: Classifying Sentiment in "The movie was great"
 
@@ -718,7 +723,7 @@ The **cell state accumulates information** across all timesteps, with gates cont
 
 ---
 
-## 7. VARIANTS: GRU AND OTHER LSTM MODIFICATIONS
+## 7. Variants: GRU and Other LSTM Modifications
 
 ### Gated Recurrent Unit (GRU)
 
@@ -873,7 +878,7 @@ Attention-based:
 
 ---
 
-## 8. MATHEMATICAL FORMULATION (DETAILED)
+## 8. Mathematical Formulation (Detailed)
 
 ### Full LSTM Equations
 
@@ -1094,7 +1099,7 @@ This flexibility allows learning:
 
 ---
 
-## 9. HISTORICAL CONTEXT AND RELATED WORK
+## 9. Historical Context and Related Work
 
 ### Timeline of Gated RNN Development
 
@@ -1200,7 +1205,7 @@ Key result: Constant error carousel (CEC) unit
 
 ---
 
-## 10. KEY VISUALIZATIONS AND INTUITIONS
+## 10. Key Visualizations and Intuitions
 
 ### Mental Model 1: LSTM as Information Pipeline
 
@@ -1381,7 +1386,7 @@ Example: Parsing "The cat ... the dog"
 
 ---
 
-## 11. PRACTICAL INSIGHTS: ENGINEERING TAKEAWAYS & GOTCHAS
+## 11. Practical Insights: Engineering Takeaways and Gotchas
 
 ### 10 Engineering Takeaways
 
@@ -1642,7 +1647,7 @@ for stream_batch in incoming_stream():
 
 ---
 
-## 12. MINIMAL REIMPLEMENTATION CHECKLIST
+## 12. Minimal Reimplementation Checklist
 
 ### LSTM Cell from Scratch (PyTorch)
 
