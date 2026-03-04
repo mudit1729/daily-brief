@@ -143,9 +143,9 @@
   --sb-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.08);
 
   /* Code */
-  --sb-code-bg: #f6f8fa;
+  --sb-code-bg: #f0f0f3;
   --sb-code-text: #24292e;
-  --sb-code-inline: #d63384;
+  --sb-code-inline: #c7254e;
 
   /* Highlights */
   --sb-highlight-bg: rgba(251, 191, 36, 0.35);
