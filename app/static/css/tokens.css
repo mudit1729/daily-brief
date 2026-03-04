@@ -5,7 +5,7 @@
 
 :root {
   /* Typography */
-  --sb-font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --sb-font-ui: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
   --sb-font-excerpt: 'Georgia', 'Times New Roman', serif;
   --sb-font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 
