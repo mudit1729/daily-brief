@@ -110,6 +110,79 @@ flask shell
 >>> seed_sources_from_file('seed_sources.json')
 ```
 
+## Source Catalog (From `seed_sources.json`)
+
+The app currently seeds **44** curated sources across news, markets, science, health, AI, and feel-good coverage.
+
+### Source Counts
+
+| Section | Count |
+|--------|------:|
+| `general_news` | 14 |
+| `market` | 8 |
+| `ai_news` | 7 |
+| `science` | 7 |
+| `health` | 5 |
+| `feel_good` | 3 |
+
+### Configured Sources
+
+#### `general_news`
+- **Al Jazeera** (`global`, trust `72`) — https://www.aljazeera.com/xml/rss/all.xml
+- **BBC News - World** (`global`, trust `85`) — https://feeds.bbci.co.uk/news/world/rss.xml
+- **Foreign Policy** (`global`, trust `82`) — https://foreignpolicy.com/feed/
+- **Reuters - World** (`global`, trust `90`) — https://feeds.reuters.com/Reuters/worldNews
+- **The Diplomat** (`global`, trust `78`) — https://thediplomat.com/feed/
+- **The Guardian - World** (`global`, trust `78`) — https://www.theguardian.com/world/rss
+- **NDTV - India** (`india`, trust `72`) — https://feeds.feedburner.com/ndtvnews-india-news
+- **The Hindu - National** (`india`, trust `78`) — https://www.thehindu.com/news/national/feeder/default.rss
+- **Times of India - Top Stories** (`india`, trust `68`) — https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+- **AP News - Top Stories** (`us`, trust `92`) — https://rsshub.app/apnews/topics/apf-topnews
+- **Defense One** (`us`, trust `76`) — https://www.defenseone.com/rss/
+- **Fox News - Politics** (`us`, trust `55`) — https://moxie.foxnews.com/google-publisher/politics.xml
+- **NPR News** (`us`, trust `82`) — https://feeds.npr.org/1001/rss.xml
+- **Wall Street Journal** (`us`, trust `82`) — https://feeds.a.dj.com/rss/RSSWorldNews.xml
+
+#### `market`
+- **Bloomberg Markets** (`global`, trust `85`) — https://feeds.bloomberg.com/markets/news.rss
+- **Financial Times - World** (`global`, trust `88`) — https://www.ft.com/rss/home
+- **Reuters - Business** (`global`, trust `88`) — https://feeds.reuters.com/reuters/businessNews
+- **Economic Times - Markets** (`india`, trust `72`) — https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms
+- **CNBC - Top News** (`us`, trust `75`) — https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114
+- **Investopedia - News** (`us`, trust `70`) — https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline
+- **MarketWatch - Top Stories** (`us`, trust `75`) — https://feeds.marketwatch.com/marketwatch/topstories/
+- **Yahoo Finance - Top Stories** (`us`, trust `72`) — https://finance.yahoo.com/news/rssindex
+
+#### `ai_news`
+- **Ars Technica - AI** (`global`, trust `78`) — https://feeds.arstechnica.com/arstechnica/features
+- **MIT Technology Review - AI** (`global`, trust `85`) — https://www.technologyreview.com/feed/
+- **Simon Willison's Weblog** (`global`, trust `80`) — https://simonwillison.net/atom/everything/
+- **TechCrunch - AI** (`global`, trust `70`) — https://techcrunch.com/category/artificial-intelligence/feed/
+- **The Verge - AI** (`global`, trust `72`) — https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+- **VentureBeat - AI** (`global`, trust `70`) — https://venturebeat.com/category/ai/feed/
+- **Wired - AI** (`global`, trust `74`) — https://www.wired.com/feed/tag/ai/latest/rss
+
+#### `science`
+- **Nature - Latest Research** (`global`, trust `95`) — https://www.nature.com/nature.rss
+- **New Scientist** (`global`, trust `80`) — https://www.newscientist.com/feed/home/
+- **Phys.org - Top News** (`global`, trust `75`) — https://phys.org/rss-feed/
+- **Quanta Magazine** (`global`, trust `90`) — https://api.quantamagazine.org/feed/
+- **Science Magazine** (`global`, trust `93`) — https://www.science.org/rss/news_current.xml
+- **ScienceDaily** (`global`, trust `76`) — https://www.sciencedaily.com/rss/all.xml
+- **Scientific American** (`global`, trust `85`) — https://rss.sciam.com/ScientificAmerican-Global
+
+#### `health`
+- **MedPage Today** (`global`, trust `80`) — https://www.medpagetoday.com/rss/headlines.xml
+- **Medical News Today** (`global`, trust `72`) — https://rss.medicalnewstoday.com/featurednews.xml
+- **STAT News** (`global`, trust `82`) — https://www.statnews.com/feed/
+- **WHO News** (`global`, trust `88`) — https://www.who.int/rss-feeds/news-english.xml
+- **NIH News** (`us`, trust `92`) — https://www.nih.gov/news-events/news-releases/feed
+
+#### `feel_good`
+- **Good News Network** (`global`, trust `65`) — https://www.goodnewsnetwork.org/feed/
+- **Positive News** (`global`, trust `65`) — https://www.positive.news/feed/
+- **Reasons to be Cheerful** (`global`, trust `65`) — https://reasonstobecheerful.world/feed/
+
 ### Run
 
 ```bash

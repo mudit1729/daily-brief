@@ -17,6 +17,7 @@ function loadNote(filename, btn) {
   const layout = document.getElementById('notesLayout');
   content.innerHTML = '<div class="sb-notes-empty"><p>Loading...</p></div>';
   toolbar.style.display = '';
+  _updateNoteTitle();
 
   // Mobile: switch to content view and scroll to it
   if (_isMobile()) {
@@ -76,6 +77,119 @@ document.addEventListener('keydown', function (e) {
     }
   }
 });
+
+
+/* ── Note Title & Rename ─────────────────────────── */
+
+function _getDisplayName(filename) {
+  var name = filename.replace(/\.md$/i, '').replace(/-/g, ' ').replace(/_/g, ' ');
+  // Strip known prefixes
+  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper '];
+  for (var i = 0; i < prefixes.length; i++) {
+    if (name.startsWith(prefixes[i])) {
+      name = name.substring(prefixes[i].length);
+      // Strip leading number prefix like "01 "
+      if (/^\d{2}\s/.test(name)) name = name.substring(3);
+      // Strip trailing " summary"
+      if (name.endsWith(' summary')) name = name.slice(0, -8);
+      break;
+    }
+  }
+  // Title-case
+  return name.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+}
+
+function _updateNoteTitle() {
+  var titleEl = document.getElementById('noteTitle');
+  if (!titleEl) return;
+  if (_currentNote) {
+    titleEl.textContent = _getDisplayName(_currentNote);
+    titleEl.style.display = '';
+  } else {
+    titleEl.textContent = '';
+    titleEl.style.display = 'none';
+  }
+}
+
+function startRenameNote() {
+  if (!_currentNote) return;
+  var titleEl = document.getElementById('noteTitle');
+  if (!titleEl || titleEl.querySelector('input')) return; // Already editing
+
+  var currentName = titleEl.textContent.trim();
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'sb-rename-input';
+  input.value = currentName;
+
+  titleEl.textContent = '';
+  titleEl.appendChild(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    var newTitle = (input.value || '').trim();
+    input.removeEventListener('blur', commit);
+    input.removeEventListener('keydown', onKey);
+
+    if (!newTitle || newTitle === currentName) {
+      // Cancelled — restore original
+      titleEl.textContent = currentName;
+      return;
+    }
+
+    titleEl.textContent = 'Renaming...';
+    fetch('/api/prep/notes/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ old_filename: _currentNote, new_title: newTitle }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          alert(res.data.error || 'Rename failed');
+          titleEl.textContent = currentName;
+          return;
+        }
+        if (res.data.unchanged) {
+          titleEl.textContent = currentName;
+          return;
+        }
+        var newFilename = res.data.filename;
+        // Update sidebar button
+        var oldBtn = document.querySelector('.sb-notes-list__item[data-note="' + _currentNote + '"]');
+        if (oldBtn) {
+          oldBtn.setAttribute('data-note', newFilename);
+          oldBtn.setAttribute('onclick', "loadNote('" + newFilename + "', this)");
+          // Update display text
+          var svgEl = oldBtn.querySelector('svg');
+          oldBtn.textContent = '';
+          if (svgEl) oldBtn.appendChild(svgEl);
+          oldBtn.appendChild(document.createTextNode(' ' + _getDisplayName(newFilename)));
+        }
+        _currentNote = newFilename;
+        _updateNoteTitle();
+      })
+      .catch(function (err) {
+        alert('Rename failed: ' + err.message);
+        titleEl.textContent = currentName;
+      });
+  }
+
+  function onKey(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      input.value = currentName;
+      input.blur();
+    }
+  }
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', onKey);
+}
 
 
 /* ── Text Highlighting ─────────────────────────── */
