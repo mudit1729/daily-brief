@@ -229,3 +229,331 @@ function clearAllHighlights() {
   });
   localStorage.removeItem(_getHighlightKey());
 }
+
+
+/* ── AI Chat Panel ───────────────────────────────── */
+
+let _chatHistory = [];
+let _selectedSection = null;
+let _chatStreaming = false;
+let _chatAbortController = null;
+
+function toggleChat() {
+  const layout = document.getElementById('notesLayout');
+  const panel = document.getElementById('chatPanel');
+  if (!layout || !panel) return;
+
+  // Only allow chat in fullscreen mode
+  if (!layout.classList.contains('sb-notes-layout--fullscreen')) return;
+
+  const isOpen = panel.classList.contains('sb-chat-panel--open');
+  panel.classList.toggle('sb-chat-panel--open', !isOpen);
+  layout.classList.toggle('sb-chat-open', !isOpen);
+
+  const btn = document.getElementById('chatToggleBtn');
+  if (btn) btn.classList.toggle('active', !isOpen);
+
+  if (!isOpen) {
+    // Focus input when opening
+    setTimeout(function () {
+      var input = document.getElementById('chatInput');
+      if (input) input.focus();
+    }, 350);
+  }
+}
+
+// Close chat when exiting fullscreen
+(function () {
+  var origToggle = toggleNotesFullscreen;
+  toggleNotesFullscreen = function () {
+    origToggle();
+    var layout = document.getElementById('notesLayout');
+    if (layout && !layout.classList.contains('sb-notes-layout--fullscreen')) {
+      // Exiting fullscreen — close chat
+      var panel = document.getElementById('chatPanel');
+      if (panel) panel.classList.remove('sb-chat-panel--open');
+      layout.classList.remove('sb-chat-open');
+      var btn = document.getElementById('chatToggleBtn');
+      if (btn) btn.classList.remove('active');
+    }
+  };
+})();
+
+function sendChatMessage() {
+  if (_chatStreaming) return;
+  var input = document.getElementById('chatInput');
+  var message = (input.value || '').trim();
+  if (!message || !_currentNote) return;
+
+  input.value = '';
+  autoResizeChatInput();
+
+  // Add user message bubble
+  _appendMessage('user', message);
+  _chatHistory.push({ role: 'user', content: message });
+
+  // Create assistant bubble (streaming)
+  var assistantEl = _appendMessage('assistant', '');
+  var textEl = assistantEl.querySelector('.sb-chat-msg__text');
+
+  // Show typing indicator
+  var dots = document.createElement('div');
+  dots.className = 'sb-chat-typing';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  textEl.appendChild(dots);
+  _scrollChatToBottom();
+
+  _chatStreaming = true;
+  _setChatInputState(false);
+  _chatAbortController = new AbortController();
+
+  var body = {
+    filename: _currentNote,
+    message: message,
+    history: _chatHistory.slice(0, -1),  // Don't include current message (already sent separately)
+    section: _selectedSection,
+  };
+
+  fetch('/api/prep/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: _chatAbortController.signal,
+  })
+    .then(function (response) {
+      if (!response.ok) {
+        if (response.status === 503) throw new Error('API key not configured. Set ANTHROPIC_API_KEY in your environment.');
+        throw new Error('Chat request failed (' + response.status + ')');
+      }
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var fullText = '';
+      var buffer = '';
+
+      // Remove typing dots
+      var dotsEl = textEl.querySelector('.sb-chat-typing');
+      if (dotsEl) dotsEl.remove();
+
+      function read() {
+        return reader.read().then(function (result) {
+          if (result.done) {
+            _finishStreaming(fullText);
+            return;
+          }
+          buffer += decoder.decode(result.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line.startsWith('data: ')) continue;
+            try {
+              var data = JSON.parse(line.slice(6));
+              if (data.error) {
+                textEl.textContent = 'Error: ' + data.error;
+                _finishStreaming('');
+                return;
+              }
+              if (data.done) {
+                _finishStreaming(fullText, data.usage);
+                return;
+              }
+              if (data.text) {
+                fullText += data.text;
+                _renderMarkdownInChat(textEl, fullText);
+                _scrollChatToBottom();
+              }
+            } catch (e) { /* skip malformed lines */ }
+          }
+          return read();
+        });
+      }
+      return read();
+    })
+    .catch(function (err) {
+      if (err.name === 'AbortError') return;
+      var dotsEl = textEl.querySelector('.sb-chat-typing');
+      if (dotsEl) dotsEl.remove();
+      textEl.textContent = 'Error: ' + err.message;
+      _finishStreaming('');
+    });
+}
+
+function _finishStreaming(fullText, usage) {
+  _chatStreaming = false;
+  _setChatInputState(true);
+  if (fullText) {
+    _chatHistory.push({ role: 'assistant', content: fullText });
+  }
+  // Cap history at 20 messages
+  if (_chatHistory.length > 20) {
+    _chatHistory = _chatHistory.slice(-20);
+  }
+}
+
+function _appendMessage(role, text) {
+  var messages = document.getElementById('chatMessages');
+  // Remove welcome message if present
+  var welcome = messages.querySelector('.sb-chat-welcome');
+  if (welcome) welcome.remove();
+
+  var msg = document.createElement('div');
+  msg.className = 'sb-chat-msg sb-chat-msg--' + role;
+
+  var textEl = document.createElement('div');
+  textEl.className = 'sb-chat-msg__text';
+  if (text) {
+    if (role === 'assistant') {
+      _renderMarkdownInChat(textEl, text);
+    } else {
+      textEl.textContent = text;
+    }
+  }
+  msg.appendChild(textEl);
+  messages.appendChild(msg);
+  _scrollChatToBottom();
+  return msg;
+}
+
+function _renderMarkdownInChat(el, text) {
+  // Simple markdown rendering for chat: bold, italic, code, code blocks, lists
+  var html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // Code blocks
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Line breaks
+    .replace(/\n/g, '<br>');
+  el.innerHTML = html;
+}
+
+function _scrollChatToBottom() {
+  var messages = document.getElementById('chatMessages');
+  if (messages) {
+    messages.scrollTop = messages.scrollHeight;
+  }
+}
+
+function _setChatInputState(enabled) {
+  var input = document.getElementById('chatInput');
+  var btn = document.getElementById('chatSendBtn');
+  if (input) {
+    input.disabled = !enabled;
+    if (enabled) input.focus();
+  }
+  if (btn) btn.disabled = !enabled;
+}
+
+function handleChatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+function autoResizeChatInput() {
+  var input = document.getElementById('chatInput');
+  if (!input) return;
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+}
+
+/* ── Section selection for chat context ──────────── */
+
+document.addEventListener('mouseup', function (e) {
+  // Don't show "Use as context" in highlight mode or if chat isn't open
+  if (_highlightMode) return;
+  var panel = document.getElementById('chatPanel');
+  if (!panel || !panel.classList.contains('sb-chat-panel--open')) return;
+
+  var content = document.getElementById('notesContent');
+  if (!content || !content.contains(e.target)) return;
+
+  var sel = window.getSelection();
+  var btn = document.getElementById('chatUseContextBtn');
+  if (!sel || sel.isCollapsed || !sel.rangeCount || !btn) {
+    btn.style.display = 'none';
+    return;
+  }
+
+  var text = sel.toString().trim();
+  if (text.length < 20) {
+    btn.style.display = 'none';
+    return;
+  }
+
+  // Position button near the selection
+  var range = sel.getRangeAt(0);
+  var rect = range.getBoundingClientRect();
+  var mainRect = content.closest('.sb-notes-main').getBoundingClientRect();
+
+  btn.style.display = '';
+  btn.style.top = (rect.bottom - mainRect.top + 4) + 'px';
+  btn.style.left = (rect.left - mainRect.left + rect.width / 2 - 60) + 'px';
+});
+
+// Hide context button on click elsewhere
+document.addEventListener('mousedown', function (e) {
+  var btn = document.getElementById('chatUseContextBtn');
+  if (btn && e.target !== btn && !btn.contains(e.target)) {
+    btn.style.display = 'none';
+  }
+});
+
+function setChatSectionFromSelection() {
+  var sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  var text = sel.toString().trim();
+  if (!text) return;
+
+  _selectedSection = text;
+  sel.removeAllRanges();
+
+  // Update UI
+  var contextBar = document.getElementById('chatContext');
+  var contextText = document.getElementById('chatContextText');
+  var btn = document.getElementById('chatUseContextBtn');
+  if (btn) btn.style.display = 'none';
+
+  if (contextBar) contextBar.style.display = '';
+  if (contextText) {
+    var preview = text.length > 60 ? text.substring(0, 60) + '…' : text;
+    contextText.textContent = preview;
+  }
+}
+
+function clearChatSection() {
+  _selectedSection = null;
+  var contextBar = document.getElementById('chatContext');
+  if (contextBar) contextBar.style.display = 'none';
+}
+
+/* ── Reset chat on note change ───────────────────── */
+(function () {
+  var origLoadNote = loadNote;
+  loadNote = function (filename, btn) {
+    // Reset chat state when switching notes
+    _chatHistory = [];
+    _selectedSection = null;
+    var messages = document.getElementById('chatMessages');
+    if (messages) {
+      messages.innerHTML = '<div class="sb-chat-welcome"><p>Ask anything about this document</p></div>';
+    }
+    clearChatSection();
+    // Abort any in-progress stream
+    if (_chatAbortController) {
+      _chatAbortController.abort();
+      _chatAbortController = null;
+    }
+    _chatStreaming = false;
+    _setChatInputState(true);
+    return origLoadNote(filename, btn);
+  };
+})();

@@ -125,6 +125,13 @@
             </svg>
           </button>
           <div class="sb-notes-toolbar__divider"></div>
+          <button class="sb-notes-toolbar__btn sb-chat-toggle" id="chatToggleBtn" onclick="toggleChat()" title="Ask AI">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2C6.48 2 2 6.02 2 10.92c0 2.68 1.33 5.08 3.42 6.67L4 22l4.56-2.28C9.64 19.9 10.8 20 12 20c5.52 0 10-3.58 10-8.08S17.52 2 12 2z"/>
+            </svg>
+            <span>Ask AI</span>
+          </button>
+          <div class="sb-notes-toolbar__divider sb-chat-toggle"></div>
           <button class="sb-notes-toolbar__btn" id="notesExpandBtn" onclick="toggleNotesFullscreen()" title="Fullscreen">
             <svg id="expandIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
             <svg id="collapseIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
@@ -136,6 +143,39 @@
         <div class="sb-notes-empty">
           <p>Select a note from the sidebar to view it here.</p>
         </div>
+      </div>
+      <!-- Chat Panel -->
+      <div class="sb-chat-panel" id="chatPanel">
+        <div class="sb-chat-header">
+          <div class="sb-chat-header__left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.02 2 10.92c0 2.68 1.33 5.08 3.42 6.67L4 22l4.56-2.28C9.64 19.9 10.8 20 12 20c5.52 0 10-3.58 10-8.08S17.52 2 12 2z"/></svg>
+            <span class="sb-chat-header__title">Claude</span>
+          </div>
+          <button class="sb-chat-close" onclick="toggleChat()" title="Close chat">&times;</button>
+        </div>
+        <div class="sb-chat-context" id="chatContext" style="display:none;">
+          <div class="sb-chat-context__badge">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span id="chatContextText">Selected section</span>
+            <button onclick="clearChatSection()" title="Use full document">&times;</button>
+          </div>
+        </div>
+        <div class="sb-chat-messages" id="chatMessages">
+          <div class="sb-chat-welcome">
+            <p>Ask anything about this document</p>
+          </div>
+        </div>
+        <div class="sb-chat-input-area">
+          <textarea id="chatInput" placeholder="Ask a question..." rows="1" onkeydown="handleChatKeydown(event)" oninput="autoResizeChatInput()"></textarea>
+          <button class="sb-chat-send" id="chatSendBtn" onclick="sendChatMessage()" title="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Floating "Use as context" button -->
+      <div class="sb-chat-use-context" id="chatUseContextBtn" style="display:none;" onclick="setChatSectionFromSelection()">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Use as context
       </div>
     </div>
   </div>

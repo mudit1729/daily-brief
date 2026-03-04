@@ -1035,6 +1035,132 @@ def prep_image(filepath):
     return send_file(safe_path)
 
 
+@views_bp.route('/api/prep/chat', methods=['POST'])
+def prep_chat():
+    """Stream a Claude response about the currently viewed markdown note.
+
+    Uses Anthropic prompt caching so the document context is cached across
+    messages in a conversation, reducing latency and cost.
+
+    Request JSON:
+        filename: str   — markdown file being viewed
+        message: str    — user's question
+        history: list   — prior [{role, content}, ...] messages (optional)
+        section: str|null — selected text to narrow context (optional)
+    """
+    import os
+    import json as _json
+    import anthropic
+
+    data = request.get_json(silent=True) or {}
+    filename = data.get('filename')
+    user_message = (data.get('message') or '').strip()
+    history = data.get('history') or []
+    section = data.get('section')
+
+    if not filename or not user_message:
+        return jsonify({'error': 'filename and message required'}), 400
+
+    api_key = current_app.config.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        return jsonify({'error': 'ANTHROPIC_API_KEY not configured'}), 503
+
+    # ── Resolve & validate file path ──
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    safe_path = os.path.normpath(os.path.join(notes_dir, filename))
+    if not safe_path.startswith(notes_dir) or not os.path.isfile(safe_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    with open(safe_path, 'r', encoding='utf-8') as f:
+        markdown_text = f.read()
+
+    # ── Build system message with prompt caching ──
+    system_content = [
+        {
+            "type": "text",
+            "text": (
+                "You are a concise study assistant. The user is reading a document "
+                "and will ask questions about it. Answer clearly and concisely using "
+                "the document as your primary source. Use markdown formatting in your "
+                "responses. Keep answers focused and to the point."
+            ),
+        },
+        {
+            "type": "text",
+            "text": f"DOCUMENT:\n\n{markdown_text}",
+            "cache_control": {"type": "ephemeral"},
+        },
+    ]
+
+    if section:
+        system_content.append({
+            "type": "text",
+            "text": (
+                f"FOCUSED SECTION — The user has selected this specific section. "
+                f"Answer questions primarily based on this excerpt:\n\n{section}"
+            ),
+        })
+
+    # ── Build conversation messages ──
+    chat_messages = []
+    for msg in history[-10:]:  # Cap history to last 10 messages
+        if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+            chat_messages.append({
+                'role': msg['role'],
+                'content': msg['content'],
+            })
+    chat_messages.append({'role': 'user', 'content': user_message})
+
+    # ── Stream response via SSE ──
+    model = current_app.config.get('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
+    client = anthropic.Anthropic(api_key=api_key)
+
+    def generate():
+        try:
+            with client.messages.stream(
+                model=model,
+                max_tokens=2048,
+                system=system_content,
+                messages=chat_messages,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {_json.dumps({'text': text})}\n\n"
+
+            # Final event with usage info
+            resp = stream.get_final_message()
+            usage_info = {}
+            if resp and resp.usage:
+                usage_info = {
+                    'input_tokens': resp.usage.input_tokens,
+                    'output_tokens': resp.usage.output_tokens,
+                }
+                if hasattr(resp.usage, 'cache_read_input_tokens'):
+                    usage_info['cache_read_tokens'] = resp.usage.cache_read_input_tokens
+                if hasattr(resp.usage, 'cache_creation_input_tokens'):
+                    usage_info['cache_creation_tokens'] = resp.usage.cache_creation_input_tokens
+            yield f"data: {_json.dumps({'done': True, 'usage': usage_info})}\n\n"
+        except anthropic.APIError as e:
+            logger.error(f"Anthropic API error in prep chat: {e}")
+            yield f"data: {_json.dumps({'error': str(e)})}\n\n"
+        except Exception as e:
+            logger.error(f"Prep chat error: {e}")
+            yield f"data: {_json.dumps({'error': 'An error occurred'})}\n\n"
+
+    from flask import Response
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+        },
+    )
+
+
 @views_bp.route('/calendar')
 def calendar_page():
     """Shared calendar page."""
