@@ -917,6 +917,7 @@ def prep_page():
         {'label': 'BEV Seminal Papers', 'icon': 'eye', 'match': ['BEV-']},
         {'label': 'Paper Summaries', 'icon': 'paper', 'match': ['Paper-']},
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
+        {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
         # Substring-match categories after prefix categories
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems']},
         {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer']},
@@ -1066,7 +1067,7 @@ def prep_rename_note():
     old_base = old_filename.rsplit('.', 1)[0]  # Remove .md
     prefix = ''
     KNOWN_PREFIXES = [
-        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-',
+        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-', 'Planner-',
     ]
     for p in KNOWN_PREFIXES:
         if old_base.startswith(p):
