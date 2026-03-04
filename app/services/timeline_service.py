@@ -17,7 +17,10 @@ class TimelineService:
     """Service for creating and populating timelines."""
 
     def create_timeline(self, name, description, entities=None, sections=None, icon=None):
-        """Create a new timeline."""
+        """Create a new timeline, or return existing one if name already exists."""
+        existing = Timeline.query.filter_by(name=name).first()
+        if existing:
+            return existing
         timeline = Timeline(
             name=name,
             description=description,
