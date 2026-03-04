@@ -69,6 +69,19 @@ def logout():
     return redirect(url_for('views.login'))
 
 
+@views_bp.route('/debug-auth')
+def debug_auth():
+    """Temporary debug endpoint — remove after fixing login."""
+    import os
+    return jsonify({
+        'SITE_PASSWORD_from_config': bool(current_app.config.get('SITE_PASSWORD')),
+        'SITE_PASSWORD_len': len(current_app.config.get('SITE_PASSWORD') or ''),
+        'PASSWORD_env': bool(os.getenv('PASSWORD')),
+        'SITE_PASSWORD_env': bool(os.getenv('SITE_PASSWORD')),
+        'session_authenticated': session.get('site_authenticated', False),
+    })
+
+
 # ── Jinja filters ──────────────────────────────────────
 
 @views_bp.app_template_filter('bias_class')
