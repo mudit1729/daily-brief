@@ -31,11 +31,11 @@
 
 ### Three Things to Remember
 
-1. **Soft Attention Solves Differentiability**: Memory addressing via weighted sums (softmax) enables gradient flow through memory operations that would otherwise be discrete/non-differentiable.
-
-2. **Memory Acts as Scratch Pad**: The N×M memory matrix enables algorithms to store intermediate results, counters, and data structures—capabilities RNNs approximate poorly with hidden state alone.
-
-3. **Generalization Beyond Training Length**: NTM trained on sequences of length 1-20 can generalize to length 50+ on copy task, suggesting the learned algorithm is modular and generalizable.
+> 1. **Soft Attention Solves Differentiability**: Memory addressing via weighted sums (softmax) enables gradient flow through memory operations that would otherwise be discrete/non-differentiable.
+>
+> 2. **Memory Acts as Scratch Pad**: The N×M memory matrix enables algorithms to store intermediate results, counters, and data structures--capabilities RNNs approximate poorly with hidden state alone.
+>
+> 3. **Generalization Beyond Training Length**: NTM trained on sequences of length 1-20 can generalize to length 50+ on copy task, suggesting the learned algorithm is modular and generalizable.
 
 ---
 
@@ -110,7 +110,7 @@ Weight Vectors (addressing):
 ### Loss Function
 
 **Sequence Cross-Entropy** (binary output):
-```
+```math
 L = -Σ_t Σ_i [y_t,i * log(ŷ_t,i) + (1 - y_t,i) * log(1 - ŷ_t,i)]
 
 where:
@@ -1004,30 +1004,26 @@ Collation:
 
 ### Hyperparameter Table
 
-```
-┌──────────────────────────────┬────────────┬────────────────┐
-│ Parameter                    │ Value      │ Notes          │
-├──────────────────────────────┼────────────┼────────────────┤
-│ Batch Size                   │ 16         │ Small batches  │
-│ Sequence Length (Train)      │ 1-20       │ Random uniform │
-│ Sequence Length (Test)       │ 1-100+     │ Generalization │
-│ Learning Rate                │ 1e-4       │ RMSProp        │
-│ Learning Rate Schedule       │ Constant   │ No decay       │
-│ Optimizer                    │ RMSProp    │ α=0.95, ε=1e-8 │
-│ Gradient Clipping            │ 10.0       │ L2 norm        │
-│ Memory Slots (N)             │ 128        │ Memory size    │
-│ Memory Dimension (M)         │ 20         │ Content dim    │
-│ LSTM Hidden Size             │ 100        │ Controller     │
-│ Number of Read Heads (R)     │ 1-2        │ Per config     │
-│ Number of Write Heads (W)    │ 1          │ Fixed          │
-│ Weight Init                  │ Uniform    │ [-0.1, 0.1]    │
-│ Activation Functions         │ tanh, sig  │ See details    │
-│ Dropout                      │ None       │ Not used       │
-│ L1/L2 Regularization         │ None       │ Not used       │
-│ Training Time                │ 50k steps  │ ~hours on GPU  │
-│ Evaluation Interval          │ 1k steps   │ Checkpoint     │
-└──────────────────────────────┴────────────┴────────────────┘
-```
+| Parameter | Value | Notes |
+|---|---|---|
+| Batch Size | 16 | Small batches |
+| Sequence Length (Train) | 1-20 | Random uniform |
+| Sequence Length (Test) | 1-100+ | Generalization |
+| Learning Rate | 1e-4 | RMSProp |
+| Learning Rate Schedule | Constant | No decay |
+| Optimizer | RMSProp | α=0.95, ε=1e-8 |
+| Gradient Clipping | 10.0 | L2 norm |
+| Memory Slots (N) | 128 | Memory size |
+| Memory Dimension (M) | 20 | Content dim |
+| LSTM Hidden Size | 100 | Controller |
+| Number of Read Heads (R) | 1-2 | Per config |
+| Number of Write Heads (W) | 1 | Fixed |
+| Weight Init | Uniform | [-0.1, 0.1] |
+| Activation Functions | tanh, sig | See details |
+| Dropout | None | Not used |
+| L1/L2 Regularization | None | Not used |
+| Training Time | 50k steps | ~hours on GPU |
+| Evaluation Interval | 1k steps | Checkpoint |
 
 ### RMSProp Details
 
@@ -1337,29 +1333,21 @@ For LSTM:
 
 ### Main Results Table
 
-```
-┌───────────────────┬──────────────┬──────────────┬──────────────┐
-│ Task              │ NTM (Train)  │ NTM (Test)   │ LSTM (Test)  │
-├───────────────────┼──────────────┼──────────────┼──────────────┤
-│ Copy (L=1-20)     │ 0.001        │ 0.002        │ 0.15         │
-│ Copy (L=1-100)    │ —            │ 0.04         │ 0.45         │
-│ Copy (L=1-500)    │ —            │ 0.12         │ >> 0.5       │
-│                   │              │              │              │
-│ Repeat Copy (10)  │ 0.003        │ 0.008        │ 0.25         │
-│                   │              │              │              │
-│ Assoc Recall (5)  │ 0.002        │ 0.005        │ 0.18         │
-│ Assoc Recall (8)  │ —            │ 0.08         │ 0.32         │
-│                   │              │              │              │
-│ N-gram Sort (10)  │ 0.006        │ 0.01         │ 0.22         │
-│ N-gram Sort (20)  │ —            │ 0.15         │ 0.40         │
-│                   │              │              │              │
-│ Dyn N-gram Sort   │ 0.008        │ 0.015        │ 0.28         │
-└───────────────────┴──────────────┴──────────────┴──────────────┘
+*Values: Binary cross-entropy loss (lower is better)*
 
-Values: Binary cross-entropy loss (lower is better)
-Train: Losses on training distribution
-Test: Losses on held-out test data, same distribution as train
-```
+| Task | NTM (Train) | NTM (Test) | LSTM (Test) |
+|---|---|---|---|
+| Copy (L=1-20) | 0.001 | 0.002 | 0.15 |
+| Copy (L=1-100) | -- | 0.04 | 0.45 |
+| Copy (L=1-500) | -- | 0.12 | >> 0.5 |
+| Repeat Copy (10) | 0.003 | 0.008 | 0.25 |
+| Assoc Recall (5) | 0.002 | 0.005 | 0.18 |
+| Assoc Recall (8) | -- | 0.08 | 0.32 |
+| N-gram Sort (10) | 0.006 | 0.01 | 0.22 |
+| N-gram Sort (20) | -- | 0.15 | 0.40 |
+| Dyn N-gram Sort | 0.008 | 0.015 | 0.28 |
+
+> **Train**: Losses on training distribution. **Test**: Losses on held-out test data, same distribution as train.
 
 ### Convergence Behavior
 
@@ -1398,95 +1386,58 @@ LSTM plateaus at loss > 0.1 (cannot solve task)
 
 ### Ablation Studies
 
-```
-ABLATION 1: MEMORY SIZE (N)
+#### Ablation 1: Memory Size (N)
 
-┌────────────┬──────────┬─────────────────┐
-│ Memory     │ Copy     │ Repeat Copy     │
-│ Slots (N)  │ (L=20)   │ (L=10, x3)      │
-├────────────┼──────────┼─────────────────┤
-│ 32         │ 0.05     │ 0.12            │
-│ 64         │ 0.01     │ 0.04            │
-│ 128        │ 0.001    │ 0.003           │
-│ 256        │ 0.001    │ 0.002           │
-│ 512        │ 0.001    │ 0.002           │
-└────────────┴──────────┴─────────────────┘
+| Memory Slots (N) | Copy (L=20) | Repeat Copy (L=10, x3) |
+|---|---|---|
+| 32 | 0.05 | 0.12 |
+| 64 | 0.01 | 0.04 |
+| 128 | 0.001 | 0.003 |
+| 256 | 0.001 | 0.002 |
+| 512 | 0.001 | 0.002 |
 
-Finding: N=128 sufficient for tasks tested
-         Diminishing returns beyond 128
-         N too small → memory collisions → errors
-         N too large → waste of capacity
+> **Finding**: N=128 sufficient for tasks tested. Diminishing returns beyond 128. N too small leads to memory collisions and errors; N too large wastes capacity.
 
-ABLATION 2: MEMORY DIMENSION (M)
+#### Ablation 2: Memory Dimension (M)
 
-┌────────────┬──────────┬─────────────────┐
-│ Memory     │ Copy     │ Repeat Copy     │
-│ Dim (M)    │ (L=20)   │ (L=10, x3)      │
-├────────────┼──────────┼─────────────────┤
-│ 5          │ 0.08     │ 0.15            │
-│ 10         │ 0.01     │ 0.06            │
-│ 20         │ 0.001    │ 0.003           │
-│ 40         │ 0.001    │ 0.002           │
-└────────────┴──────────┴─────────────────┘
+| Memory Dim (M) | Copy (L=20) | Repeat Copy (L=10, x3) |
+|---|---|---|
+| 5 | 0.08 | 0.15 |
+| 10 | 0.01 | 0.06 |
+| 20 | 0.001 | 0.003 |
+| 40 | 0.001 | 0.002 |
 
-Finding: M=20 sufficient
-         Similar to N: larger helps, but plateaus
-         Each memory row stores a "concept" or value
-         Copy task: need ~log2(vocab_size) bits = 3 bits
+> **Finding**: M=20 sufficient. Similar to N: larger helps, but plateaus. Each memory row stores a "concept" or value. Copy task needs ~log2(vocab_size) bits = 3 bits.
 
-ABLATION 3: ADDRESSING MECHANISMS
+#### Ablation 3: Addressing Mechanisms
 
-┌─────────────────────────┬──────────┬─────────────┐
-│ Mechanism               │ Copy(20) │ Assoc(5)    │
-├─────────────────────────┼──────────┼─────────────┤
-│ Content-based only      │ 0.03     │ 0.004       │
-│ Location-based only     │ 0.12     │ 0.25        │
-│ Both (full NTM)         │ 0.001    │ 0.005       │
-└─────────────────────────┴──────────┴─────────────┘
+| Mechanism | Copy(20) | Assoc(5) |
+|---|---|---|
+| Content-based only | 0.03 | 0.004 |
+| Location-based only | 0.12 | 0.25 |
+| Both (full NTM) | 0.001 | 0.005 |
 
-Finding: Content-based: critical for lookup tasks
-         Location-based: critical for sequential access
-         Together: synergistic improvement
+> **Finding**: Content-based is critical for lookup tasks; location-based is critical for sequential access. Together they provide synergistic improvement. Copy needs sequential read (location), Assoc needs key lookup (content) -- both together is essential.
 
-         Copy needs sequential read → location
-         Assoc needs key lookup → content
-         Both together is essential
+#### Ablation 4: Erase Mechanism
 
-ABLATION 4: ERASE MECHANISM
+| Configuration | Copy(20) | Repeat(10x2) |
+|---|---|---|
+| No erase (add only) | 0.02 | 0.08 |
+| Erase=1.0 (fixed sharp) | 0.008 | 0.01 |
+| Erase learned (full) | 0.001 | 0.003 |
 
-┌──────────────────────────┬──────────┬──────────────┐
-│ Configuration            │ Copy(20) │ Repeat(10x2) │
-├──────────────────────────┼──────────┼──────────────┤
-│ No erase (add only)      │ 0.02     │ 0.08         │
-│ Erase=1.0 (fixed sharp)  │ 0.008    │ 0.01         │
-│ Erase learned (full)     │ 0.001    │ 0.003        │
-└──────────────────────────┴──────────┴──────────────┘
+> **Finding**: Erase is important for avoiding interference. Fixed erase works okay but is suboptimal; learned erase yields smoother updates. Without erase, new data mixes with old; with erase, clean overwrite of slots.
 
-Finding: Erase is important for avoiding interference
-         Fixed erase works okay but suboptimal
-         Learned erase → smoother updates
+#### Ablation 5: Number of Read Heads
 
-         Without erase: new data mixes with old
-         With erase: clean overwrite of slots
+| Read Heads (R) | Copy(20) | Dyn Sort (5) |
+|---|---|---|
+| 1 | 0.001 | 0.015 |
+| 2 | 0.001 | 0.008 |
+| 4 | 0.001 | 0.007 |
 
-ABLATION 5: NUMBER OF READ HEADS
-
-┌──────────────────┬──────────┬─────────────────┐
-│ Read Heads (R)   │ Copy(20) │ Dyn Sort (5)    │
-├──────────────────┼──────────┼─────────────────┤
-│ 1                │ 0.001    │ 0.015           │
-│ 2                │ 0.001    │ 0.008           │
-│ 4                │ 0.001    │ 0.007           │
-└──────────────────┴──────────┴─────────────────┘
-
-Finding: 1 head sufficient for copy (sequential)
-         2 heads help with complex algorithms
-         > 2 heads: diminishing returns
-
-         Head specialization:
-         - Head 1: read main data
-         - Head 2: read auxiliary (counters, pointers)
-```
+> **Finding**: 1 head sufficient for copy (sequential). 2 heads help with complex algorithms; >2 heads show diminishing returns. Head specialization: Head 1 reads main data, Head 2 reads auxiliary info (counters, pointers).
 
 ### Generalization Curves
 
@@ -2013,12 +1964,13 @@ def train_step(model, x, y, optimizer):
 
 **Neural Turing Machines** (2014) is a landmark paper introducing differentiable memory to neural networks. The core innovation—soft attention-based addressing—enables end-to-end training of neural networks with external memory, allowing them to learn algorithmic behaviors like sorting and copying.
 
-### Key Takeaways:
-1. **Differentiability through soft addressing**: Weighted combinations enable gradient flow
-2. **Dual addressing modes**: Content-based (lookup) + location-based (sequential access)
-3. **Modular memory**: N×M matrix acts as scratch pad for algorithms
-4. **Generalization**: Trained on sequences of length 1-20, generalizes to 100+
-5. **Clear algorithmic structure**: Addressable memory + read/write heads mirror classical computing
+### Key Takeaways
+
+> 1. **Differentiability through soft addressing**: Weighted combinations enable gradient flow
+> 2. **Dual addressing modes**: Content-based (lookup) + location-based (sequential access)
+> 3. **Modular memory**: N×M matrix acts as scratch pad for algorithms
+> 4. **Generalization**: Trained on sequences of length 1-20, generalizes to 100+
+> 5. **Clear algorithmic structure**: Addressable memory + read/write heads mirror classical computing
 
 ### Most Important Implementation Details:
 - Cosine similarity for content addressing (with epsilon for stability)

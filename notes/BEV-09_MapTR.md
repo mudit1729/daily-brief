@@ -21,11 +21,11 @@
 - End-to-end transformer architecture: BEV features → map decoder → polyline predictions
 - No post-processing (no NMS, no polyline fitting)
 
-**If you only remember 3 things:**
-
-1. Predicts HD map elements as ordered point sets (polylines), not rasterized masks
-2. Hierarchical bipartite matching: element-level Hungarian + point-permutation matching
-3. End-to-end from multi-view images to vectorized map without post-processing
+> **If you only remember 3 things:**
+>
+> 1. Predicts HD map elements as ordered point sets (polylines), not rasterized masks
+> 2. Hierarchical bipartite matching: element-level Hungarian + point-permutation matching
+> 3. End-to-end from multi-view images to vectorized map without post-processing
 
 ---
 
@@ -197,7 +197,7 @@ def forward(bev_features):
 **Data:** nuScenes map annotations (lane dividers, road boundaries, pedestrian crossings) converted to polylines.
 
 
-## 8) Training Pipeline (Reproducible)
+## 8) Training Pipeline
 
 **Training [MapTR | Sec 4]:**
 
@@ -232,6 +232,8 @@ def forward(bev_features):
 ## 10) Results Summary + Ablations
 
 - Not specified in provided inputs. Plausible defaults (not from paper): summarize main benchmark numbers directly from cited tables.
+
+---
 
 ## 11) Practical Insights
 
@@ -284,9 +286,6 @@ def forward(bev_features):
 **Script 1:** Visualize GT polylines on BEV grid → should trace roads/lanes
 **Script 2:** Overfit 4 scenes → Chamfer < 0.5m within 3000 steps
 **Script 3:** Plot predicted vs. GT polylines → should overlap closely
-
----
----
 
 ---
 

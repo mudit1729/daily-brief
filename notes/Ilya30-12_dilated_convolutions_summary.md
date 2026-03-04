@@ -1,5 +1,6 @@
 # Multi-Scale Context Aggregation by Dilated Convolutions
-## Comprehensive 12-Section Paper Summary
+
+*Comprehensive 12-Section Paper Summary*
 
 **Citation:** Fisher Yu and Vladlen Koltun. Multi-Scale Context Aggregation by Dilated Convolutions. arXiv:1511.07122 (2015)
 
@@ -21,16 +22,18 @@
 - **Motivation:** Need to capture multi-scale context while maintaining full input resolution
 
 ### Key Novelty: Dilated Convolutions
-Dilated (atrous) convolutions expand the receptive field without reducing spatial resolution:
+
+***Dilated*** (also called *atrous*) convolutions expand the receptive field without reducing spatial resolution:
 - Standard 3×3 kernel applied to every pixel
 - **Dilated 3×3 kernel (dilation=2):** kernel applied with spacing of 2 between elements
 - **Dilated 3×3 kernel (dilation=4):** kernel applied with spacing of 4 between elements
 - Exponential growth of receptive field: RF = 3 + 2×(d-1) for d dilation rate
 
 ### Three Things to Remember
-1. **Dilated convolutions maintain spatial resolution** while exponentially expanding receptive field without strided convolutions or pooling
-2. **Context module** stacks multiple dilated convolutions with increasing dilation rates to capture multi-scale features
-3. **Achieves state-of-the-art semantic segmentation** on Pascal VOC 2012 (74.7% mIoU) without CRF post-processing, demonstrating effectiveness of multi-scale context
+
+> 1. **Dilated convolutions maintain spatial resolution** while exponentially expanding receptive field without strided convolutions or pooling
+> 2. **Context module** stacks multiple dilated convolutions with increasing dilation rates to capture multi-scale features
+> 3. **Achieves state-of-the-art semantic segmentation** on Pascal VOC 2012 (74.7% mIoU) without CRF post-processing, demonstrating effectiveness of multi-scale context
 
 ---
 

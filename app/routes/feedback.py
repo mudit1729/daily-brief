@@ -1,5 +1,8 @@
+import logging
 from flask import Blueprint, jsonify, request
 from app.services.feedback_service import FeedbackService
+
+logger = logging.getLogger(__name__)
 
 feedback_bp = Blueprint('feedback', __name__)
 feedback_service = FeedbackService()
@@ -24,7 +27,24 @@ def submit_action():
             target_id=data['target_id'],
             metadata=data.get('metadata'),
         )
-        return jsonify(action.to_dict()), 201
+        response_data = action.to_dict()
+
+        # Follow a cluster → auto-create a tracked story
+        if data['action_type'] == 'follow' and data['target_type'] == 'cluster':
+            try:
+                from app.services.story_tracker import StoryTracker
+                tracker = StoryTracker()
+                if tracker.is_enabled():
+                    topic, story = tracker.create_story_from_cluster(int(data['target_id']))
+                    if topic and story:
+                        response_data['story_created'] = {
+                            'topic_name': topic.name,
+                            'story_title': story.title,
+                        }
+            except Exception as e:
+                logger.error(f"Follow-to-story failed for cluster {data['target_id']}: {e}")
+
+        return jsonify(response_data), 201
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 

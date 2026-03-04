@@ -21,11 +21,11 @@ MDL bridges coding theory, information theory, and statistics. It addresses the 
 
 ### Three Things to Remember
 
-1. **Compress = Understand:** The ability to compress data reveals underlying patterns and structure. Shorter descriptions indicate simpler, more explanatory models that capture genuine regularities rather than noise.
-
-2. **Two Costs:** Every model incurs two description costs: (a) specifying the model/hypothesis itself, and (b) encoding the data using that model. Good models minimize the sum of these costs.
-
-3. **No Overfitting:** Unlike approaches that minimize only fitting error, MDL automatically penalizes model complexity. Models that overfit produce longer descriptions (due to the cost of specifying many parameters), so MDL inherently avoids overfitting without requiring cross-validation or separate holdout sets.
+> 1. **Compress = Understand:** The ability to compress data reveals underlying patterns and structure. Shorter descriptions indicate simpler, more explanatory models that capture genuine regularities rather than noise.
+>
+> 2. **Two Costs:** Every model incurs two description costs: (a) specifying the model/hypothesis itself, and (b) encoding the data using that model. Good models minimize the sum of these costs.
+>
+> 3. **No Overfitting:** Unlike approaches that minimize only fitting error, MDL automatically penalizes model complexity. Models that overfit produce longer descriptions (due to the cost of specifying many parameters), so MDL inherently avoids overfitting without requiring cross-validation or separate holdout sets.
 
 ---
 
@@ -176,7 +176,7 @@ Since Kolmogorov complexity is uncomputable, **practical MDL** approximates K(H)
 
 **Normalized Maximum Likelihood (NML):** The refined MDL approach encodes data x^n under the NML distribution:
 
-```
+```math
 P_NML(x^n | M) = P(x^n | θ̂) / C(M)
 ```
 
@@ -198,7 +198,7 @@ Where:
 **Basic Concept:** Data compression and statistical inference are dual perspectives on the same phenomenon. A code C maps messages to bit strings; the code length L_C(x) is the number of bits in C(x).
 
 **Code Efficiency:** For a probability distribution P(x), the expected code length under code C is:
-```
+```math
 E_P[L_C(X)] = Σ_x P(x) × L_C(x)
 ```
 
@@ -207,7 +207,7 @@ The **Shannon source coding theorem** states: the optimal expected code length e
 ### Prefix Codes and the Kraft Inequality
 
 **Kraft–McMillan Inequality:** For a prefix code with codeword lengths l₁, l₂, ..., l_n:
-```
+```math
 Σᵢ 2^{-lᵢ} ≤ 1
 ```
 
@@ -220,7 +220,7 @@ The **Shannon source coding theorem** states: the optimal expected code length e
 ### Code Length and Probability: The Central Connection
 
 **Fundamental Identity:**
-```
+```math
 l_i = −log₂ P_i
 ```
 
@@ -236,7 +236,7 @@ Consequences:
 A **universal code** C_univ is one that adapts to unknown probability distributions without significant loss. Formally:
 
 **Definition:** C_univ is universal if for any sequence x^n and any distribution P:
-```
+```math
 E_{x~P}[L_univ(x^n)] ≤ E_{x~P}[L_opt,P(x^n)] + redundancy(n, |Θ|)
 ```
 
@@ -401,12 +401,12 @@ Therefore:
 ### Marginal Likelihood and Model Selection
 
 In Bayesian model selection, we compare models by their **marginal likelihood**:
-```
+```math
 P(x^n | M_k) = ∫ P(x^n | θ, M_k) × P(θ | M_k) dθ
 ```
 
 The posterior probability of model k is:
-```
+```math
 P(M_k | x^n) ∝ P(x^n | M_k) × P(M_k)
 ```
 
@@ -422,7 +422,7 @@ P(M_k | x^n) ∝ P(x^n | M_k) × P(M_k)
 
 The **Bayesian Information Criterion (BIC)** is a widely-used model selection criterion:
 
-```
+```math
 BIC = −2 log P(x^n | θ̂) + k log n
 ```
 
@@ -434,12 +434,12 @@ Where:
 **Asymptotic Equivalence to MDL:**
 
 For large n, the refined MDL criterion (mixture code) is approximately:
-```
+```math
 L_MDL ≈ −log P(x^n | θ̂) + (k/2) log n + O(1)
 ```
 
 Dividing by log 2 and multiplying by 2:
-```
+```math
 −2 log P(x^n | θ̂) + k log n  (approximately)
 ```
 
@@ -456,14 +456,14 @@ This is **identical to BIC**!
 
 For exponential families, the **Jeffreys prior** (based on the Fisher information matrix) leads to particularly elegant connections:
 
-```
+```math
 P_Jeffreys(θ) ∝ √det(I(θ))
 ```
 
 Where I(θ) is the Fisher information matrix.
 
 **Result:** When using Jeffreys prior, the Bayesian mixture code:
-```
+```math
 P_mix(x^n) = ∫ P(x^n | θ) P_Jeffreys(θ) dθ
 ```
 
@@ -508,7 +508,7 @@ Key concepts:
 3. Select the class k minimizing Risk_k
 
 **Typical Complexity Penalty:**
-```
+```math
 Φ(h_k, n) ≈ √[(h_k log(2n/h_k)) / n]
 ```
 
@@ -519,7 +519,7 @@ This penalty increases with model complexity (VC dimension) and decreases with s
 A fundamental result in statistical learning theory:
 
 **Theorem (VC Bound):** With probability at least 1 − δ, for any function f in a class F with VC dimension h:
-```
+```math
 E_true(f) ≤ E_emp(f) + √[(h log(2n/h) + log(1/δ)) / (2n)]
 ```
 
@@ -586,7 +586,7 @@ The connection between MDL and statistical learning theory shows that **data com
 **Data:** Observations {(x_i, y_i)}_{i=1}^n
 
 **Model class:** Polynomials of degree k:
-```
+```math
 f_k(x) = a_0 + a_1 x + a_2 x² + ... + a_k x^k
 ```
 
@@ -638,7 +638,7 @@ Data: quadratic function y = a + bx + cx² with noise
 **Problem:** Select AR(p) model order for time series {x_t}
 
 **Model class:** AR(p) with p lags:
-```
+```math
 x_t = φ_1 x_{t-1} + φ_2 x_{t-2} + ... + φ_p x_{t-p} + ε_t
 ```
 
@@ -722,7 +722,7 @@ For each model order k:
 ### Theorem 1: The Kraft Inequality (Foundation)
 
 **Statement:** For any prefix code with codeword lengths l_1, l_2, ..., l_n:
-```
+```math
 Σᵢ₌₁ⁿ 2^{-lᵢ} ≤ 1
 ```
 
@@ -748,7 +748,7 @@ Conversely, if the inequality holds, a prefix code with those lengths exists.
 
 **Statement:** For any fixed model class M = {P(·|θ) : θ ∈ Θ} with finite VC dimension (or other regularity conditions), there exists a universal code such that:
 
-```
+```math
 L_univ(x^n | M) ≤ −log P(x^n | θ̂) + (d/2) log n + O(1)
 ```
 
@@ -758,7 +758,7 @@ Where:
 - The bound holds for all x^n and all P ∈ M
 
 **Refinement (Normalized Maximum Likelihood):** The NML code achieves:
-```
+```math
 L_NML(x^n | M) = −log P(x^n | θ̂) + log C(M) + O(1)
 ```
 
@@ -969,7 +969,7 @@ Where X = input, T = learned representation, Y = target, I = mutual information,
 #### 4. **Model Compression via Variational Information Bottleneck**
 
 **Technique:** Use variational bounds on mutual information to compress neural networks:
-```
+```math
 L = E[−log P(y | z)] + β I_approx(X, Z)
 ```
 
@@ -1057,7 +1057,7 @@ Evidence ratio = 2^(MDL₀ − MDL₁) bits
 
 **Modern development:** Recent work (e.g., Fisher Information and MDL) establishes connections between MDL and PAC-learning generalization bounds:
 
-```
+```math
 Generalization error ≤ L(θ̂) + Empirical error + O(1)
 ```
 

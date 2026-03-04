@@ -1,9 +1,10 @@
 # ImageNet Classification with Deep Convolutional Neural Networks (AlexNet)
+
 **Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012)**
 
 ---
 
-## Section 1: One-Page Overview
+## 1. One-Page Overview
 
 ### Metadata
 - **Title**: ImageNet Classification with Deep Convolutional Neural Networks
@@ -19,9 +20,10 @@
 - **AlexNet Result**: **18.9% top-5 error, 39.7% top-1 error** (55% relative improvement)
 
 ### Key Novelties - "3 Things to Remember"
-1. **ReLU Activation**: Non-saturating non-linearity (ReLU: max(0, x)) converges 6× faster than tanh, enables deeper networks to train successfully
-2. **GPU Implementation**: Custom CUDA kernels for convolution operations reduced training time from ~weeks (CPU) to ~days (GPU), enabling 60M parameter networks
-3. **Dropout Regularization**: Stochastic neuron silencing (p=0.5 in FC layers) reduced overfitting without requiring smaller models, proved essential for generalization
+
+> 1. **ReLU Activation**: Non-saturating non-linearity (ReLU: max(0, x)) converges 6x faster than tanh, enables deeper networks to train successfully
+> 2. **GPU Implementation**: Custom CUDA kernels for convolution operations reduced training time from ~weeks (CPU) to ~days (GPU), enabling 60M parameter networks
+> 3. **Dropout Regularization**: Stochastic neuron silencing (p=0.5 in FC layers) reduced overfitting without requiring smaller models, proved essential for generalization
 
 ### Additional Key Insights
 - Data augmentation (crops, flips, color perturbations) provided ~2% improvement
@@ -31,7 +33,7 @@
 
 ---
 
-## Section 2: Problem Setup and Outputs
+## 2. Problem Setup and Outputs
 
 ### ImageNet Dataset Specification
 - **ILSVRC-2010 Training Set**: 1,200,000 images, 1,000 categories, variable resolution
@@ -80,7 +82,7 @@ Softmax out:  (N, 1000) [probabilities sum to 1]
 
 ---
 
-## Section 3: Coordinate Frames and Geometry
+## 3. Coordinate Frames and Geometry
 
 ### Image Space Coordinate Frame
 ```
@@ -172,7 +174,7 @@ Each Conv5 neuron "sees" a 43×43 patch of the original 227×227 image.
 
 ---
 
-## Section 4: Architecture Deep Dive
+## 4. Architecture Deep Dive
 
 ### ASCII Block Diagram (Split Across 2 GPUs)
 
@@ -275,7 +277,7 @@ Cross-GPU Communication:
 
 ---
 
-## Section 5: Forward Pass Pseudocode
+## 5. Forward Pass Pseudocode
 
 ```python
 def forward_pass(x):
@@ -484,7 +486,7 @@ def forward_pass(x):
 
 ---
 
-## Section 6: Heads, Targets, and Losses
+## 6. Heads, Targets, and Losses
 
 ### Output Head Design
 
@@ -643,7 +645,7 @@ Top-5 accuracy = 4/4 = 100% (all classes correct) → Top-5 error = 0%
 
 ---
 
-## Section 7: Data Pipeline and Augmentations
+## 7. Data Pipeline and Augmentations
 
 ### Image Loading and Preprocessing
 
@@ -791,7 +793,7 @@ Alternative (rarely used): 10-crop evaluation
 
 ---
 
-## Section 8: Training Pipeline
+## 8. Training Pipeline
 
 ### SGD with Momentum Optimizer
 
@@ -1005,7 +1007,7 @@ def train():
 
 ---
 
-## Section 9: Dataset and Evaluation Protocol
+## 9. Dataset and Evaluation Protocol
 
 ### ILSVRC-2010 vs ILSVRC-2012
 
@@ -1179,7 +1181,7 @@ Trade-off:
 
 ---
 
-## Section 10: Results Summary and Ablations
+## 10. Results Summary and Ablations
 
 ### Main Results (ILSVRC-2012)
 
@@ -1341,7 +1343,7 @@ Historical context:
 
 ---
 
-## Section 11: Practical Insights
+## 11. Practical Insights
 
 ### 10 Engineering Takeaways
 
@@ -1481,7 +1483,7 @@ Overfitting metrics to watch:
 
 ---
 
-## Section 12: Minimal Reimplementation Checklist
+## 12. Minimal Reimplementation Checklist
 
 ### Prerequisites
 ```

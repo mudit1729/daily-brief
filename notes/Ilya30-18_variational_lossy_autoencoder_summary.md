@@ -16,7 +16,10 @@
 - **Key Keywords:** Variational Autoencoder, Lossy Compression, Discrete Latent Codes, Autoregressive Models, ELBO, Information Theory
 
 ### Key Novelty: Controlling What the Latent Code Learns
-The paper's core insight is that **standard VAEs don't allow direct control over what information the latent variable learns**. Their solution:
+
+> The paper's core insight is that **standard VAEs don't allow direct control over what information the latent variable learns**.
+
+Their solution:
 
 1. **Lossy Compression Framework:** Interpret the encoder-latent-decoder pipeline as a lossy compression system where:
    - The encoder discretizes/compresses high-dimensional data → latent code
@@ -33,9 +36,10 @@ The paper's core insight is that **standard VAEs don't allow direct control over
    - Better modeling of dependencies in natural images
 
 ### Three Things to Remember
-1. **Discrete codes matter:** The paper demonstrates that learning discrete latent representations (not continuous Gaussians) leads to better compression and interpretability
-2. **Autoregressive reconstruction:** Using autoregressive decoders `p(x|z)` vastly improves reconstruction quality vs. independent pixel assumptions
-3. **Information-theoretic sweet spot:** Balance between prior on latents (KL term) and reconstruction loss (data likelihood) determines what gets compressed into discrete codes vs. stored in sequential dependencies
+
+> 1. **Discrete codes matter:** The paper demonstrates that learning discrete latent representations (not continuous Gaussians) leads to better compression and interpretability
+> 2. **Autoregressive reconstruction:** Using autoregressive decoders `p(x|z)` vastly improves reconstruction quality vs. independent pixel assumptions
+> 3. **Information-theoretic sweet spot:** Balance between prior on latents (KL term) and reconstruction loss (data likelihood) determines what gets compressed into discrete codes vs. stored in sequential dependencies
 
 ---
 

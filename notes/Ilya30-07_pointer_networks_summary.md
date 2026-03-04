@@ -1,7 +1,11 @@
 # Pointer Networks - Complete Paper Summary
-**Authors:** Oriol Vinyals, Meire Fortunato, Navdeep Jaitly
-**Published:** 2015 | ArXiv: 1506.03134
-**Venue:** ICLR 2015
+
+| | |
+|---|---|
+| **Authors** | Oriol Vinyals, Meire Fortunato, Navdeep Jaitly |
+| **Published** | 2015 |
+| **ArXiv** | 1506.03134 |
+| **Venue** | ICLR 2015 |
 
 ---
 
@@ -29,12 +33,14 @@ Replaces the output vocabulary of sequence-to-sequence models with **attention w
 - **Interpretable attention** as a geometric pointer mechanism
 
 ### Core Innovation in One Sentence
-Use attention mechanism to directly copy/point to input elements rather than generating from fixed vocabulary.
+
+> Use attention mechanism to directly copy/point to input elements rather than generating from fixed vocabulary.
 
 ### Three Things to Remember
-1. **Attention ≈ Pointer**: The softmax attention distribution over input positions IS the model's output—it directly selects which input element to process next.
-2. **No Fixed Vocabulary**: Output space grows with input sequence (n inputs → n possible "tokens" at each step).
-3. **Supervised Learning on Sequences**: Treats problem instances as ordered sequences of input coordinates; network learns to output orderings (convex hull order, TSP tour order, etc.).
+
+> 1. **Attention ≈ Pointer**: The softmax attention distribution over input positions IS the model's output -- it directly selects which input element to process next.
+> 2. **No Fixed Vocabulary**: Output space grows with input sequence (n inputs → n possible "tokens" at each step).
+> 3. **Supervised Learning on Sequences**: Treats problem instances as ordered sequences of input coordinates; network learns to output orderings (convex hull order, TSP tour order, etc.).
 
 ---
 

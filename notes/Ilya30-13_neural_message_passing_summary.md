@@ -23,7 +23,8 @@
 3. **Physics-Informed Feature Learning:** End-to-end learning of atom/bond representations from raw features
 
 ### Key Novelty: MPNN Framework
-The paper's breakthrough was **unifying diverse GNN architectures** under one conceptual framework:
+
+> The paper's breakthrough was **unifying diverse GNN architectures** under one conceptual framework---the ***Message Passing Neural Network (MPNN)***:
 - **Graph Convolutional Networks (GCN)**
 - **GraphSAGE**
 - **Gated Graph Sequence Neural Networks (GGNN)**
@@ -35,9 +36,10 @@ All these prior works can be reformulated as variants of **Message Passing Neura
 3. A **readout function** $\hat{y} = R(\{h_v^T : v \in V\})$
 
 ### 3 Things to Remember
-1. **Message passing is the key abstraction:** All GNNs boil down to nodes iteratively updating representations by aggregating messages from neighbors
-2. **Variable-sized graphs matter in chemistry:** Unlike fixed-size images, molecules have different sizes; permutation-invariant aggregation is essential
-3. **Geometry matters but isn't used directly:** The paper uses only atom/bond types as node/edge features; **3D coordinates are NOT fed as input features** (a limitation that spurred follow-up work)
+
+> 1. **Message passing is the key abstraction:** All GNNs boil down to nodes iteratively updating representations by aggregating messages from neighbors
+> 2. **Variable-sized graphs matter in chemistry:** Unlike fixed-size images, molecules have different sizes; permutation-invariant aggregation is essential
+> 3. **Geometry matters but isn't used directly:** The paper uses only atom/bond types as node/edge features; **3D coordinates are NOT fed as input features** (a limitation that spurred follow-up work)
 
 ---
 

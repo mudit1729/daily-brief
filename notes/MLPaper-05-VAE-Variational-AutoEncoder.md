@@ -2,31 +2,35 @@
 
 ## Paper Overview
 
-**Authors:** Diederik P. Kingma, Max Welling
-**Published:** 2013 (ICLR 2014)
-**Paper Link:** https://arxiv.org/abs/1312.6114
+| | |
+|---|---|
+| **Authors** | Diederik P. Kingma, Max Welling |
+| **Published** | 2013 (ICLR 2014) |
+| **Paper Link** | https://arxiv.org/abs/1312.6114 |
+
+---
 
 ## Detailed Description
 
-The Variational Autoencoder (VAE) is a generative model that combines deep learning with variational inference. It learns to encode data into a latent space and decode it back, while ensuring the latent space has nice properties for generating new samples. VAEs are probabilistic models that learn the underlying probability distribution of the data.
+The **Variational Autoencoder** (VAE) is a generative model that combines deep learning with variational inference. It learns to encode data into a latent space and decode it back, while ensuring the latent space has nice properties for generating new samples. VAEs are probabilistic models that learn the underlying probability distribution of the data.
 
-### Key Components:
+### Key Components
 
 1. **Encoder (Recognition Network):**
    - Maps input data x to latent space parameters
-   - Outputs mean (μ) and variance (σ²) of latent distribution
-   - Approximates posterior distribution q(z|x) ≈ p(z|x)
+   - Outputs mean (mu) and variance (sigma^2) of latent distribution
+   - Approximates posterior distribution q(z|x) ~ p(z|x)
    - Implemented as neural network
 
 2. **Latent Space:**
    - Compressed representation of data
-   - Assumed to follow Gaussian distribution: z ~ N(μ, σ²)
+   - Assumed to follow Gaussian distribution: z ~ N(mu, sigma^2)
    - Enables sampling and interpolation
    - Typically much lower dimensional than input
 
 3. **Reparameterization Trick:**
    - Enables backpropagation through stochastic sampling
-   - z = μ + σ ⊙ ε, where ε ~ N(0, 1)
+   - `z = mu + sigma * epsilon`, where epsilon ~ N(0, 1)
    - Moves randomness to input, making operation differentiable
    - Critical innovation for training VAEs
 
@@ -37,52 +41,56 @@ The Variational Autoencoder (VAE) is a generative model that combines deep learn
    - Implemented as neural network
 
 5. **Loss Function (ELBO):**
-   - Evidence Lower Bound (ELBO) maximized during training
+   - *Evidence Lower Bound* (ELBO) maximized during training
    - Two components:
      - **Reconstruction Loss:** How well can we reconstruct the input?
-       - L_recon = E[log p(x|z)]
+       - `L_recon = E[log p(x|z)]`
        - Often MSE for continuous data, BCE for binary
      - **KL Divergence:** How close is q(z|x) to prior p(z)?
-       - L_KL = KL[q(z|x) || p(z)]
+       - `L_KL = KL[q(z|x) || p(z)]`
        - Regularizes latent space to be normally distributed
-   - Total loss: L = L_recon + β·L_KL
+   - Total loss: `L = L_recon + beta * L_KL`
 
-### Mathematical Framework:
+### Mathematical Framework
 
-1. **Objective:**
-   ```
-   Maximize: log p(x) = log ∫ p(x|z)p(z)dz
-   Problem: Intractable integral
-   ```
+**Objective:**
+```math
+Maximize: log p(x) = log integral p(x|z) p(z) dz
+Problem: Intractable integral
+```
 
-2. **Variational Inference:**
-   ```
-   Approximate p(z|x) with q(z|x) = N(μ(x), σ²(x))
-   Maximize ELBO: L = E_q[log p(x|z)] - KL[q(z|x) || p(z)]
-   ```
+**Variational Inference:**
+```math
+Approximate p(z|x) with q(z|x) = N(mu(x), sigma^2(x))
+Maximize ELBO: L = E_q[log p(x|z)] - KL[q(z|x) || p(z)]
+```
 
-3. **Reparameterization:**
-   ```
-   z = μ + σ ⊙ ε, where ε ~ N(0,1)
-   Allows: ∇_θ E_q[f(z)] = E_p[∇_θ f(z)]
-   ```
+**Reparameterization:**
+```math
+z = mu + sigma * epsilon, where epsilon ~ N(0,1)
+Allows: grad_theta E_q[f(z)] = E_p[grad_theta f(z)]
+```
 
-4. **KL Divergence (Closed Form):**
-   ```
-   For q(z|x) = N(μ, σ²) and p(z) = N(0, 1):
-   KL = -0.5 * Σ(1 + log(σ²) - μ² - σ²)
-   ```
+**KL Divergence (Closed Form):**
+```math
+For q(z|x) = N(mu, sigma^2) and p(z) = N(0, 1):
+KL = -0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+```
 
-### VAE Variants:
+### VAE Variants
 
-- **β-VAE:** Introduces β hyperparameter to control disentanglement
-- **Conditional VAE (CVAE):** Conditions on labels for controlled generation
-- **VQ-VAE:** Uses discrete latent codes instead of continuous
-- **WAE:** Wasserstein AutoEncoders using different divergence
+| Variant | Description |
+|---------|-------------|
+| **beta-VAE** | Introduces beta hyperparameter to control disentanglement |
+| **Conditional VAE (CVAE)** | Conditions on labels for controlled generation |
+| **VQ-VAE** | Uses discrete latent codes instead of continuous |
+| **WAE** | Wasserstein AutoEncoders using different divergence |
+
+---
 
 ## Pain Point Addressed
 
-### Limitations of Traditional Autoencoders:
+### Limitations of Traditional Autoencoders
 
 1. **No Probabilistic Framework:**
    - Standard autoencoders don't model probability distributions
@@ -104,7 +112,7 @@ The Variational Autoencoder (VAE) is a generative model that combines deep learn
    - Latent space may not generalize well
    - No control over latent space structure
 
-### Limitations of Earlier Generative Models:
+### Limitations of Earlier Generative Models
 
 1. **Restricted Boltzmann Machines (RBMs):**
    - Difficult to train
@@ -120,15 +128,17 @@ The Variational Autoencoder (VAE) is a generative model that combines deep learn
    - Earlier generative models didn't scale to high-dimensional data
    - Couldn't handle complex datasets like images effectively
 
+---
+
 ## Novelty of the Paper
 
-### Key Innovations:
+### Key Innovations
 
 1. **Reparameterization Trick:**
    - Elegant solution to backpropagation through stochastic nodes
    - Enables end-to-end training with stochastic latent variables
    - Transformed variational inference with neural networks
-   - Simple yet powerful: z = μ + σ·ε
+   - Simple yet powerful: `z = mu + sigma * epsilon`
 
 2. **Scalable Variational Inference:**
    - Made variational inference practical for deep neural networks
@@ -158,18 +168,17 @@ The Variational Autoencoder (VAE) is a generative model that combines deep learn
    - Enables controlled generation through latent manipulation
    - Balances reconstruction quality and latent space structure
 
-### Theoretical Contributions:
+### Theoretical Contributions
 
 1. Showed that ELBO can be efficiently optimized using SGD
 2. Demonstrated that deep neural networks can approximate complex posteriors
 3. Provided practical framework for learning latent variable models
 
-### Impact:
+### Impact
 
-- Foundation for modern generative models
-- Influenced development of GANs, Normalizing Flows, Diffusion Models
-- Widely used in semi-supervised learning, anomaly detection, drug discovery
-- Applied in image generation, text generation, music synthesis
+> VAEs became a foundation for modern generative models, influencing the development of GANs, Normalizing Flows, and Diffusion Models. They are widely used in semi-supervised learning, anomaly detection, drug discovery, image generation, text generation, and music synthesis.
+
+---
 
 ## Implementation
 
@@ -253,10 +262,10 @@ class VariationalAutoEncoder(nn.Module):
         # Encode input to get distribution parameters
         mu, log_var = self.encode(x)
 
-        # Reparameterization trick: z = μ + σ·ε, where ε ~ N(0,1)
-        # We use log_var for numerical stability: σ = exp(0.5 * log_var)
+        # Reparameterization trick: z = mu + sigma * epsilon, where epsilon ~ N(0,1)
+        # We use log_var for numerical stability: sigma = exp(0.5 * log_var)
         # This avoids computing log on small positive numbers (numerically unstable)
-        # and ensures σ > 0 even if the network outputs negative log_var values
+        # and ensures sigma > 0 even if the network outputs negative log_var values
         std = torch.exp(0.5 * log_var)
         epsilon = torch.randn_like(std)
         z_new = mu + std * epsilon
@@ -290,7 +299,7 @@ if __name__ == "__main__":
     # Log-Var shape: torch.Size([4, 20])
 ```
 
-### Training Code Example:
+### Training Code Example
 
 ```python
 def vae_loss(x, x_recon, mu, log_var):
@@ -312,10 +321,10 @@ def vae_loss(x, x_recon, mu, log_var):
 
     # KL Divergence: D_KL[q(z|x) || p(z)]
     # Measures how close our latent distribution is to standard normal
-    # Closed form for N(μ, σ²) vs N(0, 1):
-    # KL = -0.5 * Σ(1 + log(σ²) - μ² - σ²)
+    # Closed form for N(mu, sigma^2) vs N(0, 1):
+    # KL = -0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     # We use log_var directly (instead of computing torch.log(sigma**2))
-    # for numerical stability: log(σ²) = 2*log(σ) = 2*0.5*log_var = log_var
+    # for numerical stability: log(sigma^2) = 2*log(sigma) = 2*0.5*log_var = log_var
     kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
     # Total loss: ELBO (Evidence Lower Bound)
@@ -367,9 +376,11 @@ def generate_samples(model, num_samples=16):
     return samples
 ```
 
-## Key Results and Applications:
+---
 
-### Capabilities:
+## Key Results and Applications
+
+### Capabilities
 
 1. **Generation:** Sample new data by drawing z ~ N(0,1) and decoding
 2. **Reconstruction:** Encode and decode data
@@ -377,7 +388,7 @@ def generate_samples(model, num_samples=16):
 4. **Anomaly Detection:** Low reconstruction quality indicates anomalies
 5. **Data Compression:** Efficient latent representation
 
-### Advantages:
+### Advantages
 
 - Principled probabilistic framework
 - Smooth, continuous latent space
@@ -385,21 +396,25 @@ def generate_samples(model, num_samples=16):
 - Balances reconstruction and regularization
 - Scalable training
 
-### Limitations:
+### Limitations
 
 - Often produces blurry images (compared to GANs)
 - Balancing reconstruction vs KL divergence can be tricky
 - Assumes Gaussian latent distribution (may not always be appropriate)
 - Posterior collapse in some cases
 
-## Key Takeaways:
+---
 
-1. **Reparameterization trick** enables end-to-end training with stochastic variables
-2. **ELBO objective** balances reconstruction quality and latent space structure
-3. **Probabilistic framework** provides principled approach to generation
-4. **Structured latent space** enables interpolation and controlled generation
-5. **Scalable variational inference** made practical with neural networks
-6. Foundation for modern generative modeling
+## Key Takeaways
+
+> 1. **Reparameterization trick** enables end-to-end training with stochastic variables
+> 2. **ELBO objective** balances reconstruction quality and latent space structure
+> 3. **Probabilistic framework** provides principled approach to generation
+> 4. **Structured latent space** enables interpolation and controlled generation
+> 5. **Scalable variational inference** made practical with neural networks
+> 6. Foundation for modern generative modeling
+
+---
 
 ## Repository Reference
 

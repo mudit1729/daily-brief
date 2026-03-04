@@ -21,11 +21,11 @@
 - Demonstrates end-to-end planning ("Shoot") by scoring template trajectories on a BEV cost map [LSS | Sec 5]
 - Entire pipeline is fully differentiable, enabling joint optimization of depth and BEV features [LSS | Sec 3]
 
-**If you only remember 3 things:**
-
-1. Per-pixel categorical depth distribution (softmax over D bins) outer-producted with image features → frustum point cloud → pillar pooling onto BEV grid
-2. No explicit depth supervision — depth emerges from the task loss alone
-3. This is the foundational "LSS-style lift" used by BEVDet, BEVDepth, BEVFusion, and many others
+> **If you only remember 3 things:**
+>
+> 1. Per-pixel categorical depth distribution (softmax over D bins) outer-producted with image features → frustum point cloud → pillar pooling onto BEV grid
+> 2. No explicit depth supervision — depth emerges from the task loss alone
+> 3. This is the foundational "LSS-style lift" used by BEVDet, BEVDepth, BEVFusion, and many others
 
 ---
 
@@ -285,7 +285,7 @@ def forward(images, intrinsics, extrinsics):
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -449,9 +449,6 @@ train(scenes=[0,1], classes=['vehicle'], augment=False, steps=500)
 # Common issue: forgetting to adjust intrinsics at eval time
 eval(model, scenes=[0,1], check_shapes=True)
 ```
-
----
----
 
 ---
 

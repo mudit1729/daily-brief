@@ -56,7 +56,7 @@ class LLMGateway:
         return bool(self.xai_api_key)
 
     def call(self, messages, purpose, section=None, brief_id=None,
-             max_tokens=None, provider='openai', model=None):
+             max_tokens=None, provider='openai', model=None, search=False):
         """
         Central LLM call. Checks budget, makes call, logs cost.
         provider: 'openai' (default) or 'xai' for Grok.
@@ -72,7 +72,10 @@ class LLMGateway:
         if provider == 'anthropic':
             model, result = self._call_anthropic(messages, effective_max, purpose, model=model)
         elif provider == 'xai':
-            model, result = self._call_xai(messages, effective_max, purpose)
+            if search:
+                model, result = self._call_xai_with_search(messages, effective_max, purpose)
+            else:
+                model, result = self._call_xai(messages, effective_max, purpose)
         else:
             model, result = self._call_openai(messages, effective_max, purpose, model=model)
 
@@ -142,6 +145,57 @@ class LLMGateway:
         return self.xai_model, {
             'content': response.choices[0].message.content,
             'usage': response.usage,
+            'latency_ms': int(time.time() * 1000) - start_ms,
+        }
+
+    def _call_xai_with_search(self, messages, max_tokens, purpose):
+        """Make an xAI/Grok API call with live web search (Responses API)."""
+        if not self.xai_api_key:
+            raise ValueError("XAI_API_KEY not configured")
+
+        import openai
+        client = openai.OpenAI(
+            api_key=self.xai_api_key,
+            base_url=XAI_BASE_URL,
+        )
+
+        # Responses API uses 'input' instead of 'messages'
+        input_messages = [{'role': m['role'], 'content': m['content']} for m in messages]
+
+        start_ms = int(time.time() * 1000)
+        try:
+            response = client.responses.create(
+                model=self.xai_model,
+                input=input_messages,
+                max_output_tokens=max_tokens,
+                tools=[{'type': 'web_search'}],
+            )
+        except Exception as e:
+            logger.error(f"xAI/Grok search call failed ({purpose}): {e}")
+            raise
+
+        # Extract text from response output items
+        content = ''
+        for item in response.output:
+            if hasattr(item, 'content'):
+                for block in item.content:
+                    if hasattr(block, 'text'):
+                        content += block.text
+
+        class _Usage:
+            def __init__(self, inp, out):
+                self.prompt_tokens = inp
+                self.completion_tokens = out
+                self.total_tokens = inp + out
+
+        usage = _Usage(
+            getattr(response.usage, 'input_tokens', 0),
+            getattr(response.usage, 'output_tokens', 0),
+        )
+
+        return self.xai_model, {
+            'content': content,
+            'usage': usage,
             'latency_ms': int(time.time() * 1000) - start_ms,
         }
 

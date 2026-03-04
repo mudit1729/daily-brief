@@ -26,9 +26,10 @@ This paper demonstrates that pure transformer architectures, without convolution
 > "When trained on large-scale datasets and fine-tuned to downstream tasks, Vision Transformer achieves excellent results compared to state-of-the-art convolutional networks while requiring substantially less compute to train."
 
 ### 3 Things to Remember
-1. **Patches as Tokens:** Divide images into 16×16 (or other patch sizes) non-overlapping patches, flatten each patch, and treat as a token sequence in a transformer.
-2. **Pre-training is Critical:** ViT requires large-scale pre-training (ImageNet-21k or JFT-300M) to outperform CNNs; on small datasets like ImageNet-1k alone, it underperforms.
-3. **Scaling Laws:** Vision Transformers follow predictable scaling laws—larger models and more training data lead to better generalization without saturation, unlike CNNs which plateau.
+
+> 1. **Patches as Tokens:** Divide images into 16x16 (or other patch sizes) non-overlapping patches, flatten each patch, and treat as a token sequence in a transformer.
+> 2. **Pre-training is Critical:** ViT requires large-scale pre-training (ImageNet-21k or JFT-300M) to outperform CNNs; on small datasets like ImageNet-1k alone, it underperforms.
+> 3. **Scaling Laws:** Vision Transformers follow predictable scaling laws -- larger models and more training data lead to better generalization without saturation, unlike CNNs which plateau.
 
 ### Impact & Significance
 - First paper to successfully apply pure transformer architecture to image classification at scale
@@ -54,31 +55,16 @@ This paper demonstrates that pure transformer architectures, without convolution
 
 ### Tensor Shape Tracking Throughout Pipeline
 
-```
-Input Image:
-  Shape: (1, 3, 224, 224)  [batch_size, channels, height, width]
-  Example: 224×224 RGB image
+| Stage | Shape | Notes |
+|-------|-------|-------|
+| Input Image | (1, 3, 224, 224) | [batch_size, channels, height, width] |
+| After Patch Embedding (16x16) | (1, 196, 768) | (224/16) x (224/16) = 14 x 14 = 196 patches |
+| After Adding CLS Token | (1, 197, 768) | Learnable parameter prepended to the sequence |
+| After Position Embedding | (1, 197, 768) | Positions added element-wise |
+| After Transformer Encoder (12 layers) | (1, 197, 768) | Shape unchanged through transformer blocks |
+| After Classification Head (MLP) | (1, 1000) | Final logits for softmax |
 
-After Patch Embedding:
-  Patches (16×16): (1, 196, 768)  [batch_size, num_patches, embedding_dim]
-  Calculation: (224/16) × (224/16) = 14 × 14 = 196 patches
-  Embedding dimension typically: 768 (for ViT-B), 1024 (ViT-L), 1280 (ViT-H)
-
-After Adding CLS Token:
-  Shape: (1, 197, 768)  [batch_size, num_patches+1, embedding_dim]
-  The CLS token is a learnable parameter prepended to the sequence
-
-After Position Embedding:
-  Shape: (1, 197, 768)  [same as above, positions added element-wise]
-
-After Transformer Encoder (12 layers for ViT-B):
-  Shape: (1, 197, 768)  [batch_size, sequence_length, embedding_dim]
-  (Position and shape unchanged through transformer blocks)
-
-After Classification Head (MLP):
-  Shape: (1, 1000)  [batch_size, num_classes]
-  Final logits for softmax
-```
+Embedding dimension: 768 (ViT-B), 1024 (ViT-L), 1280 (ViT-H)
 
 ### Key Assumptions & Constraints
 1. Fixed input resolution (224×224 or 384×384)
@@ -111,7 +97,7 @@ Unlike transformers in NLP where word order matters inherently, images require e
 **Position Encoding Type:** Learnable positional embeddings (not sinusoidal like original transformer)
 
 **Mechanism:**
-```
+```math
 For each patch position p ∈ {1, 2, ..., 196}:
   pos_embed[p] ∈ ℝ^768  (learnable parameter)
 
@@ -219,48 +205,16 @@ After Transformer:
 
 ### Model Variants
 
-#### ViT-Base (ViT-B/16)
-```
-Configuration:
-  Patch Size: 16×16
-  Hidden Dimension: 768
-  Num Attention Heads: 12
-  MLP Hidden Dimension: 3072 (4× expansion)
-  Num Transformer Blocks: 12
-  Total Parameters: ~86 million
-
-Sequence Length: 196 patches + 1 CLS = 197 tokens
-Attention Complexity: O(197²) per layer = ~39,000 operations per layer
-```
-
-#### ViT-Large (ViT-L/16)
-```
-Configuration:
-  Patch Size: 16×16
-  Hidden Dimension: 1024
-  Num Attention Heads: 16
-  MLP Hidden Dimension: 4096 (4× expansion)
-  Num Transformer Blocks: 24
-  Total Parameters: ~304 million
-
-Computational Cost: ~4x ViT-B (more layers + larger hidden dimensions)
-Sequence Length: 197 tokens
-```
-
-#### ViT-Huge (ViT-H/14)
-```
-Configuration:
-  Patch Size: 14×14
-  Hidden Dimension: 1280
-  Num Attention Heads: 16
-  MLP Hidden Dimension: 5120 (4× expansion)
-  Num Transformer Blocks: 32
-  Total Parameters: ~632 million
-
-Sequence Length: (224/14)² + 1 = 257 tokens
-Computational Cost: Extremely high due to larger patch embedding computation
-  and increased sequence length (quadratic attention)
-```
+| Parameter | ViT-Base (ViT-B/16) | ViT-Large (ViT-L/16) | ViT-Huge (ViT-H/14) |
+|-----------|---------------------|----------------------|----------------------|
+| Patch Size | 16x16 | 16x16 | 14x14 |
+| Hidden Dimension | 768 | 1024 | 1280 |
+| Num Attention Heads | 12 | 16 | 16 |
+| MLP Hidden Dimension | 3072 (4x expansion) | 4096 (4x expansion) | 5120 (4x expansion) |
+| Num Transformer Blocks | 12 | 24 | 32 |
+| Total Parameters | ~86M | ~304M | ~632M |
+| Sequence Length | 197 tokens | 197 tokens | 257 tokens |
+| Computational Cost | 1x (baseline) | ~4x ViT-B | Extremely high (quadratic attention) |
 
 ### Key Architectural Decisions
 
@@ -506,7 +460,7 @@ def vision_transformer_forward_pass(image, config):
 #### Pre-training Head
 When pre-training on large datasets (ImageNet-21k, JFT-300M):
 
-```
+```math
 Input: [CLS] token output from transformer
   Shape: (batch_size, 768)
 
@@ -530,7 +484,7 @@ Linear Layer 2: 1000 → num_classes_pretraining  [output layer]
 #### Fine-tuning Head
 When fine-tuning on downstream tasks (ImageNet-1k, CIFAR-10, etc.):
 
-```
+```math
 Input: [CLS] token output from transformer
   Shape: (batch_size, 768)
 
@@ -546,7 +500,7 @@ Linear Layer: 768 → num_classes_downstream
 ### Loss Functions
 
 #### Pre-training: Cross-Entropy Loss
-```
+```math
 Target: y ∈ {1, 2, ..., num_classes} (one-hot encoded)
   Example: for ImageNet-21k with 14,000 classes
 
@@ -1107,7 +1061,7 @@ Accuracy
 ### Evaluation Metrics
 
 #### Primary Metric: Top-1 Accuracy
-```
+```math
 Definition:
   For test set with N images and C classes:
 
@@ -1119,30 +1073,26 @@ Formula:
   Top-1 Acc = (1/N) × ∑_{i=1}^{N} I(argmax(logits_i) == y_i)
 
   where I(·) is indicator function (1 if true, 0 if false)
+```
 
 Typical Results (ImageNet-1k):
-  - ViT-L/16 (JFT pre-trained): 88.55%
-  - ResNet-152 (ImageNet pre-trained): 82.96%
-  - Improvement: +5.59 percentage points
-```
+- ViT-L/16 (JFT pre-trained): 88.55%
+- ResNet-152 (ImageNet pre-trained): 82.96%
+- Improvement: +5.59 percentage points
 
 #### Secondary Metric: Top-5 Accuracy
-```
+```math
 Definition:
   For each image, check if true class is among top 5 predicted classes
 
 Formula:
   Top-5 Acc = (1/N) × ∑_{i=1}^{N} I(y_i ∈ top-5(logits_i))
-
-Intuition:
-  - Less strict than top-1
-  - Useful for applications where any top-few prediction is acceptable
-  - Typically 5-10% higher than top-1 accuracy
-
-ViT-L/16 Results:
-  - Top-1: 88.55%
-  - Top-5: 98.77%
 ```
+
+- Less strict than top-1; useful for applications where any top-few prediction is acceptable
+- Typically 5-10% higher than top-1 accuracy
+
+ViT-L/16 Results: Top-1: 88.55%, Top-5: 98.77%
 
 #### Efficiency Metrics
 
@@ -1298,12 +1248,12 @@ Evaluation:
 ```
 
 **ViT Results Summary (VTAB):**
-```
-Pre-training Dataset | Median Top-1 Accuracy | Improvement over random
-ImageNet-21k        | 77.64%                | +44.5 percentage points
-JFT-300M            | 81.88%                | +48.7 percentage points
-Trained from scratch| ~33%                  | Very poor
-```
+
+| Pre-training Dataset | Median Top-1 Accuracy | Improvement over random |
+|---------------------|-----------------------|-------------------------|
+| ImageNet-21k | 77.64% | +44.5 percentage points |
+| JFT-300M | 81.88% | +48.7 percentage points |
+| Trained from scratch | ~33% | Very poor |
 
 ### Few-Shot Evaluation Protocol
 
@@ -1360,28 +1310,25 @@ Comparison with CNNs:
 ### Main Results: ViT vs CNN on ImageNet-1k
 
 **Accuracy Comparison (Top-1):**
-```
-Model                      Pre-training  | ImageNet-1k Acc | Training Time
-─────────────────────────────────────────────────────────────────────────
-ResNet-152                 ImageNet-21k  | 82.96%          | [baseline]
-EfficientNet-B7            ImageNet-21k  | 85.70%          | [baseline]
-ResNet-152 (AutoAugment)   ImageNet-21k  | 83.48%          | [baseline]
-─────────────────────────────────────────────────────────────────────────
-ViT-B/32                   ImageNet-21k  | 84.86%          | Similar
-ViT-B/16                   ImageNet-21k  | 86.45%          | ~53 hrs
-ViT-L/16                   ImageNet-21k  | 87.76%          | ~178 hrs
-ViT-H/14                   ImageNet-21k  | 88.16%          | ~290 hrs
-─────────────────────────────────────────────────────────────────────────
-ViT-L/16                   JFT-300M      | 88.55%          | ~1000 hrs
-ViT-H/14                   JFT-300M      | 88.95%          | Much longer
-ViT-g/14                   JFT-300M      | 90.45%          | ~2000+ hrs
 
-Key Observations:
-1. With ImageNet-21k: ViT-L outperforms all CNNs by 1-5%
-2. With JFT-300M: ViT-L/H achieve 88-89% (state-of-the-art 2020)
-3. Scaling: Larger models + more data = monotonic improvement
-4. Smaller ViT-B/16 (86.45%) matches EfficientNet-B7 (85.70%)
-```
+| Model | Pre-training | ImageNet-1k Acc | Training Time |
+|-------|-------------|-----------------|---------------|
+| ResNet-152 | ImageNet-21k | 82.96% | [baseline] |
+| EfficientNet-B7 | ImageNet-21k | 85.70% | [baseline] |
+| ResNet-152 (AutoAugment) | ImageNet-21k | 83.48% | [baseline] |
+| **ViT-B/32** | ImageNet-21k | 84.86% | Similar |
+| **ViT-B/16** | ImageNet-21k | 86.45% | ~53 hrs |
+| **ViT-L/16** | ImageNet-21k | 87.76% | ~178 hrs |
+| **ViT-H/14** | ImageNet-21k | 88.16% | ~290 hrs |
+| **ViT-L/16** | JFT-300M | 88.55% | ~1000 hrs |
+| **ViT-H/14** | JFT-300M | 88.95% | Much longer |
+| **ViT-g/14** | JFT-300M | 90.45% | ~2000+ hrs |
+
+> **Key Observations:**
+> 1. With ImageNet-21k: ViT-L outperforms all CNNs by 1-5%
+> 2. With JFT-300M: ViT-L/H achieve 88-89% (state-of-the-art 2020)
+> 3. Scaling: Larger models + more data = monotonic improvement
+> 4. Smaller ViT-B/16 (86.45%) matches EfficientNet-B7 (85.70%)
 
 **FLOPs vs Accuracy Trade-off:**
 ```
@@ -1426,7 +1373,9 @@ Accuracy
    └──────────────────────────→ Model Size (parameters)
      0  100M  200M  300M  400M  500M  600M
      ViT-B   ViT-L        ViT-H
+```
 
+```math
 Law: Accuracy ≈ a × (Parameters)^b
      where b ≈ 0.07 (diminishing returns)
 ```
@@ -1463,67 +1412,59 @@ Interpretation:
 **Question:** How important are position embeddings?
 
 **Experiment:**
-```
 ViT-B/16 on ImageNet-1k (pre-trained on ImageNet-21k)
 
-Configuration          | Top-1 Accuracy
-─────────────────────────────────────
-Full model (with pos)  | 86.45%
-No position embedding  | 81.93%
-Sinusoidal position    | 85.94%  [not used in ViT]
+| Configuration | Top-1 Accuracy |
+|--------------|----------------|
+| Full model (with pos) | 86.45% |
+| No position embedding | 81.93% |
+| Sinusoidal position | 85.94% [not used in ViT] |
 
-Ablation Results:
-  - Removing position embeddings: -4.52 percentage points
-  - Suggests position embeddings encode important spatial information
-  - But model still works reasonably well without them (81.93%)
-
-  - Learnable > Sinusoidal: +0.51 pp
-    (slight advantage of learning positions from data)
-```
+> **Ablation Results:**
+> - Removing position embeddings: -4.52 percentage points
+> - Suggests position embeddings encode important spatial information
+> - But model still works reasonably well without them (81.93%)
+> - Learnable > Sinusoidal: +0.51 pp (slight advantage of learning positions from data)
 
 #### 2. Patch Size Ablation
 
 **Question:** What patch size provides best trade-off?
 
 **Experiment:**
-```
 ViT-B with different patch sizes (ImageNet-21k pre-training)
 
-Patch Size | Tokens | Top-1 Acc | FLOPs | Throughput
-─────────────────────────────────────────────────────
-32×32      | 49     | 84.86%    | 0.5×  | 2.0× faster
-16×16      | 196    | 86.45%    | 1.0×  | 1.0× baseline
-8×8        | 784    | 87.38%    | 2.5×  | 0.4× (4× slower)
+| Patch Size | Tokens | Top-1 Acc | FLOPs | Throughput |
+|-----------|--------|-----------|-------|------------|
+| 32x32 | 49 | 84.86% | 0.5x | 2.0x faster |
+| 16x16 | 196 | 86.45% | 1.0x | 1.0x baseline |
+| 8x8 | 784 | 87.38% | 2.5x | 0.4x (4x slower) |
 
-Ablation Results:
-  - Smaller patches: Better accuracy but quadratic compute cost
-  - 16×16 provides good balance for ViT-B/16
-  - Larger models (ViT-H) use 14×14 patches (fine detail)
-  - Smaller models can use 32×32 if speed is critical
-```
+> **Ablation Results:**
+> - Smaller patches: Better accuracy but quadratic compute cost
+> - 16x16 provides good balance for ViT-B/16
+> - Larger models (ViT-H) use 14x14 patches (fine detail)
+> - Smaller models can use 32x32 if speed is critical
 
 #### 3. Transformer Depth Ablation
 
 **Question:** How many layers do we need?
 
 **Experiment:**
-```
 ViT-B with different numbers of transformer blocks
 
-Num Layers | Parameters | Top-1 Acc | Training Time
-─────────────────────────────────────────────────
-4          | 60M        | 84.20%    | 40 hrs
-8          | 73M        | 85.30%    | 45 hrs
-12         | 86M        | 86.45%    | 53 hrs (full)
-16         | 99M        | 86.42%    | 60 hrs
-24         | 125M       | 86.37%    | 75 hrs
+| Num Layers | Parameters | Top-1 Acc | Training Time |
+|-----------|------------|-----------|---------------|
+| 4 | 60M | 84.20% | 40 hrs |
+| 8 | 73M | 85.30% | 45 hrs |
+| 12 | 86M | 86.45% | 53 hrs (full) |
+| 16 | 99M | 86.42% | 60 hrs |
+| 24 | 125M | 86.37% | 75 hrs |
 
-Ablation Results:
-  - Diminishing returns beyond 12 layers
-  - 12 layers: Good accuracy with reasonable compute
-  - 24+ layers: More parameters but no significant improvement
-  - Suggests ViT-B is near optimal depth for this size
-```
+> **Ablation Results:**
+> - Diminishing returns beyond 12 layers
+> - 12 layers: Good accuracy with reasonable compute
+> - 24+ layers: More parameters but no significant improvement
+> - Suggests ViT-B is near optimal depth for this size
 
 #### 4. Attention Heads Ablation
 

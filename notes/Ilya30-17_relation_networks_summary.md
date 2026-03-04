@@ -1,9 +1,10 @@
 # Relation Networks: A Simple Neural Network Module for Relational Reasoning
-## Comprehensive 12-Section Paper Summary
+
+*Comprehensive 12-Section Paper Summary*
 
 ---
 
-## SECTION 1: ONE-PAGE OVERVIEW
+## Section 1: One-Page Overview
 
 ### Metadata
 - **Title**: A simple neural network module for relational reasoning
@@ -30,14 +31,17 @@
    - Near-perfect accuracy on all relational tasks
 
 ### Key Novelty: The Relation Network Module
-- **Core Insight**: Objects are more important than pixels; relational reasoning should operate on objects, not raw pixels
-- **Architecture**: Extract objects → create all pairwise combinations → apply learned relational function → aggregate
-- **Rationale**: Explicit relational reasoning is simpler and more data-efficient than implicit reasoning through RNNs/attention
+
+> **Core Insight:** Objects are more important than pixels; relational reasoning should operate on objects, not raw pixels.
+
+- **Architecture:** Extract objects -> create all pairwise combinations -> apply learned relational function -> aggregate
+- **Rationale:** Explicit relational reasoning is simpler and more data-efficient than implicit reasoning through RNNs/attention
 
 ### Three Things to Remember
-1. **RNs are pairwise**: They compute relations between every pair of objects; O(n²) complexity but provides explicit relational signal
-2. **Plug-and-play**: RN module is agnostic to object representation (CNN features, embeddings, etc.); works with any encoder
-3. **Superhuman reasoning**: Achieves near-perfect accuracy on CLEVR, suggesting explicit pairwise reasoning is the right inductive bias for relational tasks
+
+> 1. **RNs are pairwise:** They compute relations between every pair of objects; O(n^2) complexity but provides explicit relational signal
+> 2. **Plug-and-play:** RN module is agnostic to object representation (CNN features, embeddings, etc.); works with any encoder
+> 3. **Superhuman reasoning:** Achieves near-perfect accuracy on CLEVR, suggesting explicit pairwise reasoning is the right inductive bias for relational tasks
 
 ### Paper Statistics
 - **Pages**: 10 main paper + appendix
@@ -47,7 +51,7 @@
 
 ---
 
-## SECTION 2: PROBLEM SETUP AND OUTPUTS
+## Section 2: Problem Setup and Outputs
 
 ### Problem Formulation
 
@@ -57,7 +61,8 @@
 - **Challenge**: Requires understanding scene composition AND relational reasoning between objects
 
 #### Relational Reasoning Definition
-"The ability to understand and reason about the relationships and interactions between objects"
+
+> "The ability to understand and reason about the relationships and interactions between objects."
 
 Types of relations:
 - **Spatial**: "to the left of", "above", "between"
@@ -101,7 +106,7 @@ Final Logits:         [batch=64, num_answers=432]  # CLEVR has 432 answer classe
 
 ---
 
-## SECTION 3: COORDINATE FRAMES AND GEOMETRY
+## Section 3: Coordinate Frames and Geometry
 
 ### Object Representation Philosophy
 
@@ -177,7 +182,7 @@ The summation is order-invariant, making the module order-agnostic
 
 ---
 
-## SECTION 4: ARCHITECTURE DEEP DIVE
+## Section 4: Architecture Deep Dive
 
 ### Overall System Architecture
 
@@ -370,7 +375,7 @@ object_with_coords = concat([
 
 ---
 
-## SECTION 5: FORWARD PASS PSEUDOCODE
+## Section 5: Forward Pass Pseudocode
 
 ### Complete Forward Pass with Shape Annotations
 
@@ -699,7 +704,7 @@ Practical Implementation:
 
 ---
 
-## SECTION 6: HEADS, TARGETS, AND LOSSES
+## Section 6: Heads, Targets, and Losses
 
 ### Answer Head Architecture
 
@@ -992,7 +997,7 @@ plt.show()
 
 ---
 
-## SECTION 7: DATA PIPELINE
+## Section 7: Data Pipeline
 
 ### CLEVR Dataset
 
@@ -1496,7 +1501,7 @@ class BABIDataset(Dataset):
 
 ---
 
-## SECTION 8: TRAINING PIPELINE
+## Section 8: Training Pipeline
 
 ### Hyperparameter Configuration
 
@@ -1817,7 +1822,7 @@ model = DistributedDataParallel(model, device_ids=[local_rank])
 
 ---
 
-## SECTION 9: DATASET + EVALUATION PROTOCOL
+## Section 9: Dataset + Evaluation Protocol
 
 ### Evaluation Metrics
 
@@ -2100,7 +2105,7 @@ def run_ablations(base_model_path):
 
 ---
 
-## SECTION 10: RESULTS SUMMARY + ABLATIONS
+## Section 10: Results Summary + Ablations
 
 ### Main Results
 
@@ -2428,7 +2433,7 @@ Conclusion:
 
 ---
 
-## SECTION 11: PRACTICAL INSIGHTS
+## Section 11: Practical Insights
 
 ### 10 Engineering Takeaways
 
@@ -2780,7 +2785,7 @@ Recommended order:
 
 ---
 
-## SECTION 12: MINIMAL REIMPLEMENTATION CHECKLIST
+## Section 12: Minimal Reimplementation Checklist
 
 ### Phase 1: Setup and Infrastructure (2-4 hours)
 

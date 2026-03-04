@@ -149,6 +149,55 @@ class StoryTracker:
         )
         db.session.add(event)
 
+    def create_story_from_cluster(self, cluster_id):
+        """Create a TrackedTopic and Story from a followed cluster.
+
+        Called when user clicks 'Follow' on a cluster card.
+        Returns (topic, story) tuple or (None, None) if cluster not found.
+        """
+        cluster = Cluster.query.get(cluster_id)
+        if not cluster or not cluster.label:
+            return None, None
+
+        # Check if a TrackedTopic already covers this cluster
+        cluster_words = _build_cluster_words(cluster, [])
+        existing_topics = TrackedTopic.query.filter_by(is_active=True).all()
+
+        matched_topic = None
+        for topic in existing_topics:
+            topic_terms = _significant_terms(list(_extract_words(topic.name)))
+            if not topic_terms:
+                continue
+            matching = sum(1 for t in topic_terms if _fuzzy_match(t, cluster_words))
+            required = len(topic_terms) if len(topic_terms) <= 2 else 2
+            if matching >= required:
+                matched_topic = topic
+                break
+
+        if not matched_topic:
+            matched_topic = TrackedTopic(
+                name=cluster.label[:256],
+                description=f'Auto-tracked from followed news cluster',
+                is_active=True,
+            )
+            db.session.add(matched_topic)
+            db.session.flush()
+            logger.info(f"[StoryTracker] Created TrackedTopic '{matched_topic.name}' from follow")
+
+        # Get articles for this cluster
+        memberships = ClusterMembership.query.filter_by(cluster_id=cluster.id).all()
+        from app.models.article import Article
+        articles = [Article.query.get(m.article_id) for m in memberships]
+        articles = [a for a in articles if a]
+
+        story = self._find_or_create_story(matched_topic, cluster, _build_cluster_words(cluster, articles))
+        if story:
+            self._add_event(story, cluster, articles)
+            db.session.commit()
+            logger.info(f"[StoryTracker] Created story '{story.title}' from follow on cluster {cluster_id}")
+
+        return matched_topic, story
+
     def update_story_status(self, story_id, status):
         """Update story status (developing, ongoing, resolved, stale)."""
         story = Story.query.get(story_id)

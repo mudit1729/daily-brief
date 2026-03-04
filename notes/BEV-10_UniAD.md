@@ -21,11 +21,11 @@
 - BEV backbone: BEVFormer-style spatial-temporal BEV encoder
 - Demonstrates that joint training of all tasks improves planning performance over separate models
 
-**If you only remember 3 things:**
-
-1. Full stack: detect → track → map → forecast → plan — all in one model, all differentiable
-2. Query-based design throughout: track queries evolve over time and feed into motion forecasting
-3. CVPR 2023 Best Paper — demonstrates planning-oriented multi-task learning is superior to isolated modules
+> **If you only remember 3 things:**
+>
+> 1. Full stack: detect → track → map → forecast → plan — all in one model, all differentiable
+> 2. Query-based design throughout: track queries evolve over time and feed into motion forecasting
+> 3. CVPR 2023 Best Paper — demonstrates planning-oriented multi-task learning is superior to isolated modules
 
 ---
 
@@ -225,7 +225,7 @@ def forward(images_seq, calibration, ego_poses, prev_track_queries=None):
 
 ---
 
-## 8) Training Pipeline (Reproducible) (Reproducible) (Reproducible)
+## 8) Training Pipeline
 
 | Parameter | Value |
 |-----------|-------|
@@ -284,6 +284,8 @@ def forward(images_seq, calibration, ego_poses, prev_track_queries=None):
 
 - Not specified in provided inputs. Plausible defaults (not from paper): summarize main benchmark numbers directly from cited tables.
 
+---
+
 ## 11) Practical Insights
 
 **10 engineering takeaways:**
@@ -335,10 +337,6 @@ def forward(images_seq, calibration, ego_poses, prev_track_queries=None):
 **Script 1:** Verify track query persistence: same object → same query across frames
 **Script 2:** Overfit detection + planning on 4 scenes → L2 < 0.2m
 **Script 3:** Visualize full pipeline: images → BEV → detections → tracks → forecast → plan
-
----
----
----
 
 ---
 

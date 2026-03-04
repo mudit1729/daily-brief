@@ -24,9 +24,9 @@ The paper's fundamental novelty is establishing a new generative modeling paradi
 
 ### Three Things to Remember
 
-1. **Diffusion is Bidirectional:** The forward process (q) deterministically adds noise over T timesteps following a fixed schedule; the reverse process (p_θ) learns to denoise step-by-step using a neural network
-2. **Loss is Elegant:** Training loss reduces to predicting Gaussian noise at each denoising step - a simple MSE loss in noise space (ε-prediction)
-3. **Quality-Speed Tradeoff:** More diffusion steps → better sample quality but slower generation; DDPM uses 1000 steps, but later work shows 50-100 can work well
+> 1. **Diffusion is Bidirectional:** The forward process (q) deterministically adds noise over T timesteps following a fixed schedule; the reverse process (p_θ) learns to denoise step-by-step using a neural network
+> 2. **Loss is Elegant:** Training loss reduces to predicting Gaussian noise at each denoising step -- a simple MSE loss in noise space (epsilon-prediction)
+> 3. **Quality-Speed Tradeoff:** More diffusion steps leads to better sample quality but slower generation; DDPM uses 1000 steps, but later work shows 50-100 can work well
 
 ---
 
@@ -371,17 +371,17 @@ x_0 = x_t  # Final denoised image (B, 3, 32, 32)
 
 The DDPM training objective is remarkably simple:
 
-```
+```math
 L_simple = E_{t, x_0, ε} [ ||ε - ε̂_θ(x_t, t)||² ]
+```
 
-Expanded:
+**Expanded steps:**
 1. Sample x_0 from training data
 2. Sample t uniformly from {1, ..., T}
 3. Sample ε ~ N(0, I)
 4. Compute x_t = √ᾱ_t * x_0 + √(1-ᾱ_t) * ε
 5. Network predicts: ε̂ = ε̂_θ(x_t, t)
 6. Loss = MSE(ε̂, ε) averaged over all dimensions
-```
 
 ### Simplified vs. Full Variational Bound
 
@@ -793,122 +793,83 @@ Bootstrap:
 ### Main Results
 
 #### CIFAR-10 (32×32)
-```
-Model                           FID-10k    IS        NLL (bits/dim)
-─────────────────────────────────────────────────────────────────
-DDPM (Linear Schedule)          4.59       6.49      3.75
-DDPM (Cosine Schedule)          3.17       9.46      3.71
-StyleGAN2                       2.42       10.13     N/A
-iGPT-L                          N/A        9.31      3.50
-RealNVP                         N/A        N/A       3.65
-─────────────────────────────────────────────────────────────────
 
-Key Observations:
-- Linear schedule: Good but suboptimal (4.59 FID)
-- Cosine schedule: +1.4 FID improvement! (3.17 FID)
-- DDPM within striking distance of StyleGAN2 (3.17 vs 2.42)
-- Better likelihood than StyleGAN2 (has no likelihood)
-- Much better than GANs on likelihood metrics
-```
+| Model | FID-10k | IS | NLL (bits/dim) |
+|---|---|---|---|
+| DDPM (Linear Schedule) | 4.59 | 6.49 | 3.75 |
+| **DDPM (Cosine Schedule)** | **3.17** | **9.46** | **3.71** |
+| StyleGAN2 | 2.42 | 10.13 | N/A |
+| iGPT-L | N/A | 9.31 | 3.50 |
+| RealNVP | N/A | N/A | 3.65 |
+
+> **Key Observations:** Cosine schedule yields +1.4 FID improvement over linear (3.17 vs 4.59). DDPM within striking distance of StyleGAN2 (3.17 vs 2.42). Better likelihood than StyleGAN2 and much better than GANs on likelihood metrics.
 
 #### LSUN-256×256
-```
-Dataset/Class                   FID        Notes
-──────────────────────────────────────────────────────
-LSUN-Bedroom                    4.82       Good quality, diverse
-LSUN-Church                     4.80       Sharp architecture preservation
-LSUN-Classroom                  5.40       More complex scenes, harder
-StyleGAN2 (LSUN-Bedroom)        3.85       For reference/comparison
-──────────────────────────────────────────────────────
 
-Observations:
-- Reasonable FID, but ~1 FID behind StyleGAN2
-- Sample quality is high visually
-- Diverse samples without mode collapse
-- Slower generation (1000 steps = 1-2 min per sample)
-```
+| Dataset/Class | FID | Notes |
+|---|---|---|
+| LSUN-Bedroom | 4.82 | Good quality, diverse |
+| LSUN-Church | 4.80 | Sharp architecture preservation |
+| LSUN-Classroom | 5.40 | More complex scenes, harder |
+| StyleGAN2 (LSUN-Bedroom) | 3.85 | For reference/comparison |
+
+> **Observations:** Reasonable FID, but ~1 FID behind StyleGAN2. Sample quality is high visually with diverse samples and no mode collapse. Slower generation (1000 steps = 1-2 min per sample).
 
 ### Ablation Studies
 
 #### Noise Schedule Ablation
-```
-Schedule Type                   FID-10k    Comments
-───────────────────────────────────────────────────────
-Linear (β_min=0.0001, β_max=0.02)  4.59   Baseline
-Cosine (offset=0.008)           3.17   +1.42 FID improvement
-Sqrt-based                      3.85   Intermediate performance
-───────────────────────────────────────────────────────
 
-Why Cosine Works Better:
-- Linear: β_t grows too fast early, SNR drops too abruptly
-- Cosine: Smoother SNR trajectory, better signal preservation
-- Training allocates capacity where it matters (high noise regime)
-```
+| Schedule Type | FID-10k | Comments |
+|---|---|---|
+| Linear (β_min=0.0001, β_max=0.02) | 4.59 | Baseline |
+| **Cosine (offset=0.008)** | **3.17** | **+1.42 FID improvement** |
+| Sqrt-based | 3.85 | Intermediate performance |
+
+> **Why Cosine Works Better:** Linear schedule's β_t grows too fast early; SNR drops too abruptly. Cosine provides smoother SNR trajectory and better signal preservation. Training allocates capacity where it matters (high noise regime).
 
 #### Loss Weighting Ablation
-```
-Loss Weighting Scheme                           FID-10k    Notes
-──────────────────────────────────────────────────────────────
-L_simple: E_t [||ε - ε̂||²]                     3.17       Simple, best empirically
-L_vlb: Full variational bound (weighted)        4.21       More principled but worse
-λ_t-weighted: Custom time-dependent weights     3.52       Between the two
-──────────────────────────────────────────────────────────────
 
-Surprising Finding:
-- Uniform weighting L_simple outperforms principled weighting!
-- This contradicts intuition from VAEs, flow models
-- Hypothesis: All timesteps equally important for generative quality
-```
+| Loss Weighting Scheme | FID-10k | Notes |
+|---|---|---|
+| **L_simple: E_t [||ε - ε̂||²]** | **3.17** | **Simple, best empirically** |
+| L_vlb: Full variational bound (weighted) | 4.21 | More principled but worse |
+| λ_t-weighted: Custom time-dependent weights | 3.52 | Between the two |
+
+> **Surprising Finding:** Uniform weighting L_simple outperforms principled weighting. This contradicts intuition from VAEs and flow models. Hypothesis: all timesteps are equally important for generative quality.
 
 #### Architecture Ablation
-```
-Architecture Choice                             FID-10k    Params
-───────────────────────────────────────────────────────────────
-U-Net with Self-Attention (middle)              3.17       134M
-U-Net without Self-Attention                    3.80       128M
-ResNet backbone                                 4.25       256M
-Transformer backbone                           4.50       300M+
-───────────────────────────────────────────────────────────────
 
-Key Findings:
-- U-Net is optimal for this task
-- Self-Attention in bottleneck helps (+0.6 FID)
-- Skip connections essential (tested without → +2 FID)
-- Time embedding position matters (tested in different blocks)
-```
+| Architecture Choice | FID-10k | Params |
+|---|---|---|
+| **U-Net with Self-Attention (middle)** | **3.17** | **134M** |
+| U-Net without Self-Attention | 3.80 | 128M |
+| ResNet backbone | 4.25 | 256M |
+| Transformer backbone | 4.50 | 300M+ |
+
+> **Key Findings:** U-Net is optimal for this task. Self-Attention in bottleneck helps (+0.6 FID). Skip connections essential (tested without: +2 FID). Time embedding position matters.
 
 #### T (Diffusion Steps) Ablation
-```
-T (Num Timesteps)    FID-10k    Sample Time (CIFAR-10)
-────────────────────────────────────────────────────
-1000 (paper setting)    3.17     ~25 seconds
-500                     3.42     ~12 seconds
-250                     3.85     ~6 seconds
-100                     4.52     ~2.5 seconds
-50                      5.20     ~1.2 seconds
-────────────────────────────────────────────────────
 
-Trade-off:
-- More steps → better quality but slower
-- Diminishing returns: 1000→500 costs 0.25 FID, saves 2x time
-- Later work (DDIM) shows 50 steps can achieve ~3.5 FID
-```
+| T (Num Timesteps) | FID-10k | Sample Time (CIFAR-10) |
+|---|---|---|
+| **1000 (paper setting)** | **3.17** | ~25 seconds |
+| 500 | 3.42 | ~12 seconds |
+| 250 | 3.85 | ~6 seconds |
+| 100 | 4.52 | ~2.5 seconds |
+| 50 | 5.20 | ~1.2 seconds |
+
+> **Trade-off:** More steps yield better quality but slower generation. Diminishing returns: 1000 to 500 costs 0.25 FID but saves 2x time. Later work (DDIM) shows 50 steps can achieve ~3.5 FID.
 
 #### Model Capacity Ablation
-```
-Model Size               # Params    FID-10k    Inference Time
-──────────────────────────────────────────────────────────────
-Tiny (1 down block)      8M          6.52       ~5 sec
-Small (2 down blocks)    48M         4.25       ~15 sec
-Medium (3 down blocks)   134M        3.17       ~25 sec
-Large (4 down blocks)    380M        3.09       ~45 sec
-──────────────────────────────────────────────────────────────
 
-Observations:
-- Clear scaling: more params → better FID
-- Diminishing returns past ~134M for CIFAR-10
-- Larger models needed for 256×256 (400M+)
-```
+| Model Size | # Params | FID-10k | Inference Time |
+|---|---|---|---|
+| Tiny (1 down block) | 8M | 6.52 | ~5 sec |
+| Small (2 down blocks) | 48M | 4.25 | ~15 sec |
+| **Medium (3 down blocks)** | **134M** | **3.17** | ~25 sec |
+| Large (4 down blocks) | 380M | 3.09 | ~45 sec |
+
+> **Observations:** Clear scaling: more params yield better FID. Diminishing returns past ~134M for CIFAR-10. Larger models needed for 256×256 (400M+).
 
 ---
 

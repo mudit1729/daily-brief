@@ -1,7 +1,6 @@
 # Graph Problems — Complete Interview Prep Guide
 
-<div align="center">
-**Canonical graph patterns · Python solutions · Pattern-based learning**
+**Canonical graph patterns -- Python solutions -- Pattern-based learning**
 
 > This guide covers the most important graph patterns and problems for coding interviews. Each topic includes intuition, pseudocode, reusable templates, and curated LeetCode problems with full solutions.
 
@@ -37,7 +36,7 @@ DFS explores a graph by going as deep as possible along each branch before backt
 
 ### Pseudocode
 
-```python
+```
 DFS-GRID(grid, r, c):
     if out-of-bounds or grid[r][c] is not target:
         return
@@ -397,7 +396,7 @@ MULTI-SOURCE-BFS(grid, sources):
             node = queue.pop(0)
             for neighbor of node:
                 if valid and not visited:
-                    visited.add(neighbor)
+                    mark visited
                     queue.append(neighbor)
         dist += 1
 ```
@@ -739,14 +738,17 @@ DFS-TOPO(adj, n):
     order = []
     for each node u:
         if state[u] == UNVISITED:
-            if DFS(u) finds cycle: return CYCLE
+            if DFS(u) finds cycle:
+                return CYCLE
     return reverse(order)
 
 DFS(u):
     state[u] = IN_PROGRESS
     for v in adj[u]:
-        if state[v] == IN_PROGRESS: return CYCLE
-        if state[v] == UNVISITED: DFS(v)
+        if state[v] == IN_PROGRESS:
+            return CYCLE
+        if state[v] == UNVISITED:
+            DFS(v)
     state[u] = COMPLETED
     order.append(u)  // postorder
 ```
@@ -994,15 +996,18 @@ MAKE-SET(x):
 
 FIND(x):
     if parent[x] != x:
-        parent[x] = FIND(parent[x])  // path compression
+        parent[x] = FIND(parent[x])    // path compression
     return parent[x]
 
 UNION(x, y):
     rx, ry = FIND(x), FIND(y)
-    if rx == ry: return False  // already connected
-    if rank[rx] < rank[ry]: swap(rx, ry)
+    if rx == ry:
+        return False                    // already connected
+    if rank[rx] < rank[ry]:
+        swap(rx, ry)
     parent[ry] = rx
-    if rank[rx] == rank[ry]: rank[rx] += 1
+    if rank[rx] == rank[ry]:
+        rank[rx] += 1
     return True
 ```
 
@@ -1238,10 +1243,11 @@ Dijkstra's algorithm finds the shortest path from a source to all other vertices
 DIJKSTRA(adj, source, n):
     dist = [INF] * n
     dist[source] = 0
-    heap = [(0, source)]  // (distance, node)
+    heap = [(0, source)]                // (distance, node)
     while heap:
         d, u = heappop(heap)
-        if d > dist[u]: continue  // stale entry
+        if d > dist[u]:
+            continue                    // stale entry
         for v, w in adj[u]:
             if dist[u] + w < dist[v]:
                 dist[v] = dist[u] + w
@@ -1461,8 +1467,12 @@ KRUSKAL(edges, n):
         if uf.union(u, v):
             mst_weight += w
             mst_edges += 1
-            if mst_edges == n - 1: break
-    return mst_weight if mst_edges == n - 1 else -1  // not connected
+            if mst_edges == n - 1:
+                break
+    if mst_edges == n - 1:
+        return mst_weight
+    else:
+        return -1                       // not connected
 ```
 
 ### Key things to remember
@@ -1589,7 +1599,8 @@ TARJAN-BRIDGES(adj, n):
     DFS(u, parent):
         disc[u] = low[u] = timer++
         for v in adj[u]:
-            if v == parent: continue
+            if v == parent:
+                continue
             if disc[v] == -1:
                 DFS(v, u)
                 low[u] = min(low[u], low[v])
@@ -1700,8 +1711,6 @@ class Solution:
 | **Edge Cases** | tree graph (all edges are bridges), complete graph (no bridges), graph with only one bridge, very large graphs (recursion limit) |
 
 > 💡 **Interview Tip:** This is a top Amazon problem. Know Tarjan's algorithm cold. The key insight: `low[v] > disc[u]` means removing edge (u,v) disconnects v's subtree from the rest. For articulation points, the condition changes to `low[v] >= disc[u]`. Mention the O(V+E) time — interviewers love hearing that it's a single DFS pass.
-
----
 
 ---
 
@@ -2909,7 +2918,8 @@ class Solution:
 > 💡 **Interview Tip:** This problem combines topological sort with constraint hierarchy. The two-level approach elegantly handles the nested dependencies. A common mistake: trying a single topological sort without separating group and item constraints. This problem is rare but tests deep understanding of topological ordering.
 
 ---
-## 📋 Quick-Reference Complexity Table
+
+## Quick-Reference Complexity Table
 
 | # | Problem | Difficulty | Time | Space | Pattern |
 |---|---------|-----------|------|-------|---------|
@@ -2934,7 +2944,6 @@ class Solution:
 | 19 | Path with Minimum Effort | Medium | O(mn log mn) | O(m×n) | Modified Dijkstra |
 | 20 | Min Cost to Connect All Points | Medium | O(n² log n) | O(n²) | MST (Prim's) |
 | 21 | Critical Connections in a Network | Hard | O(V+E) | O(V+E) | Tarjan's Bridges |
-
 | 22 | Max Area of Island | Medium | O(m×n) | O(m×n) | DFS / Flood Fill |
 | 23 | Pacific Atlantic Water Flow | Medium | O(m×n) | O(m×n) | DFS (Reverse Flow) |
 | 24 | 01 Matrix | Medium | O(m×n) | O(m×n) | Multi-Source BFS |
@@ -2959,7 +2968,7 @@ class Solution:
 
 ---
 
-## 🎯 Study Strategy
+## Study Strategy
 
 ### Graph-Specific Preparation
 

@@ -1,6 +1,6 @@
 # Machine Learning Interview Questions & Answers
 
-A comprehensive collection of ML/AI interview questions with detailed answers, examples, and mathematical foundations.
+*A comprehensive collection of ML/AI interview questions with detailed answers, examples, and mathematical foundations.*
 
 ---
 
@@ -57,9 +57,10 @@ Backward (chain rule):
 ```
 
 **Why it's important:**
-- Makes training deep networks computationally feasible
-- Enables automatic differentiation
-- Foundation for all modern deep learning frameworks
+
+> - Makes training deep networks computationally feasible
+> - Enables automatic differentiation
+> - Foundation for all modern deep learning frameworks
 
 ---
 
@@ -105,7 +106,7 @@ ResNet: aₗ = F(aₗ₋₁) + aₗ₋₁
 Gradient: ∂ L/∂ aₗ₋₁ = ∂ L/∂ aₗ × (∂ F/∂ aₗ₋₁ + 1)
 ```
 
-The "+1" term provides a gradient highway, preventing vanishing.
+> The "+1" term provides a gradient highway, preventing vanishing.
 
 ---
 
@@ -131,7 +132,7 @@ Backward: ∂ L/∂ w₁ = ∂ L/∂ w₂ = ... = ∂ L/∂ wₙ = g (same gradi
 Update: w₁' = w₂' = ... = wₙ' = w - \eta· g (still identical!)
 ```
 
-The neurons never differentiate and can't learn different features.
+> The neurons never differentiate and can't learn different features.
 
 **Initialization Strategies:**
 
@@ -226,9 +227,9 @@ Layer Norm: Normalize over [Channels, Height, Width]
 | Object detection | Group Norm | Batch size often 1-2 per GPU |
 | Reinforcement learning | Layer Norm | Single environment = batch of 1 |
 
-**Critical Interview Point — Train vs. Inference Behavior:**
+**Critical Interview Point -- Train vs. Inference Behavior:**
 
-Batch Normalization behaves differently during training and inference, and interviewers frequently ask about this:
+> Batch Normalization behaves differently during training and inference, and interviewers frequently ask about this:
 
 - **Training:** Uses the current mini-batch's mean and variance. Also maintains a running exponential moving average (EMA) of these statistics.
 - **Inference:** Uses the stored running mean/variance (not the current input's statistics), because at inference time there may be no "batch" — just a single sample.
@@ -1977,7 +1978,7 @@ Input: Token embeddings + Segment embeddings + Position embeddings
 Contextualized representations
 ```
 
-**Key Feature - Bidirectional Context:**
+**Key Feature -- Bidirectional Context:**
 
 ```
 Word "bank" in:
@@ -2013,7 +2014,7 @@ Input: Token embeddings + Position embeddings
 Predict next token
 ```
 
-**Key Feature - Causal (Unidirectional) Attention:**
+**Key Feature -- Causal (Unidirectional) Attention:**
 
 ```
 Attention mask prevents looking ahead:
@@ -2526,7 +2527,7 @@ Interpretation: Even with positive test, only 16.7% chance of having disease!
 Why? Because disease is rare (1% prior), false positives outnumber true positives.
 ```
 
-**Key Insight:** Counter-intuitive result shows importance of base rates (priors).
+> **Key Insight:** Counter-intuitive result shows importance of base rates (priors).
 
 **Applications in Machine Learning:**
 
@@ -3156,12 +3157,8 @@ test_kmeans()
 - Can handle millions of points if k, d reasonable
 ```
 
-This implementation demonstrates solid understanding of:
-- Algorithm design
-- Computational complexity
-- Vectorization for performance
-- Edge case handling
-- Testing and validation
+> This implementation demonstrates solid understanding of algorithm design, computational complexity, vectorization for performance, edge case handling, and testing and validation.
+
 ---
 
 ## Advanced Deep Learning Topics
@@ -6811,21 +6808,19 @@ d=10: Need ~10 billion samples!
 
 This guide covers 55+ comprehensive interview questions across:
 
-✅ **Advanced Deep Learning** (Diffusion, LoRA, Flash Attention, Vision Transformers, etc.)
-✅ **Self-supervised & Meta Learning** (Contrastive learning, curriculum training, etc.)
-✅ **Generative Models** (GANs, VAEs, mode collapse, loss functions)
-✅ **Modern Architectures** (Transformers, positional encodings, memory networks)
-✅ **NLP & LLMs** (Tokenization, RAG, temperature, VRAM calculations)
-✅ **Advanced ML** (Active learning, weak supervision, Bayesian optimization, EM)
-✅ **Ensemble Methods** (AdaBoost, XGBoost vs LightGBM, stacking)
-✅ **Dimensionality Reduction** (PCA, t-SNE, UMAP)
-✅ **Statistics** (Hypothesis testing, A/B testing, distributions)
-✅ **Production ML** (Deployment, monitoring, compression, distributed systems)
-✅ **System Design** (Consistent hashing, load balancing, continuous batching)
+- **Advanced Deep Learning** -- Diffusion, LoRA, Flash Attention, Vision Transformers, etc.
+- **Self-supervised & Meta Learning** -- Contrastive learning, curriculum training, etc.
+- **Generative Models** -- GANs, VAEs, mode collapse, loss functions
+- **Modern Architectures** -- Transformers, positional encodings, memory networks
+- **NLP & LLMs** -- Tokenization, RAG, temperature, VRAM calculations
+- **Advanced ML** -- Active learning, weak supervision, Bayesian optimization, EM
+- **Ensemble Methods** -- AdaBoost, XGBoost vs LightGBM, stacking
+- **Dimensionality Reduction** -- PCA, t-SNE, UMAP
+- **Statistics** -- Hypothesis testing, A/B testing, distributions
+- **Production ML** -- Deployment, monitoring, compression, distributed systems
+- **System Design** -- Consistent hashing, load balancing, continuous batching
 
-**Total: 55 High-Quality Interview Questions with comprehensive answers, tables, mathematical formulas, and practical examples.**
-
-Good luck with your interviews! 🚀
+> **Total: 55 High-Quality Interview Questions** with comprehensive answers, tables, mathematical formulas, and practical examples.
 
 ---
 

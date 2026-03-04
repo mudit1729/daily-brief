@@ -18,18 +18,23 @@
 - **Pages:** 12 pages
 
 ### Problem Solved
-The paper addresses the **degradation problem** in deep neural networks—the observation that adding more layers to a network can actually *decrease* both training and test accuracy, even though deeper models should theoretically be able to learn at least the same representation as shallower models. This phenomenon occurs because deep plain networks become harder to optimize during training.
+
+The paper addresses the ***degradation problem*** in deep neural networks---the observation that adding more layers to a network can actually *decrease* both training and test accuracy, even though deeper models should theoretically be able to learn at least the same representation as shallower models. This phenomenon occurs because deep plain networks become harder to optimize during training.
 
 ### Key Novelty: Skip Connections (Residual Learning)
-Instead of learning an unreferenced mapping H(x), ResNet learns a residual function F(x) = H(x) - x, where the network learns the "residual" or difference. The key insight: by using skip connections (also called shortcut connections), the identity mapping x is added back to F(x), producing y = F(x) + x. This allows:
+
+> Instead of learning an unreferenced mapping H(x), ResNet learns a **residual function** F(x) = H(x) - x, where the network learns the "residual" or difference. The key insight: by using **skip connections** (also called *shortcut connections*), the identity mapping x is added back to F(x), producing y = F(x) + x.
+
+This allows:
 - **Gradients to flow directly** through skip connections during backpropagation
 - **Identity mappings to be learned trivially** (weights go to zero if not needed)
 - **Networks to train effectively at 100+ layers** (ResNet-152 uses 152 layers)
 
 ### 3 Things to Remember
-1. **Skip connections enable depth:** The residual connection y = F(x) + x allows training of very deep networks (50, 101, 152 layers) that would be impossible to train otherwise.
-2. **Bottleneck blocks reduce computation:** For deeper networks, 1×3×3×1 bottleneck blocks (1×1 → 3×3 → 1×1 convolutions) reduce parameters while maintaining accuracy, making 50+ layer networks practical.
-3. **Massive performance gains:** ResNet-50 achieves 3.57% top-5 error on ImageNet (vs. GoogLeNet's 6.67% in 2014), demonstrating that with proper architecture, deeper = better.
+
+> 1. **Skip connections enable depth:** The residual connection y = F(x) + x allows training of very deep networks (50, 101, 152 layers) that would be impossible to train otherwise.
+> 2. **Bottleneck blocks reduce computation:** For deeper networks, 1x3x3x1 bottleneck blocks (1x1 -> 3x3 -> 1x1 convolutions) reduce parameters while maintaining accuracy, making 50+ layer networks practical.
+> 3. **Massive performance gains:** ResNet-50 achieves 3.57% top-5 error on ImageNet (vs. GoogLeNet's 6.67% in 2014), demonstrating that with proper architecture, deeper = better.
 
 ### Key Results
 | Model | Depth | Top-1 Error | Top-5 Error | Parameters |

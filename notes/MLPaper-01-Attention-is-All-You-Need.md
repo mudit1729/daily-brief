@@ -2,13 +2,17 @@
 
 ## Paper Overview
 
-**Authors:** Vaswani et al. (Google Brain/Google Research)
-**Published:** 2017 (NeurIPS)
-**Paper Link:** https://arxiv.org/abs/1706.03762
+| | |
+|---|---|
+| **Authors** | Vaswani et al. (Google Brain/Google Research) |
+| **Published** | 2017 (NeurIPS) |
+| **Paper Link** | https://arxiv.org/abs/1706.03762 |
+
+---
 
 ## Detailed Description
 
-"Attention is All You Need" introduced the Transformer architecture, a groundbreaking neural network model that relies entirely on attention mechanisms, dispensing with recurrence and convolutions altogether. The paper revolutionized sequence-to-sequence modeling and became the foundation for modern NLP models like BERT, GPT, and T5.
+"Attention is All You Need" introduced the **Transformer** architecture, a groundbreaking neural network model that relies entirely on attention mechanisms, dispensing with recurrence and convolutions altogether. The paper revolutionized sequence-to-sequence modeling and became the foundation for modern NLP models like BERT, GPT, and T5.
 
 ### How It Works (Intuitive Summary)
 
@@ -18,9 +22,15 @@ Traditional sequence models (like RNNs) process words one at a time, left to rig
 
 The Transformer consists of several key components working together:
 
-**Self-Attention Mechanism** is the core innovation. When processing each word/token, the model learns to weigh the importance of all other words in the sequence. This is computed using three components: Queries (Q), Keys (K), and Values (V). Q represents the current token's question "what should I attend to?", K represents what each token *offers* (can be matched against), and V contains the actual information to extract.
+**Self-Attention Mechanism** is the core innovation. When processing each word/token, the model learns to weigh the importance of all other words in the sequence. This is computed using three components: *Queries* (Q), *Keys* (K), and *Values* (V). Q represents the current token's question "what should I attend to?", K represents what each token *offers* (can be matched against), and V contains the actual information to extract.
 
-**Scaled Dot-Product Attention** implements this mathematically: `Attention(Q, K, V) = softmax(QK^T / √d_k)V`. The key scaling by √d_k prevents attention scores from becoming too large.
+**Scaled Dot-Product Attention** implements this mathematically:
+
+```math
+Attention(Q, K, V) = softmax(QK^T / sqrt(d_k)) V
+```
+
+The key scaling by `sqrt(d_k)` prevents attention scores from becoming too large.
 
 **Multi-Head Attention** runs multiple attention mechanisms in parallel (typically 8-12 heads). Each head focuses on different aspects and representation subspaces simultaneously. This is more powerful than a single attention head and allows the model to capture different types of relationships.
 
@@ -32,9 +42,11 @@ The Transformer consists of several key components working together:
 
 **Layer Normalization and Residual Connections** stabilize training by normalizing layer inputs and allowing gradients to flow directly through skip connections, enabling much deeper networks.
 
+---
+
 ## Pain Point Addressed
 
-### Problems with Previous Approaches:
+### Problems with Previous Approaches
 
 1. **Sequential Processing in RNNs:**
    - RNNs (including LSTMs and GRUs) process sequences sequentially, making parallelization difficult
@@ -54,9 +66,11 @@ The Transformer consists of several key components working together:
    - Sequential nature prevents effective use of modern GPU parallelization
    - Training on long sequences is time-consuming
 
+---
+
 ## Novelty of the Paper
 
-### Key Innovations:
+### Key Innovations
 
 1. **Fully Attention-Based Architecture:**
    - First model to rely entirely on attention mechanisms
@@ -88,16 +102,19 @@ The Transformer consists of several key components working together:
    - Better BLEU scores with significantly less training time
    - More parameter-efficient than previous approaches
 
-## Impact:
+---
 
-The Transformer architecture became the foundation for:
+## Impact
+
+> The Transformer architecture became the foundation for virtually all modern deep learning, creating the era of large language models.
+
 - **BERT** (Bidirectional Encoder Representations from Transformers)
 - **GPT** series (Generative Pre-trained Transformers)
 - **T5** (Text-to-Text Transfer Transformer)
 - **Vision Transformers** (ViT)
 - **DALL-E, Stable Diffusion** and other multimodal models
 
-It essentially created the modern era of deep learning and large language models.
+---
 
 ## Implementation
 
@@ -591,13 +608,17 @@ class Transformer(nn.Module):
         return out
 ```
 
+---
+
 ## Key Takeaways
 
-1. The Transformer eliminates sequential processing, enabling massive parallelization
-2. Self-attention mechanisms allow the model to capture long-range dependencies efficiently
-3. The architecture is highly scalable and forms the basis of modern LLMs
-4. Multi-head attention enables the model to focus on different aspects simultaneously
-5. The paper fundamentally changed the landscape of NLP and deep learning
+> 1. The Transformer eliminates sequential processing, enabling massive parallelization
+> 2. Self-attention mechanisms allow the model to capture long-range dependencies efficiently
+> 3. The architecture is highly scalable and forms the basis of modern LLMs
+> 4. Multi-head attention enables the model to focus on different aspects simultaneously
+> 5. The paper fundamentally changed the landscape of NLP and deep learning
+
+---
 
 ## Repository Reference
 
