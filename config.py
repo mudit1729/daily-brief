@@ -35,6 +35,10 @@ class Config:
     XAI_API_KEY = os.getenv('XAI_API_KEY')
     XAI_MODEL = os.getenv('XAI_MODEL', 'grok-3-mini-fast')
 
+    # Anthropic / Claude
+    ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_KEY')
+    ANTHROPIC_MODEL = os.getenv('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
+
     # Hedge Fund Analysis
     HEDGE_FUND_TICKERS = os.getenv('HEDGE_FUND_TICKERS', 'AAPL,MSFT,NVDA,GOOGL,AMZN')
     HEDGE_FUND_ANALYSTS = os.getenv('HEDGE_FUND_ANALYSTS', 'technicals,valuation,sentiment,warren_buffett')
@@ -63,7 +67,7 @@ class Config:
     ]
 
     # Site-wide password gate (set on Railway to lock the site)
-    SITE_PASSWORD = os.getenv('SITE_PASSWORD')
+    SITE_PASSWORD = os.getenv('SITE_PASSWORD') or os.getenv('PASSWORD')
 
     # Prep notes
     PREP_NOTES_DIR = os.getenv('PREP_NOTES_DIR', 'notes')

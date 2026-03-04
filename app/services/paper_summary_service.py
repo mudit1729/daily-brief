@@ -221,6 +221,7 @@ class PaperSummaryService:
             purpose=f'paper_summary.{arxiv_id}',
             section=None,  # counts against overall daily budget
             max_tokens=10000,
+            provider='anthropic',
         )
 
         summary_md = result['content']

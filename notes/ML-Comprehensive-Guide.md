@@ -383,7 +383,7 @@ Variance measures the model's inconsistency across different training sets. High
 
 ### Bias-Variance Tradeoff
 
-![Bias-Variance Tradeoff](Bias-Variance_Tradeoff.png)
+![Bias-Variance Tradeoff](images/bias_variance_tradeoff.png)
 
 The **bias-variance tradeoff** represents the balance between a model's simplicity (bias) and its sensitivity to training data (variance). Striking the right balance minimizes the total error and achieves the best performance.
 
@@ -437,7 +437,7 @@ Neural networks are powerful models inspired by biological neural systems, capab
 
 ### Activation Functions
 
-![Activation Functions](Activation_Functions.png)
+![Activation Functions](images/activation_functions.png)
 
 **Activation functions** are mathematical operations applied to a neuron's output that determine whether the neuron should pass information forward (i.e., activate). They introduce non-linearity into neural networks, enabling the network to learn complex patterns beyond simple linear relationships.
 
@@ -1778,7 +1778,7 @@ When the features have different scales, gradient descent may take longer to con
 
 ### Confusion Matrix
 
-![Confusion Matrix](Confusion_Matrix.png)
+![Confusion Matrix](images/confusion_matrix.png)
 
 A **confusion matrix** is a table that helps evaluate the performance of a machine learning model by comparing its predicted outcomes against the actual outcomes.
 
@@ -3299,7 +3299,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Overfitting vs. Underfitting
 
-![Overfitting vs Underfitting](Overfitting_Vs._Underfitting.png)
+![Overfitting vs Underfitting](images/overfitting_detection.png)
 
 **Underfitting:**
 - Model too simple to capture underlying patterns
@@ -3744,7 +3744,7 @@ The **No Free Lunch (NFL) Theorem** states that no universal algorithm outperfor
 
 ### Learning Rate
 
-![Learning Rate](Learning_Rate.png)
+![Learning Rate](images/learning_rate_comparison.png)
 
 **Learning rate** controls the magnitude of parameter adjustments based on loss gradients during training.
 

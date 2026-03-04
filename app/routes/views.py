@@ -896,36 +896,17 @@ def prep_page():
     # Categorize notes into sections
     # Each category: { 'label': str, 'icon': str, 'notes': [filename, ...] }
     CATEGORIES = [
-        {
-            'label': 'Coding',
-            'icon': 'code',
-            'match': ['Amazon-150', 'Blind-75'],
-        },
-        {
-            'label': 'ML Coding',
-            'icon': 'cpu',
-            'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer'],
-        },
-        {
-            'label': 'ML Theory',
-            'icon': 'book',
-            'match': ['ML-Comprehensive-Guide', 'Attention-Is-All-You-Need'],
-        },
-        {
-            'label': 'BEV Seminal Papers',
-            'icon': 'eye',
-            'match': ['BEV-'],
-        },
-        {
-            'label': 'Paper Summaries',
-            'icon': 'paper',
-            'match': ['Paper-'],
-        },
-        {
-            'label': 'Async Processing',
-            'icon': 'async',
-            'match': ['Async-'],
-        },
+        # Prefix-based categories first (more specific → less specific)
+        {'label': 'Ilya 30', 'icon': 'paper', 'match': ['Ilya30-']},
+        {'label': 'ML Paper Implementation', 'icon': 'cpu', 'match': ['MLPaper-']},
+        {'label': 'ML Theory Interview', 'icon': 'book', 'match': ['MLTheory-']},
+        {'label': 'BEV Seminal Papers', 'icon': 'eye', 'match': ['BEV-']},
+        {'label': 'Paper Summaries', 'icon': 'paper', 'match': ['Paper-']},
+        {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
+        # Substring-match categories after prefix categories
+        {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems']},
+        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer']},
+        {'label': 'ML Theory', 'icon': 'book', 'match': ['ML-Comprehensive-Guide', 'Attention-Is-All-You-Need']},
     ]
 
     categorized = []
@@ -933,6 +914,8 @@ def prep_page():
     for cat in CATEGORIES:
         cat_notes = []
         for note in all_notes:
+            if note in categorized_files:
+                continue
             name_no_ext = note.rsplit('.', 1)[0]
             if any(m.lower() in name_no_ext.lower() for m in cat['match']):
                 cat_notes.append(note)
