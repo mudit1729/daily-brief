@@ -560,6 +560,21 @@ mark.user-highlight {
   font-weight: 600;
 }
 
+/* Streaming cursor */
+.sb-chat-msg--assistant .sb-chat-msg__text.is-streaming::after {
+  content: '▍';
+  display: inline;
+  color: var(--sb-accent);
+  animation: chatCursorBlink 0.6s steps(2) infinite;
+  font-weight: 300;
+  margin-left: 1px;
+}
+
+@keyframes chatCursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* Typing indicator */
 .sb-chat-typing {
   display: inline-flex;

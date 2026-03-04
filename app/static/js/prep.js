@@ -352,6 +352,93 @@ let _selectedSection = null;
 let _chatStreaming = false;
 let _chatAbortController = null;
 
+/* ── Smooth streaming buffer ─────────────────────── */
+var _streamBuffer = '';       // text waiting to be displayed
+var _streamDisplayed = '';    // text currently rendered
+var _streamTargetEl = null;   // DOM element to render into
+var _streamRafId = null;      // requestAnimationFrame handle
+var _streamDone = false;      // SSE stream finished?
+var _streamCharsPerFrame = 2; // base chars per frame (~120 chars/sec at 60fps)
+var _streamLastRender = 0;    // timestamp of last markdown render
+var _streamRenderInterval = 40; // ms between full markdown re-renders
+
+function _streamTick(ts) {
+  if (!_streamTargetEl) return;
+
+  // Calculate how many chars to drain this frame
+  var pending = _streamBuffer.length;
+  // Speed up when buffer is large so we don't fall behind
+  var speed = _streamCharsPerFrame;
+  if (pending > 200) speed = Math.ceil(pending / 8);
+  else if (pending > 80) speed = Math.ceil(pending / 15);
+  else if (pending > 30) speed = Math.ceil(pending / 6);
+
+  if (pending > 0) {
+    var chunk = _streamBuffer.slice(0, speed);
+    _streamBuffer = _streamBuffer.slice(speed);
+    _streamDisplayed += chunk;
+
+    // Throttle full markdown re-renders for performance
+    if (ts - _streamLastRender >= _streamRenderInterval || _streamBuffer.length === 0) {
+      _renderMarkdownInChat(_streamTargetEl, _streamDisplayed);
+      _streamLastRender = ts;
+      _scrollChatToBottom();
+    }
+  }
+
+  // Keep ticking if there's still buffered text or stream hasn't ended
+  if (_streamBuffer.length > 0 || !_streamDone) {
+    _streamRafId = requestAnimationFrame(_streamTick);
+  } else {
+    // Final render to ensure everything is flushed
+    _renderMarkdownInChat(_streamTargetEl, _streamDisplayed);
+    _scrollChatToBottom();
+    _streamTargetEl.classList.remove('is-streaming');
+    _streamRafId = null;
+  }
+}
+
+function _streamStart(targetEl) {
+  _streamBuffer = '';
+  _streamDisplayed = '';
+  _streamTargetEl = targetEl;
+  _streamDone = false;
+  _streamLastRender = 0;
+  targetEl.classList.add('is-streaming');
+  if (_streamRafId) cancelAnimationFrame(_streamRafId);
+  _streamRafId = requestAnimationFrame(_streamTick);
+}
+
+function _streamPush(text) {
+  _streamBuffer += text;
+  // Restart animation loop if it stopped
+  if (!_streamRafId && _streamTargetEl) {
+    _streamRafId = requestAnimationFrame(_streamTick);
+  }
+}
+
+function _streamEnd() {
+  _streamDone = true;
+  // If animation already stopped but buffer has text, restart
+  if (!_streamRafId && _streamBuffer.length > 0 && _streamTargetEl) {
+    _streamRafId = requestAnimationFrame(_streamTick);
+  }
+}
+
+function _streamGetFullText() {
+  return _streamDisplayed + _streamBuffer;
+}
+
+function _streamCleanup() {
+  if (_streamRafId) cancelAnimationFrame(_streamRafId);
+  if (_streamTargetEl) _streamTargetEl.classList.remove('is-streaming');
+  _streamRafId = null;
+  _streamTargetEl = null;
+  _streamBuffer = '';
+  _streamDisplayed = '';
+  _streamDone = true;
+}
+
 function toggleChat() {
   const layout = document.getElementById('notesLayout');
   const panel = document.getElementById('chatPanel');
@@ -441,22 +528,23 @@ function sendChatMessage() {
       }
       var reader = response.body.getReader();
       var decoder = new TextDecoder();
-      var fullText = '';
-      var buffer = '';
+      var sseBuffer = '';
 
-      // Remove typing dots
+      // Remove typing dots and start smooth stream
       var dotsEl = textEl.querySelector('.sb-chat-typing');
       if (dotsEl) dotsEl.remove();
+      _streamStart(textEl);
 
       function read() {
         return reader.read().then(function (result) {
           if (result.done) {
-            _finishStreaming(fullText);
+            _streamEnd();
+            _finishStreaming(_streamGetFullText());
             return;
           }
-          buffer += decoder.decode(result.value, { stream: true });
-          var lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          sseBuffer += decoder.decode(result.value, { stream: true });
+          var lines = sseBuffer.split('\n');
+          sseBuffer = lines.pop() || '';
 
           for (var i = 0; i < lines.length; i++) {
             var line = lines[i].trim();
@@ -464,18 +552,18 @@ function sendChatMessage() {
             try {
               var data = JSON.parse(line.slice(6));
               if (data.error) {
+                _streamCleanup();
                 textEl.textContent = 'Error: ' + data.error;
                 _finishStreaming('');
                 return;
               }
               if (data.done) {
-                _finishStreaming(fullText, data.usage);
+                _streamEnd();
+                _finishStreaming(_streamGetFullText(), data.usage);
                 return;
               }
               if (data.text) {
-                fullText += data.text;
-                _renderMarkdownInChat(textEl, fullText);
-                _scrollChatToBottom();
+                _streamPush(data.text);
               }
             } catch (e) { /* skip malformed lines */ }
           }
@@ -485,7 +573,8 @@ function sendChatMessage() {
       return read();
     })
     .catch(function (err) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') { _streamCleanup(); return; }
+      _streamCleanup();
       var dotsEl = textEl.querySelector('.sb-chat-typing');
       if (dotsEl) dotsEl.remove();
       textEl.textContent = 'Error: ' + err.message;
@@ -656,6 +745,7 @@ function clearChatSection() {
     // Reset chat state when switching notes
     _chatHistory = [];
     _selectedSection = null;
+    _streamCleanup();
     var messages = document.getElementById('chatMessages');
     if (messages) {
       messages.innerHTML = '<div class="sb-chat-welcome"><p>Ask anything about this document</p></div>';
