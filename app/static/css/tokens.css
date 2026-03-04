@@ -89,10 +89,13 @@
 [data-bs-theme="dark"] {
   --sb-bg-primary: #09090b;
   --sb-bg-secondary: #0f0f12;
+  --sb-bg-tertiary: #18181b;
   --sb-bg-card: #131316;
   --sb-bg-card-hover: #1a1a1f;
   --sb-bg-surface: #1c1c21;
   --sb-bg-surface-raised: #222228;
+  --sb-surface-elevated: #1a1a1f;
+  --sb-surface-hover: rgba(255, 255, 255, 0.06);
   --sb-border: #27272a;
   --sb-border-subtle: #1e1e22;
   --sb-text-primary: #fafafa;
@@ -102,16 +105,33 @@
   --sb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --sb-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
   --sb-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.5);
+
+  /* Code */
+  --sb-code-bg: #0d1117;
+  --sb-code-text: #c9d1d9;
+  --sb-code-inline: #e06c75;
+
+  /* Highlights */
+  --sb-highlight-bg: rgba(251, 191, 36, 0.5);
+  --sb-highlight-hover: rgba(239, 68, 68, 0.5);
+  --sb-highlight-selection-bg: #fbbf24;
+  --sb-highlight-selection-text: #1a1a2e;
+  --sb-highlight-active-bg: #fbbf24;
+  --sb-highlight-active-text: #1a1a2e;
+  --sb-highlight-active-border: #f59e0b;
 }
 
 /* ===== Light Theme ===== */
 [data-bs-theme="light"] {
   --sb-bg-primary: #fafafa;
   --sb-bg-secondary: #f4f4f5;
+  --sb-bg-tertiary: #ebebed;
   --sb-bg-card: #ffffff;
   --sb-bg-card-hover: #f9f9fb;
   --sb-bg-surface: #f0f0f2;
   --sb-bg-surface-raised: #e8e8ec;
+  --sb-surface-elevated: #f5f5f7;
+  --sb-surface-hover: rgba(0, 0, 0, 0.04);
   --sb-border: #e4e4e7;
   --sb-border-subtle: #ededf0;
   --sb-text-primary: #09090b;
@@ -121,4 +141,18 @@
   --sb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --sb-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
   --sb-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+  /* Code */
+  --sb-code-bg: #f6f8fa;
+  --sb-code-text: #24292e;
+  --sb-code-inline: #d63384;
+
+  /* Highlights */
+  --sb-highlight-bg: rgba(251, 191, 36, 0.35);
+  --sb-highlight-hover: rgba(239, 68, 68, 0.35);
+  --sb-highlight-selection-bg: #fbbf24;
+  --sb-highlight-selection-text: #1a1a2e;
+  --sb-highlight-active-bg: #fbbf24;
+  --sb-highlight-active-text: #1a1a2e;
+  --sb-highlight-active-border: #f59e0b;
 }

@@ -55,6 +55,7 @@ def login():
         entered = request.form.get('password', '')
         logger.info(f"Login attempt: entered={entered!r}, expected={password!r}")
         if entered == password:
+            session.permanent = False  # Expire when browser closes
             session['site_authenticated'] = True
             next_url = request.args.get('next', '/')
             return redirect(next_url)

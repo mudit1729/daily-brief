@@ -250,9 +250,9 @@
 }
 
 .sb-notes-toolbar__btn.active {
-  background: #fbbf24;
-  color: #1a1a2e;
-  border-color: #f59e0b;
+  background: var(--sb-highlight-active-bg);
+  color: var(--sb-highlight-active-text);
+  border-color: var(--sb-highlight-active-border);
 }
 
 .sb-notes-toolbar__divider {
@@ -293,10 +293,10 @@
   border-radius: 4px;
   font-size: 0.85em;
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
-  color: #e06c75;
+  color: var(--sb-code-inline);
 }
 .sb-notes-content .md-body pre {
-  background: #0d1117;
+  background: var(--sb-code-bg);
   padding: var(--sb-space-4);
   border-radius: var(--sb-radius-md);
   overflow-x: auto;
@@ -307,7 +307,7 @@
 .sb-notes-content .md-body pre code {
   background: transparent;
   padding: 0;
-  color: #c9d1d9;
+  color: var(--sb-code-text);
   font-size: 0.85em;
   line-height: 1.6;
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
@@ -325,7 +325,7 @@
 
 /* ── Highlighting ──────────────────────────────── */
 mark.user-highlight {
-  background: #fbbf2480;
+  background: var(--sb-highlight-bg);
   border-radius: 2px;
   padding: 0 1px;
   cursor: default;
@@ -338,7 +338,7 @@ mark.user-highlight {
 }
 
 .sb-highlight-mode mark.user-highlight:hover {
-  background: #ef444480;
+  background: var(--sb-highlight-hover);
   text-decoration: line-through;
 }
 
@@ -348,8 +348,8 @@ mark.user-highlight {
 }
 
 .sb-highlight-mode .md-body ::selection {
-  background: #fbbf24;
-  color: #1a1a2e;
+  background: var(--sb-highlight-selection-bg);
+  color: var(--sb-highlight-selection-text);
 }
 
 /* ── AI Chat Panel ────────────────────────────────── */
@@ -536,11 +536,11 @@ mark.user-highlight {
   border-radius: 3px;
   font-size: 0.88em;
   font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
-  color: #e06c75;
+  color: var(--sb-code-inline);
 }
 
 .sb-chat-msg--assistant .sb-chat-msg__text pre {
-  background: #0d1117;
+  background: var(--sb-code-bg);
   padding: 8px 10px;
   border-radius: 6px;
   overflow-x: auto;
@@ -551,7 +551,7 @@ mark.user-highlight {
 .sb-chat-msg--assistant .sb-chat-msg__text pre code {
   background: transparent;
   padding: 0;
-  color: #c9d1d9;
+  color: var(--sb-code-text);
   font-size: 0.82em;
   line-height: 1.5;
 }

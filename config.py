@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -6,6 +7,10 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-change-me')
+
+    # Session: non-permanent by default (expires when browser closes)
+    # If made permanent via session.permanent = True, expires after this TTL
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
     ADMIN_API_KEY = os.getenv('ADMIN_API_KEY')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://localhost/daily_brief')
     SQLALCHEMY_TRACK_MODIFICATIONS = False

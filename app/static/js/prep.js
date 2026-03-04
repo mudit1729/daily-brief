@@ -53,6 +53,34 @@ function mobileBackToSidebar() {
   layout.classList.remove('sb-notes-layout--viewing');
 }
 
+/* ── Theme Toggle ─────────────────────────────── */
+
+var _HLJS_DARK = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+var _HLJS_LIGHT = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+
+function _syncThemeIcons() {
+  var isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+  var sun = document.getElementById('prepSunIcon');
+  var moon = document.getElementById('prepMoonIcon');
+  if (sun) sun.style.display = isDark ? 'none' : '';
+  if (moon) moon.style.display = isDark ? '' : 'none';
+
+  // Swap highlight.js theme
+  var link = document.getElementById('hljsTheme');
+  if (link) link.href = isDark ? _HLJS_DARK : _HLJS_LIGHT;
+}
+
+function togglePrepTheme() {
+  var html = document.documentElement;
+  var next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-bs-theme', next);
+  localStorage.setItem('sb-theme', next);
+  _syncThemeIcons();
+}
+
+// Sync icons on page load (theme may already be set from localStorage via app.js)
+document.addEventListener('DOMContentLoaded', _syncThemeIcons);
+
 /* ── Fullscreen ────────────────────────────────── */
 
 function toggleNotesFullscreen() {
