@@ -116,6 +116,23 @@ class TimelineService:
         db.session.commit()
         logger.info(f"Generated {events_added} events for timeline '{timeline.name}' (dual-LLM)")
 
+        # ── Extract entities from generated events if not already set ──
+        if not timeline.entities_json:
+            entity_counts = {}
+            for ev in merged:
+                ent = (ev.get('entity') or '').strip()
+                if ent and len(ent) > 1:
+                    entity_counts[ent] = entity_counts.get(ent, 0) + 1
+            if entity_counts:
+                # Take the top entities sorted by frequency, max 6
+                sorted_entities = sorted(entity_counts, key=entity_counts.get, reverse=True)
+                timeline.entities_json = sorted_entities[:6]
+                db.session.commit()
+                logger.info(
+                    f"Auto-extracted entities for '{timeline.name}': "
+                    f"{timeline.entities_json}"
+                )
+
         # ── Pick a topic-appropriate emoji icon ────────────────────────
         if timeline.icon == '📅':
             try:
