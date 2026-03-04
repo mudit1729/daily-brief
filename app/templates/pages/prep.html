@@ -64,7 +64,17 @@
           {% for note in cat.notes %}
           <li>
             {% set display_name = note | replace('.md', '') | replace('-', ' ') | replace('_', ' ') %}
-            {% if display_name.startswith('BEV ') %}
+            {% if display_name.startswith('Ilya30 ') %}
+              {% set display_name = display_name[7:] %}
+              {# Strip leading number prefix like "01 " #}
+              {% if display_name[:2].isdigit() and display_name[2:3] == ' ' %}
+                {% set display_name = display_name[3:] %}
+              {% endif %}
+              {# Strip trailing " summary" #}
+              {% if display_name.endswith(' summary') %}
+                {% set display_name = display_name[:-8] %}
+              {% endif %}
+            {% elif display_name.startswith('BEV ') %}
               {% set display_name = display_name[4:] %}
               {# Strip leading number prefix like "01 " #}
               {% if display_name[:2].isdigit() and display_name[2:3] == ' ' %}
@@ -74,6 +84,14 @@
               {% set display_name = display_name[6:] %}
             {% elif display_name.startswith('Async ') %}
               {% set display_name = display_name[6:] %}
+            {% elif display_name.startswith('MLTheory ') %}
+              {% set display_name = display_name[9:] %}
+            {% elif display_name.startswith('MLPaper ') %}
+              {% set display_name = display_name[8:] %}
+              {# Strip leading number prefix like "01 " #}
+              {% if display_name[:2].isdigit() and display_name[2:3] == ' ' %}
+                {% set display_name = display_name[3:] %}
+              {% endif %}
             {% endif %}
             <button class="sb-notes-list__item" data-note="{{ note }}" onclick="loadNote('{{ note }}', this)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>

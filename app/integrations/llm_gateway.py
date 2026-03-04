@@ -19,6 +19,9 @@ MODEL_PRICING = {
     'grok-3-mini': {'input': 0.30, 'output': 0.50},
     'grok-3': {'input': 3.00, 'output': 15.00},
     'grok-3-fast': {'input': 5.00, 'output': 25.00},
+    # Anthropic Claude models
+    'claude-sonnet-4-6': {'input': 3.00, 'output': 15.00},
+    'claude-haiku-4-5-20251001': {'input': 0.80, 'output': 4.00},
 }
 
 XAI_BASE_URL = 'https://api.x.ai/v1'
@@ -43,6 +46,10 @@ class LLMGateway:
         self.xai_api_key = config.get('XAI_API_KEY')
         self.xai_model = config.get('XAI_MODEL', 'grok-3-mini-fast')
 
+        # Anthropic / Claude provider
+        self.anthropic_api_key = config.get('ANTHROPIC_API_KEY')
+        self.anthropic_model = config.get('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
+
     @property
     def xai_available(self):
         """Check if xAI/Grok is configured."""
@@ -62,7 +69,9 @@ class LLMGateway:
 
         effective_max = min(max_tokens or 2000, max(remaining, 100))
 
-        if provider == 'xai':
+        if provider == 'anthropic':
+            model, result = self._call_anthropic(messages, effective_max, purpose, model=model)
+        elif provider == 'xai':
             model, result = self._call_xai(messages, effective_max, purpose)
         else:
             model, result = self._call_openai(messages, effective_max, purpose, model=model)
@@ -133,6 +142,54 @@ class LLMGateway:
         return self.xai_model, {
             'content': response.choices[0].message.content,
             'usage': response.usage,
+            'latency_ms': int(time.time() * 1000) - start_ms,
+        }
+
+    def _call_anthropic(self, messages, max_tokens, purpose, model=None):
+        """Make an Anthropic Claude API call."""
+        if not self.anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY not configured")
+
+        import anthropic
+        client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+        effective_model = model or self.anthropic_model
+
+        # Anthropic uses a separate system param instead of a system message
+        system_text = None
+        chat_messages = []
+        for msg in messages:
+            if msg['role'] == 'system':
+                system_text = msg['content']
+            else:
+                chat_messages.append(msg)
+
+        start_ms = int(time.time() * 1000)
+        try:
+            kwargs = dict(
+                model=effective_model,
+                messages=chat_messages,
+                max_tokens=max_tokens,
+            )
+            if system_text:
+                kwargs['system'] = system_text
+            response = client.messages.create(**kwargs)
+        except Exception as e:
+            logger.error(f"Anthropic call failed ({purpose}): {e}")
+            raise
+
+        # Build a usage-like object compatible with _compute_cost / _log_call
+        class _Usage:
+            def __init__(self, inp, out):
+                self.prompt_tokens = inp
+                self.completion_tokens = out
+                self.total_tokens = inp + out
+
+        usage = _Usage(response.usage.input_tokens, response.usage.output_tokens)
+        content = response.content[0].text if response.content else ''
+
+        return effective_model, {
+            'content': content,
+            'usage': usage,
             'latency_ms': int(time.time() * 1000) - start_ms,
         }
 

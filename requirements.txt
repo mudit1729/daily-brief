@@ -12,6 +12,7 @@ beautifulsoup4==4.12.*
 lxml==5.*
 requests==2.32.*
 openai>=1.60
+anthropic>=0.40
 numpy==2.*
 scikit-learn==1.6.*
 yfinance==0.2.*

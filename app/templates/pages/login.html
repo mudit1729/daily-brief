@@ -2,119 +2,177 @@
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pulse — Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pulse</title>
   <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--sb-bg-primary);
-      color: var(--sb-text-primary);
+      background: #09090b;
+      color: #fafafa;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      min-height: 100dvh;
       min-height: 100vh;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow: hidden;
     }
-    .login-card {
-      width: 100%;
-      max-width: 360px;
-      padding: 2.5rem 2rem;
-      background: var(--sb-surface-elevated);
-      border: 1px solid var(--sb-border);
-      border-radius: var(--sb-radius-xl, 16px);
+
+    /* Subtle ambient glow behind the card */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .login-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    /* Brand */
+    .brand {
       text-align: center;
     }
-    .login-card h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: .25rem;
+    .brand h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #fafafa;
     }
-    .login-card .subtitle {
-      color: var(--sb-text-secondary);
-      font-size: .875rem;
-      margin-bottom: 1.5rem;
+    .brand p {
+      font-size: 0.8125rem;
+      font-weight: 400;
+      color: #71717a;
+      margin-top: 0.25rem;
     }
 
     /* Pattern grid */
-    .pattern-grid {
+    .pattern-container {
       position: relative;
-      width: 240px;
-      height: 240px;
-      margin: 0 auto 1rem;
+      width: 200px;
+      height: 200px;
       touch-action: none;
     }
-    .pattern-grid canvas {
+    .pattern-container canvas {
       position: absolute;
       top: 0; left: 0;
-      width: 240px;
-      height: 240px;
-    }
-    .dot {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--sb-text-secondary);
-      opacity: .35;
-      transition: transform .15s, opacity .15s, box-shadow .15s;
-      pointer-events: none;
-    }
-    .dot.active {
-      opacity: 1;
-      background: var(--sb-accent, #6366f1);
-      transform: scale(1.5);
-      box-shadow: 0 0 12px var(--sb-accent, #6366f1);
+      width: 200px;
+      height: 200px;
     }
 
-    .hint {
-      color: var(--sb-text-secondary);
-      font-size: .8rem;
-      margin-top: .5rem;
-      min-height: 1.2em;
+    .dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      pointer-events: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .error {
+    .dot::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1.5px solid #27272a;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dot-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #3f3f46;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dot.active .dot-inner {
+      background: #3b82f6;
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+    }
+    .dot.active::before {
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    /* Status text */
+    .status {
+      text-align: center;
+      min-height: 1.25rem;
+    }
+    .status-text {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #52525b;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .status-text.error {
       color: #ef4444;
-      font-size: .85rem;
-      margin-top: .5rem;
     }
+    .status-text.drawing {
+      color: #a1a1aa;
+    }
+
+    /* Shake animation */
     .shake {
-      animation: shake .4s ease-in-out;
+      animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
     }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+
+    /* Error flash on dots */
+    .dot.error-flash .dot-inner {
+      background: #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+    }
+    .dot.error-flash::before {
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      .brand h1 { font-size: 1.375rem; }
+      .pattern-container { width: 180px; height: 180px; }
+      .pattern-container canvas { width: 180px; height: 180px; }
     }
   </style>
 </head>
 <body>
-  <div class="login-card" id="card">
-    <h1>Pulse</h1>
-    <p class="subtitle" id="quip"></p>
-    <script>
-      const quips = [
-        "the algo gods demand a sacrifice",
-        "draw the sacred runes to enter",
-        "only sigma pattern-drawers may pass",
-        "your vibe check starts now",
-        "LeetCode won't save you here",
-        "connect the dots. literally.",
-        "no password managers allowed, chief",
-        "swipe like your interview depends on it",
-      ];
-      document.getElementById('quip').textContent = quips[Math.floor(Math.random() * quips.length)];
-    </script>
-
-    <div class="pattern-grid" id="grid">
-      <canvas id="lines" width="480" height="480"></canvas>
-      <!-- 9 dots placed by JS -->
+  <div class="login-wrapper" id="wrapper">
+    <div class="brand">
+      <h1>Pulse</h1>
+      <p>Draw pattern to unlock</p>
     </div>
-    <div class="hint" id="hint">draw your pattern</div>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <div class="pattern-container" id="grid">
+      <canvas id="lines" width="400" height="400"></canvas>
+    </div>
+
+    <div class="status">
+      <span class="status-text" id="status"></span>
+    </div>
 
     <form method="POST" id="patternForm" style="display:none">
       <input type="hidden" name="password" id="patternInput">
@@ -126,24 +184,33 @@
     const grid = document.getElementById('grid');
     const canvas = document.getElementById('lines');
     const ctx = canvas.getContext('2d');
-    const hint = document.getElementById('hint');
+    const status = document.getElementById('status');
     const form = document.getElementById('patternForm');
     const patternInput = document.getElementById('patternInput');
-    const card = document.getElementById('card');
+    const wrapper = document.getElementById('wrapper');
 
-    // Dot centres (3x3 grid, 80px spacing, offset 40px)
-    const SPACING = 80, OFFSET = 40, HIT = 36;
+    // Responsive sizing
+    const SIZE = grid.offsetWidth;
+    const COLS = 3;
+    const SPACING = SIZE / (COLS + 1);
+    const HIT = SPACING * 0.45;
+    const DOT_SIZE = 12;
+    const CANVAS_SCALE = canvas.width / SIZE;
+
     const dots = [];
     const centres = [];
+
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
-        const cx = OFFSET + c * SPACING;
-        const cy = OFFSET + r * SPACING;
+        const cx = SPACING + c * SPACING;
+        const cy = SPACING + r * SPACING;
         centres.push({ x: cx, y: cy });
+
         const el = document.createElement('div');
         el.className = 'dot';
-        el.style.left = (cx - 10) + 'px';
-        el.style.top = (cy - 10) + 'px';
+        el.style.left = (cx - DOT_SIZE / 2) + 'px';
+        el.style.top = (cy - DOT_SIZE / 2) + 'px';
+        el.innerHTML = '<div class="dot-inner"></div>';
         grid.appendChild(el);
         dots.push(el);
       }
@@ -152,7 +219,6 @@
     let selected = [];
     let drawing = false;
     let currentPos = null;
-    const ACCENT = getComputedStyle(document.documentElement).getPropertyValue('--sb-accent').trim() || '#6366f1';
 
     function getPos(e) {
       const rect = grid.getBoundingClientRect();
@@ -163,20 +229,21 @@
     function nearest(pos) {
       for (let i = 0; i < centres.length; i++) {
         const dx = pos.x - centres[i].x, dy = pos.y - centres[i].y;
-        if (Math.sqrt(dx*dx + dy*dy) < HIT) return i;
+        if (Math.sqrt(dx * dx + dy * dy) < HIT) return i;
       }
       return -1;
     }
 
     function drawLines() {
-      ctx.clearRect(0, 0, 480, 480);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (selected.length === 0) return;
-      ctx.strokeStyle = ACCENT;
-      ctx.lineWidth = 5;
+
+      const s = CANVAS_SCALE;
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+      ctx.lineWidth = 3 * s;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
-      const s = 2; // canvas is 2x for retina
       ctx.moveTo(centres[selected[0]].x * s, centres[selected[0]].y * s);
       for (let i = 1; i < selected.length; i++) {
         ctx.lineTo(centres[selected[i]].x * s, centres[selected[i]].y * s);
@@ -191,7 +258,10 @@
       selected = [];
       drawing = false;
       currentPos = null;
-      dots.forEach(d => d.classList.remove('active'));
+      dots.forEach(d => {
+        d.classList.remove('active');
+        d.classList.remove('error-flash');
+      });
       drawLines();
     }
 
@@ -199,7 +269,8 @@
       e.preventDefault();
       reset();
       drawing = true;
-      hint.textContent = '';
+      status.textContent = '';
+      status.className = 'status-text drawing';
       move(e);
     }
 
@@ -224,12 +295,12 @@
       drawLines();
 
       if (selected.length < 3) {
-        hint.textContent = 'connect at least 3 dots';
+        status.textContent = 'Connect at least 3 dots';
+        status.className = 'status-text error';
         setTimeout(reset, 600);
         return;
       }
 
-      // Submit
       patternInput.value = selected.join(',');
       form.submit();
     }
@@ -242,10 +313,16 @@
     grid.addEventListener('touchmove', move, { passive: false });
     grid.addEventListener('touchend', end, { passive: false });
 
-    // Shake on error
+    // Handle error state from server
     {% if error %}
-    card.classList.add('shake');
-    setTimeout(() => card.classList.remove('shake'), 500);
+    status.textContent = 'Incorrect pattern';
+    status.className = 'status-text error';
+    wrapper.classList.add('shake');
+    dots.forEach(d => d.classList.add('error-flash'));
+    setTimeout(() => {
+      wrapper.classList.remove('shake');
+      dots.forEach(d => d.classList.remove('error-flash'));
+    }, 600);
     {% endif %}
   })();
   </script>
