@@ -27,7 +27,7 @@ A complete reference covering fundamental concepts, algorithms, techniques, and 
 
 ### Classification
 
-![Classification](Classification.png)
+![Classification](ml-images/Classification.png)
 
 Classification is a type of supervised machine learning task where an algorithm learns to categorize samples into predefined classes. The model learns patterns from labeled training data and uses these patterns to predict the class of new, unseen data points.
 
@@ -47,7 +47,7 @@ Evaluating model performance is crucial for understanding how well our machine l
 
 ### Accuracy
 
-![Accuracy](Accuracy.png)
+![Accuracy](ml-images/Accuracy.png)
 
 **Accuracy** is a metric used to evaluate the performance of a classification model. It represents the proportion of correct predictions made by the model out of the total number of predictions.
 
@@ -65,7 +65,7 @@ Accuracy = (Number of correct predictions / Total number of predictions) × 100
 
 ### F1 Score
 
-![F1 Score](F1_Score.png)
+![F1 Score](ml-images/F1_Score.png)
 
 The **F1 Score** is the harmonic mean of precision and recall, providing a balanced evaluation metric. It's particularly useful for imbalanced classes where both precision and recall are important.
 
@@ -94,7 +94,7 @@ Where:
 
 ### False Positive Rate (FPR)
 
-![FPR](False_Positive_Rate.png)
+![FPR](ml-images/False_Positive_Rate.png)
 
 **False Positive Rate** is the proportion of actual negative instances incorrectly classified as positive. Lower FPR indicates better performance in minimizing incorrect positive classifications.
 
@@ -121,7 +121,7 @@ FPR = False Positives / (False Positives + True Negatives)
 
 ### False Negative Rate (FNR)
 
-![FNR](False_Negative_Rate.png)
+![FNR](ml-images/False_Negative_Rate.png)
 
 **False Negative Rate** is the proportion of actual positive instances incorrectly classified as negative.
 
@@ -155,7 +155,7 @@ FNR = False Negatives / (False Negatives + True Positives)
 
 ### Area Under the Curve (AUC)
 
-![Area Under the Curve](Area_Under_The_Curve.png)
+![Area Under the Curve](ml-images/Area_Under_The_Curve.png)
 
 The **Area Under the Curve (AUC)** is a performance metric used to evaluate binary classification models, specifically in relation to the Receiver Operating Characteristic (ROC) curve. The ROC curve plots the true positive rate against the false positive rate across various decision thresholds.
 
@@ -170,7 +170,7 @@ A higher AUC value (ranging from 0 to 1) indicates better classification perform
 
 ### Brier Score
 
-![Brier Score](Brier_Score.png)
+![Brier Score](ml-images/Brier_Score.png)
 
 The **Brier Score** is a metric used to evaluate the accuracy of probabilistic predictions from classification models. Scores range between 0 and 1, with a **lower score indicating better predictive performance**.
 
@@ -205,7 +205,7 @@ Loss functions quantify how well a model's predictions match the actual target v
 
 ### Binary Cross-Entropy Loss
 
-![Binary Cross-Entropy Loss](Binary_Cross-Entropy_Loss.png)
+![Binary Cross-Entropy Loss](ml-images/Binary_Cross-Entropy_Loss.png)
 
 **Binary cross-entropy loss** measures the difference between the predicted and true binary classification outputs. It is calculated as the negative sum of:
 - The true class probability times the log of the predicted probability
@@ -227,7 +227,7 @@ Where:
 
 ### Categorical Cross-Entropy Loss
 
-![Categorical Cross-Entropy Loss](Categorical_Cross-Entropy_Loss.png)
+![Categorical Cross-Entropy Loss](ml-images/Categorical_Cross-Entropy_Loss.png)
 
 **Categorical cross-entropy loss** measures the difference between the predicted and true probability distributions across multiple classes. It is calculated as the negative sum of the true class probabilities multiplied by the logarithm of the predicted probabilities for each class.
 
@@ -248,7 +248,7 @@ Where:
 
 ### Mean Squared Error (MSE)
 
-![MSE](Mean_Squared_Error.png)
+![MSE](ml-images/Mean_Squared_Error.png)
 
 **Mean Squared Error** is a loss function for regression that measures the average squared difference between predicted and true outputs.
 
@@ -280,7 +280,7 @@ MSE = (1/n) Σ(ŷᵢ - yᵢ)²
 
 ### Hinge Loss
 
-![Hinge Loss](Hinge_Loss.png)
+![Hinge Loss](ml-images/Hinge_Loss.png)
 
 **Hinge loss** is a loss function for binary classification and support vector machines. It penalizes misclassified samples based on the margin between the predicted score and true class label.
 
@@ -305,7 +305,7 @@ Where:
 
 ### Kullback-Leibler Divergence Loss
 
-![KL Divergence](Kullback-Leibler_divergence_loss.png)
+![KL Divergence](ml-images/Kullback-Leibler_divergence_loss.png)
 
 **KL Divergence** measures how much a predicted probability distribution Q diverges from a true distribution P. Used extensively in generative models and variational inference.
 
@@ -347,7 +347,7 @@ Understanding the sources of error in machine learning models is essential for b
 
 ### Bias
 
-![Bias](Bias.png)
+![Bias](ml-images/Bias.png)
 
 **Bias** refers to systematic errors in a model's predictions due to simplifying assumptions made during the learning process. High bias can lead to **underfitting**, where the model lacks the flexibility to capture the underlying patterns in the data, resulting in poor predictions.
 
@@ -383,7 +383,7 @@ Variance measures the model's inconsistency across different training sets. High
 
 ### Bias-Variance Tradeoff
 
-![Bias-Variance Tradeoff](images/bias_variance_tradeoff.png)
+![Bias-Variance Tradeoff](ml-images/Bias-Variance_Tradeoff.png)
 
 The **bias-variance tradeoff** represents the balance between a model's simplicity (bias) and its sensitivity to training data (variance). Striking the right balance minimizes the total error and achieves the best performance.
 
@@ -412,7 +412,7 @@ Where:
 
 ### Bayes Error
 
-![Bayes Error](Bayes_Error.png)
+![Bayes Error](ml-images/Bayes_Error.png)
 
 **Bayes Error** represents the lowest possible error rate for a given classification problem, achievable only by an optimal classifier. This error arises due to inherent noise or randomness in the data, which causes some overlap between class distributions, making perfect classification impossible.
 
@@ -437,7 +437,7 @@ Neural networks are powerful models inspired by biological neural systems, capab
 
 ### Activation Functions
 
-![Activation Functions](images/activation_functions.png)
+![Activation Functions](ml-images/Activation_Functions.png)
 
 **Activation functions** are mathematical operations applied to a neuron's output that determine whether the neuron should pass information forward (i.e., activate). They introduce non-linearity into neural networks, enabling the network to learn complex patterns beyond simple linear relationships.
 
@@ -462,7 +462,7 @@ Neural networks are powerful models inspired by biological neural systems, capab
 
 ### Backpropagation
 
-![Backpropagation](Backpropagation.png)
+![Backpropagation](ml-images/Backpropagation.png)
 
 **Backpropagation**, or backprop, is a technique in neural networks that calculates the gradient of the loss function for each weight using the chain rule, propagating the error backward. These gradients are then used by an optimization algorithm to adjust weights and minimize error, fine-tuning the model for more accurate predictions.
 
@@ -489,7 +489,7 @@ Neural networks use various activation functions, each with specific properties 
 
 #### Rectified Linear Unit (ReLU)
 
-![ReLU](Rectified_Linear_Unit.png)
+![ReLU](ml-images/Rectified_Linear_Unit.png)
 
 **ReLU** is an activation function that returns the input directly if positive, zero otherwise. It is computationally efficient and helps mitigate the vanishing gradient problem.
 
@@ -517,7 +517,7 @@ f(x) = max(0, x)
 
 #### Leaky ReLU
 
-![Leaky ReLU](Leaky_Rectified_Linear_Unit.png)
+![Leaky ReLU](ml-images/Leaky_Rectified_Linear_Unit.png)
 
 **Leaky ReLU** is a variant of ReLU that addresses the dying ReLU problem. It introduces a small slope (controlled by parameter α) for negative input values, allowing a small gradient to flow even when the input is negative.
 
@@ -541,7 +541,7 @@ Where α is typically a small value like 0.01.
 
 #### Exponential Linear Units (ELU)
 
-![ELU](Exponential_Linear_Units.png)
+![ELU](ml-images/Exponential_Linear_Units.png)
 
 **ELU** is a neural network activation function extending ReLU by introducing a smooth negative region. It uses parameter alpha (α) to control the extent of negative values, addressing some ReLU limitations.
 
@@ -563,7 +563,7 @@ f(x) = α(e^x - 1)       if x < 0
 
 #### Noisy ReLU
 
-![Noisy ReLU](Noisy_Rectified_Linear_Unit.png)
+![Noisy ReLU](ml-images/Noisy_Rectified_Linear_Unit.png)
 
 **Noisy ReLU** is a ReLU variant that introduces random noise during forward propagation to reduce overfitting.
 
@@ -583,7 +583,7 @@ Where:
 
 #### Sigmoid
 
-![Sigmoid](Sigmoid.png)
+![Sigmoid](ml-images/Sigmoid.png)
 
 **Sigmoid** converts input to range [0,1] interpretable as a probability. Used in binary classification but suffers from vanishing gradient problem near 0 and 1.
 
@@ -609,7 +609,7 @@ f(x) = 1 / (1 + e^(-x))
 
 #### TanH (Hyperbolic Tangent)
 
-![TanH](TanH.png)
+![TanH](ml-images/TanH.png)
 
 **TanH** maps input to range [-1,1], capturing both positive and negative values for complex nonlinear relationships. Can suffer from vanishing gradient problem for inputs far from zero.
 
@@ -630,7 +630,7 @@ tanh(x) = (e^x - e^(-x)) / (e^x + e^(-x))
 
 #### Linear Activation Function
 
-![Linear](Linear_Activation_Function.png)
+![Linear](ml-images/Linear_Activation_Function.png)
 
 **Linear activation** is an identity function returning the input value as output without transformation. Acts as a placeholder in neural networks, providing no nonlinearity.
 
@@ -659,7 +659,7 @@ f(x) = x
 
 #### Neurons
 
-![Neurons](Neurons.png)
+![Neurons](ml-images/Neurons.png)
 
 **Neurons** are the fundamental building blocks of neural networks, inspired by biological neurons. Each neuron combines weighted inputs with a bias and applies an activation function to produce an output.
 
@@ -683,7 +683,7 @@ output = activation_function(Σ(w_i × x_i) + b)
 
 #### Hidden Layers
 
-![Hidden Layers](Hidden_Layers.png)
+![Hidden Layers](ml-images/Hidden_Layers.png)
 
 **Hidden layers** are intermediate layers between input and output layers that process and transform input data. They are not directly exposed to input or output; hidden layers exist between these boundary layers.
 
@@ -705,7 +705,7 @@ output = activation_function(Σ(w_i × x_i) + b)
 
 #### Initialization of Neural Network Parameters
 
-![Initialization](Initialization_Of_Neural_Network_Parameters.png)
+![Initialization](ml-images/Initialization_Of_Neural_Network_Parameters.png)
 
 **Parameter initialization** involves setting initial values for weights and biases before training begins. Parameters are initialized with random values from a distribution (normal/uniform) enabling symmetry breaking and promoting diverse learning.
 
@@ -747,7 +747,7 @@ Ensemble methods work on a simple principle: combining predictions from multiple
 
 ### Bootstrap Sampling
 
-![Bootstrap Sampling](Bootstrap_Sampling.png)
+![Bootstrap Sampling](ml-images/Bootstrap_Sampling.png)
 
 **Bootstrap sampling** is a technique that creates multiple datasets by randomly sampling with replacement from the original dataset. By generating these bootstrap samples, it allows for estimation of statistical properties and better assessment of model performance.
 
@@ -770,7 +770,7 @@ Ensemble methods work on a simple principle: combining predictions from multiple
 
 ### Bagging
 
-![Bagging](Bagging.png)
+![Bagging](ml-images/Bagging.png)
 
 **Bootstrap aggregation**, or **bagging**, is a method that improves model stability and accuracy by combining multiple base models, each trained on a random subset of the training data. By averaging their predictions, bagging reduces variance and overfitting in the final model.
 
@@ -792,7 +792,7 @@ Ensemble methods work on a simple principle: combining predictions from multiple
 
 ### Boosting
 
-![Boosting](Boosting.png)
+![Boosting](ml-images/Boosting.png)
 
 **Boosting** is an ensemble learning technique used in machine learning to improve the performance of weak learners by combining their predictions. It works by iteratively training a sequence of weak learners, with each learner focusing on correcting the errors made by the previous one. The final model is a weighted combination of these weak learners, resulting in a stronger, more accurate prediction.
 
@@ -816,7 +816,7 @@ Ensemble methods work on a simple principle: combining predictions from multiple
 
 ### AdaBoost
 
-![AdaBoost](Adaboost.png)
+![AdaBoost](ml-images/Adaboost.png)
 
 **AdaBoost**, or **Adaptive Boosting**, is an ensemble learning technique that combines multiple weak classifiers into a strong classifier. By adjusting the weights of misclassified instances and training new weak classifiers on these weights, AdaBoost iteratively improves classification performance.
 
@@ -860,7 +860,7 @@ Feature engineering is the process of creating, transforming, and selecting feat
 
 ### Categorical Features
 
-![Categorical Features](Categorical_features.png)
+![Categorical Features](ml-images/Categorical_features.png)
 
 **Categorical features** represent distinct, non-numeric types or groups. These features have a finite number of unique values, often representing different levels or classifications.
 
@@ -893,7 +893,7 @@ Natural Language Processing (NLP) involves techniques for processing and analyzi
 
 ### Bag of Words
 
-![Bag of Words](Bag_Of_Words.png)
+![Bag of Words](ml-images/Bag_Of_Words.png)
 
 A **bag of words** is a technique in natural language processing that converts text into numerical format by creating a vocabulary of unique words and counting their occurrences. Ignoring word order, each word frequency serves as a feature in a feature vector.
 
@@ -930,7 +930,7 @@ A **bag of words** is a technique in natural language processing that converts t
 
 ### Byte Pair Encoding
 
-![Byte Pair Encoding](Byte_Pair_Encoding.png)
+![Byte Pair Encoding](ml-images/Byte_Pair_Encoding.png)
 
 **Byte Pair Encoding (BPE)** is a common tokenization method. Starting with individual characters, BPE iteratively merges pairs based on their frequency, forming larger subword units until a predefined vocabulary size is reached.
 
@@ -972,7 +972,7 @@ Regularization techniques help prevent overfitting by constraining model complex
 
 ### C - Inverse of Regularization Strength
 
-![C - Inverse of Regularization](C_-_Inverse_Of_Regularization.png)
+![C - Inverse of Regularization](ml-images/C_-_Inverse_Of_Regularization.png)
 
 **C**, the inverse of regularization strength, is a hyperparameter used in some machine learning models, such as logistic regression and support vector machines. A larger C value signifies weaker regularization and a more complex model, while a smaller C value corresponds to stronger regularization and a simpler model.
 
@@ -1011,7 +1011,7 @@ Understanding algorithm complexity helps us evaluate efficiency and scalability 
 
 ### Big O Notation
 
-![Big O](Big_0.png)
+![Big O](ml-images/Big_0.png)
 
 **Big O notation** describes the performance of an algorithm by measuring the relationship between its input size and the number of operations it takes to complete. It helps to compare and analyze the efficiency of different algorithms, focusing on their worst-case behavior.
 
@@ -1055,7 +1055,7 @@ Understanding algorithm complexity helps us evaluate efficiency and scalability 
 
 ### Common Output Layer Activation Functions
 
-![Common Output Layer Activation Functions](Common_Output_Layer_Activation_Functions.png)
+![Common Output Layer Activation Functions](ml-images/Common_Output_Layer_Activation_Functions.png)
 
 An output layer activation function processes the final outputs of the neural network's final layer to produce a desired range of outputs, such as a probability distribution over the predicted classes.
 
@@ -1107,7 +1107,7 @@ softmax(x_i) = e^(x_i) / Σe^(x_j)
 
 ### Epoch
 
-![Epoch](Epoch.png)
+![Epoch](ml-images/Epoch.png)
 
 An **epoch** is a single pass through the entire training dataset during neural network training. In each epoch, the model **processes each training sample**, **calculates the loss**, and **updates its parameters** based on gradients.
 
@@ -1135,7 +1135,7 @@ Deep neural networks face unique challenges during training, particularly relate
 
 #### Exploding Gradient
 
-![Exploding Gradient](Exploding_Gradient.png)
+![Exploding Gradient](ml-images/Exploding_Gradient.png)
 
 **Exploding gradients** occur when gradients during the training process become extremely large, leading to unstable model updates and making it challenging for the optimization algorithm to converge. This often results in overshooting the minimum or causing numerical instability.
 
@@ -1173,7 +1173,7 @@ Tree-based models are powerful and interpretable algorithms that make prediction
 
 ### Decision Trees
 
-![Decision Trees](Decision_Trees.png)
+![Decision Trees](ml-images/Decision_Trees.png)
 
 **Decision trees** recursively split data based on feature values to create a tree-like structure. In classification trees, splits are made to maximize information gain or minimize impurity, while in regression trees, they aim to minimize variance. Each leaf represents a predicted output value.
 
@@ -1221,7 +1221,7 @@ Tree-based models are powerful and interpretable algorithms that make prediction
 
 ### Decision Tree Regression
 
-![Decision Tree Regression](Decision_Tree_Regression.png)
+![Decision Tree Regression](ml-images/Decision_Tree_Regression.png)
 
 **Decision tree regression** uses a decision tree structure to predict continuous numerical values. It recursively splits the training data based on feature values to create a tree-like model, where each leaf node represents a constant predicted value based on the training samples in that leaf.
 
@@ -1268,7 +1268,7 @@ Feature engineering is the process of creating, transforming, and selecting feat
 
 ### Feature Matrix
 
-![Feature Matrix](Feature_Matrix.png)
+![Feature Matrix](ml-images/Feature_Matrix.png)
 
 A **feature matrix** is a 2D array where rows represent samples and columns represent features. Each element contains the feature value for a specific sample. This is the primary input format for model training.
 
@@ -1296,7 +1296,7 @@ Sample m    xₘ₁        xₘ₂        xₘ₃     ...    xₘₙ
 
 ### Feature Selection Strategies
 
-![Feature Selection](Feature_Selection_Strategies.png)
+![Feature Selection](ml-images/Feature_Selection_Strategies.png)
 
 **Feature selection** identifies the most relevant features for a model while removing irrelevant or redundant ones.
 
@@ -1356,7 +1356,7 @@ Sample m    xₘ₁        xₘ₂        xₘ₃     ...    xₘₙ
 
 ### Feature Importance
 
-![Feature Importance](Feature_Importance.png)
+![Feature Importance](ml-images/Feature_Importance.png)
 
 **Feature importance** quantifies the influence each feature has on model predictions. It helps determine feature selection, model interpretation, and potential improvements.
 
@@ -1405,7 +1405,7 @@ Location        | 0.05
 
 ### One-Hot Encoding
 
-![One-Hot Encoding](One_Hot_Encoding.png)
+![One-Hot Encoding](ml-images/One_Hot_Encoding.png)
 
 **One-hot encoding** represents categorical variables as binary vectors, with 1 indicating the presence of a category and 0 otherwise. This transformation is useful for machine learning algorithms requiring numerical inputs.
 
@@ -1449,7 +1449,7 @@ Color_Green: [0, 0, 1, 0, 0]
 
 ### Target Encoding
 
-![Target Encoding](Target_Encoding.png)
+![Target Encoding](ml-images/Target_Encoding.png)
 
 **Target encoding** replaces categorical feature values with the average target variable value for each category. This is useful for high-cardinality categorical features but presents challenges with unknown categories and rare categories.
 
@@ -1510,7 +1510,7 @@ Proper data preprocessing is crucial for model performance. This chapter covers 
 
 ### Data Augmentation
 
-![Data Augmentation](Data_Augmentation.png)
+![Data Augmentation](ml-images/Data_Augmentation.png)
 
 **Data augmentation** increases the training set size by creating new samples from existing data, typically through transformations like rotating, flipping, cropping images, or adding noise to audio. This technique improves model robustness by exposing it to more data variations.
 
@@ -1551,7 +1551,7 @@ Proper data preprocessing is crucial for model performance. This chapter covers 
 
 ### Downsampling
 
-![Downsampling](Downsampling.png)
+![Downsampling](ml-images/Downsampling.png)
 
 **Downsampling** is a strategy to handle data with imbalanced classes by randomly removing samples from the majority class. This technique reduces the dominance of the majority class, helping the model to recognize patterns in the minority class and potentially improving the classifier's performance.
 
@@ -1588,7 +1588,7 @@ Proper data preprocessing is crucial for model performance. This chapter covers 
 
 ### Data Leakage
 
-![Data Leakage](Data_Leakage.png)
+![Data Leakage](ml-images/Data_Leakage.png)
 
 **Data leakage** occurs when information from outside the training data that would not be available at prediction time improperly influences the model during training. This creates an unrealistic advantage, inflates evaluation metrics, and harms the model's ability to generalize to new data.
 
@@ -1644,7 +1644,7 @@ Proper data preprocessing is crucial for model performance. This chapter covers 
 
 ### Curse of Dimensionality
 
-![Curse of Dimensionality](Curse_of_Dimensionality.png)
+![Curse of Dimensionality](ml-images/Curse_of_Dimensionality.png)
 
 The **curse of dimensionality** is a phenomenon where the performance of algorithms deteriorates as the number of features increases. This is due to the exponential increase in the volume of the space, making it difficult to obtain enough data to properly sample the space.
 
@@ -1699,7 +1699,7 @@ The **curse of dimensionality** is a phenomenon where the performance of algorit
 
 ### Data Wall
 
-![Data Wall](Data_Wall.png)
+![Data Wall](ml-images/Data_Wall.png)
 
 A **data wall** occurs when increasing the size or complexity of a language model stops improving its performance because the training data is insufficient, repetitive, or not diverse enough. The model reaches a point where simply adding more parameters or layers does not yield better results since it has already extracted all useful patterns from the available data.
 
@@ -1735,7 +1735,7 @@ A **data wall** occurs when increasing the size or complexity of a language mode
 
 ### Effect of Feature Scaling on Gradient Descent
 
-![Effect of Feature Scaling](Effect_Of_Feature_Scaling_On_Gradient_Descent.png)
+![Effect of Feature Scaling](ml-images/Effect_Of_Feature_Scaling_On_Gradient_Descent.png)
 
 When the features have different scales, gradient descent may take longer to converge or even fail to converge at all. **Feature scaling**, such as normalization or standardization, ensures that all features are on a similar scale, allowing gradient descent to avoid disproportionately large updates based on features with larger values.
 
@@ -1778,7 +1778,7 @@ When the features have different scales, gradient descent may take longer to con
 
 ### Confusion Matrix
 
-![Confusion Matrix](images/confusion_matrix.png)
+![Confusion Matrix](ml-images/Confusion_Matrix.png)
 
 A **confusion matrix** is a table that helps evaluate the performance of a machine learning model by comparing its predicted outcomes against the actual outcomes.
 
@@ -1827,7 +1827,7 @@ Where:
 
 ### Error Types
 
-![Error Types](Error_Types.png)
+![Error Types](ml-images/Error_Types.png)
 
 **Type I error** is a false positive, where a test indicates the presence of an effect or difference when there actually isn't one. **Type II error** is a false negative, where a test fails to detect an effect or difference that truly exists.
 
@@ -1879,7 +1879,7 @@ Clustering algorithms group similar data points together without using labeled d
 
 ### DBSCAN
 
-![DBSCAN](DBSCAN.png)
+![DBSCAN](ml-images/DBSCAN.png)
 
 **DBSCAN (Density-Based Spatial Clustering of Applications with Noise)** is a clustering algorithm that groups similar samples by density. It defines clusters as dense regions of points separated by sparser regions, allowing it to discover clusters of arbitrary shape. The algorithm relies on two main parameters: **epsilon (ε)**, which defines the radius for neighborhood searches, and **minPts**, the minimum number of points needed to form a dense cluster.
 
@@ -1933,7 +1933,7 @@ Clustering algorithms group similar data points together without using labeled d
 
 ### K-Means Clustering
 
-![K-Means](K-Means_Clustering.png)
+![K-Means](ml-images/K-Means_Clustering.png)
 
 **K-Means** partitions samples into k clusters based on similarity. The algorithm iteratively updates cluster assignments and centroids until convergence. It works best for roughly spherical, evenly-sized clusters.
 
@@ -1975,7 +1975,7 @@ Clustering algorithms group similar data points together without using labeled d
 
 ### Mean Shift Clustering
 
-![Mean Shift](Mean_Shift_Clustering.png)
+![Mean Shift](ml-images/Mean_Shift_Clustering.png)
 
 **Mean Shift** is an unsupervised algorithm that discovers clusters by iteratively shifting data points toward the mean of their neighborhood. It works without a predefined cluster count, useful for finding natural cluster structures.
 
@@ -2015,7 +2015,7 @@ Distance metrics are fundamental to many machine learning algorithms, particular
 
 ### L1 Norm (Manhattan Distance)
 
-![L1 Norm](L1_Norm.png)
+![L1 Norm](ml-images/L1_Norm.png)
 
 **L1 Norm** measures vector magnitude by summing the absolute values of its components.
 
@@ -2046,7 +2046,7 @@ d(x, y) = Σ|xᵢ - yᵢ|
 
 ### L2 Norm (Euclidean Distance)
 
-![L2 Norm](L2_Norm.png)
+![L2 Norm](ml-images/L2_Norm.png)
 
 **L2 Norm** measures vector length in multidimensional space using the square root of the sum of squared components.
 
@@ -2073,7 +2073,7 @@ d(x, y) = √(Σ(xᵢ - yᵢ)²)
 
 ### Minkowski Distance
 
-![Minkowski Distance](Minkowski_Distance.png)
+![Minkowski Distance](ml-images/Minkowski_Distance.png)
 
 **Minkowski Distance** is a generalized distance metric for multidimensional space.
 
@@ -2106,7 +2106,7 @@ d(x, y) = (Σ|xᵢ - yᵢ|^p)^(1/p)
 
 ### K-Nearest Neighbors (K-NN)
 
-![K-NN](K-Nearest_Neighbors.png)
+![K-NN](ml-images/K-Nearest_Neighbors.png)
 
 **K-Nearest Neighbors** is used for both classification and regression. The prediction is determined by the majority vote (classification) or average (regression) of the k nearest neighbors in the feature space.
 
@@ -2144,7 +2144,7 @@ d(x, y) = (Σ|xᵢ - yᵢ|^p)^(1/p)
 
 ### K-NN Neighborhood Size
 
-![K-NN Neighborhood Size](K-NN_Neighborhood_Size.png)
+![K-NN Neighborhood Size](ml-images/K-NN_Neighborhood_Size.png)
 
 **The choice of k** affects the bias-variance tradeoff:
 
@@ -2180,7 +2180,7 @@ Selecting the right model and tuning hyperparameters are critical steps in build
 
 ### Hyperparameters vs. Parameters
 
-![Hyperparameters vs Parameters](Hyperparameters_Vs._Parameters.png)
+![Hyperparameters vs Parameters](ml-images/Hyperparameters_Vs._Parameters.png)
 
 **Parameters:**
 - Internal model variables learned during training
@@ -2209,7 +2209,7 @@ Selecting the right model and tuning hyperparameters are critical steps in build
 
 ### Hyperparameter Tuning
 
-![Hyperparameter Tuning](Hyperparameter_Tuning.png)
+![Hyperparameter Tuning](ml-images/Hyperparameter_Tuning.png)
 
 **Hyperparameter tuning** is the process of finding optimal hyperparameter values by systematically exploring different combinations and evaluating model performance.
 
@@ -2237,7 +2237,7 @@ Selecting the right model and tuning hyperparameters are critical steps in build
 
 ### Grid Search
 
-![Grid Search](Grid_Search.png)
+![Grid Search](ml-images/Grid_Search.png)
 
 **Grid Search** systematically searches for optimal hyperparameters by defining a list of potential values, training the model with each combination, and selecting the best-performing set.
 
@@ -2279,7 +2279,7 @@ Total combinations: 3 × 3 × 2 = 18
 
 ### Random Search
 
-![Random Search](Random_Search.png)
+![Random Search](ml-images/Random_Search.png)
 
 **Random Search** is a hyperparameter optimization method that selects hyperparameter values randomly from distributions. It's more efficient than grid search in high-dimensional spaces.
 
@@ -2321,7 +2321,7 @@ Proper validation techniques ensure our models generalize well to new data.
 
 ### Training, Validation, and Test Sets
 
-![Train/Val/Test Sets](Training,_Validation,_And_Test_Sets.png)
+![Train/Val/Test Sets](ml-images/Training,_Validation,_And_Test_Sets.png)
 
 **Training set**: Portion used to train the model by adjusting parameters/weights
 
@@ -2353,7 +2353,7 @@ Proper validation techniques ensure our models generalize well to new data.
 
 ### K-Fold Cross-Validation
 
-![K-Fold CV](K-Fold_Cross-Validation.png)
+![K-Fold CV](ml-images/K-Fold_Cross-Validation.png)
 
 **K-Fold Cross-Validation** assesses model performance and generalization by splitting the dataset into k equally-sized folds. The model uses k-1 folds for training and 1 fold for validation, repeated k times.
 
@@ -2399,7 +2399,7 @@ Transfer learning leverages knowledge from pre-trained models to improve perform
 
 ### Foundation Models
 
-![Foundation Model](Foundation_Model.png)
+![Foundation Model](ml-images/Foundation_Model.png)
 
 **Foundation models** are large-scale base models trained on extensive diverse datasets for broad understanding. They serve as a flexible starting point, often fine-tuned for specific tasks or utilized through prompt engineering.
 
@@ -2428,7 +2428,7 @@ Transfer learning leverages knowledge from pre-trained models to improve perform
 
 ### Pretraining
 
-![Pretraining](Pretraining.png)
+![Pretraining](ml-images/Pretraining.png)
 
 **Pretraining** is the initial phase of training a large language model on extensive diverse text datasets. The LLM optimizes a self-supervised loss function, such as predicting missing words or masked language modeling, to capture linguistic patterns.
 
@@ -2457,7 +2457,7 @@ Transfer learning leverages knowledge from pre-trained models to improve perform
 
 ### Fine-Tuning
 
-![Fine-Tuning](Fine-Tuning.png)
+![Fine-Tuning](ml-images/Fine-Tuning.png)
 
 **Fine-tuning** adapts a pretrained large language model for specific tasks or domains. It refines model outputs by optimizing a supervised loss function while preserving general knowledge learned earlier.
 
@@ -2493,7 +2493,7 @@ Transfer learning leverages knowledge from pre-trained models to improve perform
 
 ### KV Cache
 
-![KV Cache](KV_Cache.png)
+![KV Cache](ml-images/KV_Cache.png)
 
 **KV Cache** optimizes transformer models in autoregressive inference by storing intermediate results (Key and Value matrices from prior steps). This avoids recomputing attention scores, reducing complexity from O(n²) to O(n).
 
@@ -2532,7 +2532,7 @@ Advanced topics in deep learning that help us understand and improve model perfo
 
 ### Deep Double Descent
 
-![Deep Double Descent](Deep_Double_Descent.png)
+![Deep Double Descent](ml-images/Deep_Double_Descent.png)
 
 Belkin et al. 2018 discovered an anomaly in the conventional bias-variance tradeoff around a point they call the "**interpolation threshold**," which corresponds to a state where the model makes virtually no mistakes on its training data.
 
@@ -2583,7 +2583,7 @@ Belkin et al. 2018 discovered an anomaly in the conventional bias-variance trade
 
 ### Embeddings
 
-![Embeddings](Embeddings.png)
+![Embeddings](ml-images/Embeddings.png)
 
 Neural networks cannot process raw text directly because text is incompatible with mathematical operations. **Embeddings** convert discrete data like words or parts of words into continuous numerical vectors. These vectors map items into a multi-dimensional space, capturing semantic relationships and patterns the model can utilize.
 
@@ -2654,7 +2654,7 @@ Optimization algorithms are essential for training machine learning models. They
 
 ### Gradient Descent
 
-![Gradient Descent](Gradient_Descent.png)
+![Gradient Descent](ml-images/Gradient_Descent.png)
 
 **Gradient Descent** is an optimization algorithm that minimizes the loss function by iteratively updating parameters in the direction of steepest descent. It computes gradients and updates parameters based on the learning rate.
 
@@ -2697,7 +2697,7 @@ Where:
 
 ### Stochastic Gradient Descent (SGD)
 
-![SGD](Stochastic_Gradient_Descent.png)
+![SGD](ml-images/Stochastic_Gradient_Descent.png)
 
 **Stochastic Gradient Descent** is an optimization algorithm using individual samples from training data for parameter updates. It introduces stochasticity into the optimization process for faster convergence and efficiency.
 
@@ -2723,7 +2723,7 @@ Where:
 
 ### Stochastic Gradient Descent with Momentum
 
-![SGD with Momentum](Stochastic_Gradient_Descent_With_Momentum.png)
+![SGD with Momentum](ml-images/Stochastic_Gradient_Descent_With_Momentum.png)
 
 **SGD with Momentum** is an SGD variant using an exponentially weighted average of past gradients. The momentum parameter controls the influence of past gradients, enabling more stable convergence.
 
@@ -2756,7 +2756,7 @@ Where:
 
 ### RMSprop
 
-![RMSprop](RMSprop.png)
+![RMSprop](ml-images/RMSprop.png)
 
 **RMSprop** is an optimizer that adjusts learning rates per parameter based on the root mean square of past gradient averages. It uses a decay rate to normalize updates and prevent oscillations.
 
@@ -2783,7 +2783,7 @@ Where:
 
 ### Mini-Batch
 
-![Mini-Batch](Mini-Batch.png)
+![Mini-Batch](ml-images/Mini-Batch.png)
 
 **Mini-batch** training divides the training data into smaller batches for parameter updates, providing improved computational efficiency. It allows frequent updates with reduced computational cost compared to full batch training.
 
@@ -2812,7 +2812,7 @@ Where:
 
 ### Minima of the Loss Function
 
-![Minima](Minima_Of_The_Loss_Function.png)
+![Minima](ml-images/Minima_Of_The_Loss_Function.png)
 
 The **loss function landscape** can contain different types of minima:
 
@@ -2836,7 +2836,7 @@ The **loss function landscape** can contain different types of minima:
 
 #### Gradient Clipping
 
-![Gradient Clipping](Gradient_Clipping.png)
+![Gradient Clipping](ml-images/Gradient_Clipping.png)
 
 **Gradient clipping** limits gradient magnitude to a threshold by rescaling gradients if the norm exceeds the threshold. This ensures stable optimization and prevents exploding gradient issues.
 
@@ -2864,7 +2864,7 @@ if ||∇Loss|| > threshold:
 
 #### Gradient Cliffs
 
-![Gradient Cliffs](Gradient_Cliffs.png)
+![Gradient Cliffs](ml-images/Gradient_Cliffs.png)
 
 **Gradient cliffs** are extreme sudden changes in the loss function landscape where gradients become very large or small. They can hinder optimizer convergence and make optimization difficult.
 
@@ -2885,7 +2885,7 @@ if ||∇Loss|| > threshold:
 
 ### Gini Index
 
-![Gini Index](Gini_Index.png)
+![Gini Index](ml-images/Gini_Index.png)
 
 The **Gini Index** is a measure of impurity for splitting nodes in decision trees. It quantifies class mixing within a node by calculating the misclassification probability for a randomly chosen sample. The goal is to minimize the Gini Index, creating purer splits.
 
@@ -2918,7 +2918,7 @@ Where p_i is the proportion of samples belonging to class i.
 
 ### Random Forests
 
-![Random Forests](Random_Forests.png)
+![Random Forests](ml-images/Random_Forests.png)
 
 **Random Forests** are an ensemble learning method combining multiple decision trees trained on random subsets of data (with replacement). Each tree votes by predicting the target class, and predictions are aggregated through voting. This reduces overfitting and provides robust predictions.
 
@@ -2957,7 +2957,7 @@ Where p_i is the proportion of samples belonging to class i.
 
 ### Out-of-Bag Errors (OOB)
 
-![OOB Errors](Out-Of-Bag_Errors.png)
+![OOB Errors](ml-images/Out-Of-Bag_Errors.png)
 
 **Out-of-Bag Errors** measure model prediction error without a separate validation set. They use training data points not included in individual decision tree's training data (due to bootstrap sampling).
 
@@ -2980,7 +2980,7 @@ Where p_i is the proportion of samples belonging to class i.
 
 ### Weak Learners
 
-![Weak Learners](Weak_Learners.png)
+![Weak Learners](ml-images/Weak_Learners.png)
 
 **Weak learners** are simple models that perform slightly better than random guessing. They are used as building blocks in ensemble methods where many weak learners combine into a strong learner.
 
@@ -3015,7 +3015,7 @@ Where p_i is the proportion of samples belonging to class i.
 
 ### Dropout
 
-![Dropout](Dropout.png)
+![Dropout](ml-images/Dropout.png)
 
 **Dropout** is a regularization technique used in neural networks, where randomly selected neurons are temporarily deactivated during training. This reduces co-adaptation among neurons, forcing the network to learn more independently useful features.
 
@@ -3058,7 +3058,7 @@ Where p_i is the proportion of samples belonging to class i.
 
 ### Early Stopping
 
-![Early Stopping](Early_Stopping.png)
+![Early Stopping](ml-images/Early_Stopping.png)
 
 **Early stopping** is a technique to prevent overfitting by stopping the training process before the model becomes too complex. It involves monitoring a validation metric (e.g., validation loss) on a validation set and terminating training when the metric no longer improves.
 
@@ -3090,7 +3090,7 @@ This helps to find the point where the model performs well on the validation set
 
 ### Elastic Net
 
-![Elastic Net](Elastic_Net.png)
+![Elastic Net](ml-images/Elastic_Net.png)
 
 **Elastic Net** is a regularization technique that combines L1 (Lasso) and L2 (Ridge) regularization to improve the performance of linear regression models. By balancing these penalties, Elastic Net can simultaneously perform feature selection and handle multicollinearity.
 
@@ -3151,7 +3151,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### What Does It Mean To Learn in Machine Learning?
 
-![What is Learning](What_Does_It_Mean_To_Learn_In_Machine_Learning_.png)
+![What is Learning](ml-images/What_Does_It_Mean_To_Learn_In_Machine_Learning_.png)
 
 **Learning** in machine learning is the process where a model automatically adjusts its internal parameters or weights based on training data. The model learns patterns, relationships, and underlying structures, enabling it to make predictions on new data without explicit programming for each scenario.
 
@@ -3186,7 +3186,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Motivation for Deep Learning
 
-![Motivation Deep Learning](Motivation_For_Deep_Learning.png)
+![Motivation Deep Learning](ml-images/Motivation_For_Deep_Learning.png)
 
 **Deep learning** has become dominant in many AI applications due to several key advantages:
 
@@ -3219,7 +3219,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Motivation for Deep Networks
 
-![Motivation Deep Networks](Motivation_For_Deep_Networks.png)
+![Motivation Deep Networks](ml-images/Motivation_For_Deep_Networks.png)
 
 **Why use deep networks instead of shallow ones?**
 
@@ -3256,7 +3256,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Generalization
 
-![Generalization](Generalization.png)
+![Generalization](ml-images/Generalization.png)
 
 **Generalization** is a model's ability to perform well on unseen data. It indicates the model has captured underlying patterns and can make accurate predictions on new examples beyond the training set.
 
@@ -3299,7 +3299,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Overfitting vs. Underfitting
 
-![Overfitting vs Underfitting](images/overfitting_detection.png)
+![Overfitting vs Underfitting](ml-images/Overfitting_Vs._Underfitting.png)
 
 **Underfitting:**
 - Model too simple to capture underlying patterns
@@ -3355,7 +3355,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Model Complexity
 
-![Model Complexity](Model_Complexity.png)
+![Model Complexity](ml-images/Model_Complexity.png)
 
 **Model complexity** refers to the capacity of a model to fit data. As complexity increases, the model can capture more intricate patterns, reducing training error but potentially increasing variance.
 
@@ -3396,7 +3396,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Model Complexity Impact on Bias and Variance
 
-![Model Complexity Impact](Model_Complexity_Impact_On_Bias_And_Variance.png)
+![Model Complexity Impact](ml-images/Model_Complexity_Impact_On_Bias_And_Variance.png)
 
 **As model complexity increases:**
 
@@ -3428,7 +3428,7 @@ min (1/2n) Σ(y_i - β_0 - x_i^T β)² + λ₁‖β‖₁ + (λ₂/2)‖β‖₂
 
 ### Learning Curve
 
-![Learning Curve](Learning_Curve.png)
+![Learning Curve](ml-images/Learning_Curve.png)
 
 A **learning curve** plots the relationship between model performance and training set size. It shows how training and validation scores improve as more data is added.
 
@@ -3464,7 +3464,7 @@ A **learning curve** plots the relationship between model performance and traini
 
 ### Training Error Rate
 
-![Training Error Rate](Training_Error_Rate.png)
+![Training Error Rate](ml-images/Training_Error_Rate.png)
 
 **Training error rate** is the number of incorrect predictions divided by total predictions on the training set.
 
@@ -3499,7 +3499,7 @@ Training Error Rate = Incorrect Predictions / Total Training Samples
 
 ### Model Consistency
 
-![Model Consistency](Model_Consistency.png)
+![Model Consistency](ml-images/Model_Consistency.png)
 
 **Model consistency** is a property where the probability of the difference between predicted and true output approaches zero as the number of samples approaches infinity.
 
@@ -3532,7 +3532,7 @@ Where:
 
 ### No Free Lunch Theorem
 
-![No Free Lunch](No_Free_Lunch_Theorem.png)
+![No Free Lunch](ml-images/No_Free_Lunch_Theorem.png)
 
 The **No Free Lunch (NFL) Theorem** states that no universal algorithm outperforms all others across all possible problems. On average across all problems, every algorithm has equal performance (equivalent to random guessing).
 
@@ -3579,7 +3579,7 @@ The **No Free Lunch (NFL) Theorem** states that no universal algorithm outperfor
 
 ### Reinforcement Learning
 
-![Reinforcement Learning](Reinforcement_Learning.png)
+![Reinforcement Learning](ml-images/Reinforcement_Learning.png)
 
 **Reinforcement Learning (RL)** is a paradigm where an agent learns by interacting with an environment, receiving feedback through actions and rewards. The agent adjusts future actions to maximize cumulative rewards.
 
@@ -3645,7 +3645,7 @@ The **No Free Lunch (NFL) Theorem** states that no universal algorithm outperfor
 
 ### Why LLMs are Self-Supervised Learning
 
-![Why LLMs are Self-Supervised](Why_LLMs_are_Self-Supervised_Learning.png)
+![Why LLMs are Self-Supervised](ml-images/Why_LLMs_are_Self-Supervised_Learning.png)
 
 **Large Language Models (LLMs)** are trained using self-supervised learning, where labels are extracted from the raw data itself. The training objective involves predicting missing parts (masked language modeling) or next words (causal modeling) from the data.
 
@@ -3699,7 +3699,7 @@ The **No Free Lunch (NFL) Theorem** states that no universal algorithm outperfor
 
 ### MNIST Dataset
 
-![MNIST](MNIST_Dataset.png)
+![MNIST](ml-images/MNIST_Dataset.png)
 
 **MNIST (Modified National Institute of Standards and Technology)** is a classic dataset of handwritten digits used for training and evaluating image classification models.
 
@@ -3744,7 +3744,7 @@ The **No Free Lunch (NFL) Theorem** states that no universal algorithm outperfor
 
 ### Learning Rate
 
-![Learning Rate](images/learning_rate_comparison.png)
+![Learning Rate](ml-images/Learning_Rate.png)
 
 **Learning rate** controls the magnitude of parameter adjustments based on loss gradients during training.
 
