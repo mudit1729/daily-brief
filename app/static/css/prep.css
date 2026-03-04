@@ -267,7 +267,7 @@
   padding: var(--sb-space-5);
   overflow-y: auto;
   flex: 1;
-  background: var(--sb-surface);
+  background: var(--sb-bg-card);
 }
 
 .sb-notes-empty {
@@ -288,7 +288,7 @@
 .sb-notes-content .md-body ol { margin: 0 0 var(--sb-space-3); padding-left: var(--sb-space-5); }
 .sb-notes-content .md-body li { margin-bottom: var(--sb-space-1); line-height: 1.6; }
 .sb-notes-content .md-body code {
-  background: var(--sb-surface-elevated);
+  background: var(--sb-code-bg);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.85em;
@@ -321,7 +321,7 @@
 .sb-notes-content .md-body a:hover { text-decoration: underline; }
 .sb-notes-content .md-body hr { border: none; border-top: 1px solid var(--sb-border); margin: var(--sb-space-5) 0; }
 .sb-notes-content .md-body img { max-width: 100%; height: auto; border-radius: var(--sb-radius-md); margin: var(--sb-space-3) 0; background: var(--sb-surface-elevated); }
-.sb-notes-content .md-body em { color: var(--sb-text-muted); font-size: var(--sb-text-sm); }
+.sb-notes-content .md-body em { color: var(--sb-text-secondary); font-size: var(--sb-text-sm); }
 
 /* ── Highlighting ──────────────────────────────── */
 mark.user-highlight {
@@ -722,7 +722,7 @@ mark.user-highlight {
 .sb-notes-layout--fullscreen .sb-notes-content {
   padding: var(--sb-space-8) var(--sb-space-10);
   overflow-y: auto;
-  background: var(--sb-bg-primary);
+  background: var(--sb-bg-card);
 }
 
 .sb-notes-layout--fullscreen .sb-notes-content .md-body {

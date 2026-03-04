@@ -3,8 +3,14 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/prep.css') }}">
-<!-- Syntax highlighting (theme-aware: swapped via JS) -->
-<link id="hljsTheme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous">
+<!-- Syntax highlighting (theme-aware: set immediately from localStorage to avoid flash) -->
+<script>
+(function(){
+  var t = localStorage.getItem('sb-theme');
+  var dark = !t || t === 'dark';
+  document.write('<link id="hljsTheme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/' + (dark ? 'github-dark' : 'github') + '.min.css" crossorigin="anonymous">');
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous"></script>
 {% endblock %}
 
