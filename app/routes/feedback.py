@@ -29,18 +29,36 @@ def submit_action():
         )
         response_data = action.to_dict()
 
-        # Follow a cluster → auto-create a tracked story
+        # Follow/unfollow a cluster → toggle tracked story
         if data['action_type'] == 'follow' and data['target_type'] == 'cluster':
             try:
                 from app.services.story_tracker import StoryTracker
+                from app.models.user import FeedbackAction as FA
                 tracker = StoryTracker()
                 if tracker.is_enabled():
-                    topic, story = tracker.create_story_from_cluster(int(data['target_id']))
-                    if topic and story:
-                        response_data['story_created'] = {
-                            'topic_name': topic.name,
-                            'story_title': story.title,
-                        }
+                    cluster_id = int(data['target_id'])
+                    # Count previous follow actions for this cluster to determine toggle
+                    prev_follows = FA.query.filter_by(
+                        action_type='follow',
+                        target_type='cluster',
+                        target_id=str(cluster_id),
+                    ).count()
+
+                    if prev_follows % 2 == 1:
+                        # Odd count (including this one) → first follow → create story
+                        topic, story = tracker.create_story_from_cluster(cluster_id)
+                        if topic and story:
+                            response_data['story_created'] = {
+                                'topic_name': topic.name,
+                                'story_title': story.title,
+                            }
+                    else:
+                        # Even count → unfollow → deactivate tracked topic
+                        deactivated = tracker.deactivate_topic_for_cluster(cluster_id)
+                        if deactivated:
+                            response_data['story_removed'] = {
+                                'topic_name': deactivated.name,
+                            }
             except Exception as e:
                 logger.error(f"Follow-to-story failed for cluster {data['target_id']}: {e}")
 

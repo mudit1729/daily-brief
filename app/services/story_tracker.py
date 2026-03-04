@@ -1,8 +1,9 @@
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from app.extensions import db
 from app.models.topic import TrackedTopic, Story, Event
+from app.models.cluster import Cluster, ClusterMembership
 from app import feature_flags
 
 logger = logging.getLogger(__name__)
@@ -153,8 +154,12 @@ class StoryTracker:
         """Create a TrackedTopic and Story from a followed cluster.
 
         Called when user clicks 'Follow' on a cluster card.
+        Looks back at recent days (up to LOOKBACK_DAYS) to find related clusters
+        and adds them as historical context events on the story.
         Returns (topic, story) tuple or (None, None) if cluster not found.
         """
+        LOOKBACK_DAYS = 5
+
         cluster = Cluster.query.get(cluster_id)
         if not cluster or not cluster.label:
             return None, None
@@ -184,7 +189,7 @@ class StoryTracker:
             db.session.flush()
             logger.info(f"[StoryTracker] Created TrackedTopic '{matched_topic.name}' from follow")
 
-        # Get articles for this cluster
+        # Get articles for the followed cluster
         memberships = ClusterMembership.query.filter_by(cluster_id=cluster.id).all()
         from app.models.article import Article
         articles = [Article.query.get(m.article_id) for m in memberships]
@@ -193,10 +198,86 @@ class StoryTracker:
         story = self._find_or_create_story(matched_topic, cluster, _build_cluster_words(cluster, articles))
         if story:
             self._add_event(story, cluster, articles)
+
+            # ── Backfill: scan past LOOKBACK_DAYS for related clusters ──
+            try:
+                cutoff = (cluster.date or datetime.now(timezone.utc).date()) - timedelta(days=LOOKBACK_DAYS)
+                topic_terms = _significant_terms(list(_extract_words(matched_topic.name)))
+
+                if topic_terms:
+                    recent_clusters = Cluster.query.filter(
+                        Cluster.date >= cutoff,
+                        Cluster.id != cluster.id,
+                        Cluster.label.isnot(None),
+                    ).order_by(Cluster.date.asc()).all()
+
+                    backfill_count = 0
+                    existing_cluster_ids = set(story.cluster_ids_json or [])
+
+                    for rc in recent_clusters:
+                        if rc.id in existing_cluster_ids:
+                            continue
+                        rc_members = ClusterMembership.query.filter_by(cluster_id=rc.id).all()
+                        rc_articles = [Article.query.get(m.article_id) for m in rc_members]
+                        rc_articles = [a for a in rc_articles if a]
+                        rc_words = _build_cluster_words(rc, rc_articles)
+
+                        matching = sum(1 for t in topic_terms if _fuzzy_match(t, rc_words))
+                        required = len(topic_terms) if len(topic_terms) <= 2 else 2
+
+                        if matching >= required:
+                            self._add_event(story, rc, rc_articles)
+                            existing_cluster_ids.add(rc.id)
+                            backfill_count += 1
+
+                    if backfill_count:
+                        story.cluster_ids_json = list(existing_cluster_ids)
+                        logger.info(
+                            f"[StoryTracker] Backfilled {backfill_count} historical events "
+                            f"(past {LOOKBACK_DAYS} days) for story '{story.title}'"
+                        )
+            except Exception as e:
+                logger.error(f"[StoryTracker] Backfill failed (non-fatal): {e}")
+
             db.session.commit()
             logger.info(f"[StoryTracker] Created story '{story.title}' from follow on cluster {cluster_id}")
 
         return matched_topic, story
+
+    def deactivate_topic_for_cluster(self, cluster_id):
+        """Deactivate the TrackedTopic associated with a cluster (unfollow).
+
+        Finds the topic whose name matches the cluster label and deactivates it,
+        which stops daily tracking. Returns the deactivated topic or None.
+        """
+        cluster = Cluster.query.get(cluster_id)
+        if not cluster or not cluster.label:
+            return None
+
+        cluster_words = _build_cluster_words(cluster, [])
+        topics = TrackedTopic.query.filter_by(is_active=True).all()
+
+        for topic in topics:
+            topic_terms = _significant_terms(list(_extract_words(topic.name)))
+            if not topic_terms:
+                continue
+            matching = sum(1 for t in topic_terms if _fuzzy_match(t, cluster_words))
+            required = len(topic_terms) if len(topic_terms) <= 2 else 2
+            if matching >= required:
+                topic.is_active = False
+                # Mark all developing/ongoing stories as stale
+                active_stories = Story.query.filter(
+                    Story.topic_id == topic.id,
+                    Story.status.in_(['developing', 'ongoing']),
+                ).all()
+                for story in active_stories:
+                    story.status = 'stale'
+                    story.last_updated = datetime.now(timezone.utc)
+                db.session.commit()
+                logger.info(f"[StoryTracker] Deactivated topic '{topic.name}' (unfollow)")
+                return topic
+
+        return None
 
     def update_story_status(self, story_id, status):
         """Update story status (developing, ongoing, resolved, stale)."""

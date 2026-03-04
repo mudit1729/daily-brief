@@ -1035,6 +1035,72 @@ def prep_image(filepath):
     return send_file(safe_path)
 
 
+@views_bp.route('/api/prep/notes/rename', methods=['POST'])
+def prep_rename_note():
+    """Rename a markdown note file.
+
+    Request JSON:
+        old_filename: str — current filename (e.g. "Blind-75.md")
+        new_title: str    — new display title (will be converted to a safe filename)
+    """
+    import os
+    import re as _re
+
+    data = request.get_json(silent=True) or {}
+    old_filename = data.get('old_filename', '').strip()
+    new_title = data.get('new_title', '').strip()
+
+    if not old_filename or not new_title:
+        return jsonify({'error': 'old_filename and new_title required'}), 400
+
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    old_path = os.path.normpath(os.path.join(notes_dir, old_filename))
+    if not old_path.startswith(notes_dir) or not os.path.isfile(old_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    # Preserve the category prefix (e.g. "Ilya30-", "BEV-", "MLPaper-")
+    old_base = old_filename.rsplit('.', 1)[0]  # Remove .md
+    prefix = ''
+    KNOWN_PREFIXES = [
+        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-',
+    ]
+    for p in KNOWN_PREFIXES:
+        if old_base.startswith(p):
+            prefix = p
+            break
+
+    # Convert title to safe filename: replace spaces with hyphens, keep alphanumeric
+    safe_title = _re.sub(r'[^\w\s-]', '', new_title).strip()
+    safe_title = _re.sub(r'[\s]+', '-', safe_title)
+    if not safe_title:
+        return jsonify({'error': 'Invalid title'}), 400
+
+    new_filename = prefix + safe_title + '.md'
+    new_path = os.path.normpath(os.path.join(notes_dir, new_filename))
+
+    if not new_path.startswith(notes_dir):
+        return jsonify({'error': 'Invalid path'}), 400
+
+    if new_path == old_path:
+        return jsonify({'filename': new_filename, 'unchanged': True})
+
+    if os.path.exists(new_path):
+        return jsonify({'error': 'A file with that name already exists'}), 409
+
+    try:
+        os.rename(old_path, new_path)
+    except OSError as e:
+        logger.error(f"Failed to rename {old_filename} → {new_filename}: {e}")
+        return jsonify({'error': 'Rename failed'}), 500
+
+    logger.info(f"[Prep] Renamed note: {old_filename} → {new_filename}")
+    return jsonify({'filename': new_filename, 'old_filename': old_filename})
+
+
 @views_bp.route('/api/prep/chat', methods=['POST'])
 def prep_chat():
     """Stream a Claude response about the currently viewed markdown note.
