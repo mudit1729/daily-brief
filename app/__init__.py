@@ -32,6 +32,10 @@ def create_app(config_class=None):
     from app.routes import register_blueprints
     register_blueprints(app)
 
+    # CLI commands
+    from app.commands import register_commands
+    register_commands(app)
+
     # Scheduler
     if app.config.get('SCHEDULER_ENABLED') and not app.config.get('TESTING'):
         scheduler.init_app(app)
