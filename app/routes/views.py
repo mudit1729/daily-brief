@@ -36,8 +36,8 @@ def require_site_password():
     password = current_app.config.get('SITE_PASSWORD')
     if not password:
         return  # no password configured — site is open
-    if request.endpoint in ('views.login', 'static'):
-        return  # allow the login page and static assets through
+    if request.endpoint in ('views.login', 'views.calendar_seed', 'static'):
+        return  # allow the login page, seed endpoint, and static assets through
     if session.get('site_authenticated'):
         return  # already logged in
     return redirect(url_for('views.login', next=request.path))
