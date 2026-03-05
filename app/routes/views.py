@@ -1367,6 +1367,42 @@ def calendar_event_delete(event_id):
     return jsonify({'status': 'ok', 'id': event_id})
 
 
+@views_bp.route('/api/calendar/seed', methods=['POST'])
+def calendar_seed():
+    """Seed calendar with earnings, festivals, ekadashis, and SD events."""
+    from app.commands import (
+        SEED_TAG, _earnings_events, _ekadashi_events,
+        _indian_festival_events, _sd_farmers_market_events, _sd_events,
+    )
+    # Remove previously seeded
+    deleted = CalendarEvent.query.filter(
+        CalendarEvent.description.contains(SEED_TAG)
+    ).delete(synchronize_session='fetch')
+
+    categories = [
+        ('Earnings Reports',   _earnings_events),
+        ('Ekadashi',           _ekadashi_events),
+        ('Indian Festivals',   _indian_festival_events),
+        ('SD Farmers Markets', _sd_farmers_market_events),
+        ('SD Events',          _sd_events),
+    ]
+    total = 0
+    breakdown = {}
+    for label, builder in categories:
+        events = builder()
+        db.session.add_all(events)
+        breakdown[label] = len(events)
+        total += len(events)
+
+    db.session.commit()
+    return jsonify({
+        'status': 'ok',
+        'deleted': deleted,
+        'seeded': total,
+        'breakdown': breakdown,
+    })
+
+
 @views_bp.route('/history')
 def history_page():
     """Paginated brief archive."""
