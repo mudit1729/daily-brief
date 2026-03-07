@@ -2,8 +2,9 @@
 
 .rd-layout {
   display: flex;
-  min-height: calc(100vh - 56px - 40px);
+  height: calc(100vh - 56px - 40px);
   gap: 0;
+  overflow: hidden;
 }
 
 /* ── Sidebar ── */
