@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Pulse — Reader{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="rd-layout" id="readerLayout">
+  <!-- Sidebar -->
+  <aside class="rd-sidebar" id="readerSidebar">
+    <div class="rd-sidebar__header">
+      <h2 class="rd-sidebar__title">Library</h2>
+    </div>
+    <ul class="rd-book-list" id="bookList">
+      {% for pdf in pdfs %}
+      <li>
+        <button class="rd-book-item{% if loop.first %} active{% endif %}" data-file="{{ pdf.filename }}" onclick="loadPDF('{{ pdf.filename }}', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>{{ pdf.display_name }}</span>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  <!-- Main viewer -->
+  <div class="rd-main">
+    <!-- Toolbar -->
+    <div class="rd-toolbar" id="readerToolbar">
+      <div class="rd-toolbar__left">
+        <button class="rd-toolbar__btn rd-toolbar__back" onclick="mobileBackToSidebar()" title="Back to library">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Library</span>
+        </button>
+        <span class="rd-toolbar__title" id="pdfTitle"></span>
+      </div>
+      <div class="rd-toolbar__center">
+        <button class="rd-toolbar__btn" onclick="prevPage()" title="Previous page" id="prevBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="rd-toolbar__pageinfo">
+          <input type="number" id="pageInput" class="rd-toolbar__page-input" min="1" onchange="goToPage(this.value)" onclick="this.select()">
+          <span>/ <span id="pageCount">0</span></span>
+        </span>
+        <button class="rd-toolbar__btn" onclick="nextPage()" title="Next page" id="nextBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="rd-toolbar__right">
+        <button class="rd-toolbar__btn" onclick="zoomOut()" title="Zoom out">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <span class="rd-toolbar__zoom-label" id="zoomLabel">100%</span>
+        <button class="rd-toolbar__btn" onclick="zoomIn()" title="Zoom in">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button class="rd-toolbar__btn" onclick="fitWidth()" title="Fit width" id="fitWidthBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+        </button>
+        <div class="rd-toolbar__divider"></div>
+        <button class="rd-toolbar__btn" id="highlightToggle" onclick="toggleHighlightMode()" title="Toggle highlighting">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+          </svg>
+        </button>
+        <button class="rd-toolbar__btn" id="readerThemeToggle" onclick="toggleReaderTheme()" title="Toggle theme">
+          <svg id="rdSunIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg id="rdMoonIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="rd-toolbar__btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Fullscreen">
+          <svg id="fsExpandIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <svg id="fsCollapseIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- PDF Container -->
+    <div class="rd-viewer" id="pdfViewer">
+      <div class="rd-empty" id="readerEmpty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>Select a book from the library</p>
+      </div>
+      <div class="rd-loading" id="readerLoading" style="display:none;">
+        <div class="rd-spinner"></div>
+        <p>Loading PDF...</p>
+      </div>
+      <div class="rd-pages" id="pdfPages" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script src="{{ url_for('static', filename='js/reader.js') }}" type="module" defer></script>
+{% endblock %}

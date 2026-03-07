@@ -46,6 +46,9 @@ htmlcov/
 # Claude Code local settings
 .claude/settings.local.json
 
+# PDFs (too large for git)
+pdfs/
+
 # Distribution
 *.tar.gz
 *.whl

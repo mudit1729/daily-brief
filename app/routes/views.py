@@ -1403,6 +1403,41 @@ def calendar_seed():
     })
 
 
+@views_bp.route('/reader')
+def reader_page():
+    """PDF reader with highlighting and fullscreen support."""
+    import os
+    pdfs_dir = os.path.join(current_app.root_path, '..', 'pdfs')
+    pdfs_dir = os.path.abspath(pdfs_dir)
+    pdfs = []
+    if os.path.isdir(pdfs_dir):
+        for f in sorted(os.listdir(pdfs_dir)):
+            if f.lower().endswith('.pdf'):
+                display = f.replace('.pdf', '').replace('-', ' ').replace('_', ' ')
+                pdfs.append({'filename': f, 'display_name': display.title()})
+    return render_template(
+        'pages/reader.html',
+        active_tab='reader',
+        brief=_get_brief(),
+        pdfs=pdfs,
+    )
+
+
+@views_bp.route('/api/reader/file/<path:filename>')
+def reader_file(filename):
+    """Serve a PDF file from the pdfs directory with range request support."""
+    import os
+    from flask import send_file
+    pdfs_dir = os.path.join(current_app.root_path, '..', 'pdfs')
+    pdfs_dir = os.path.abspath(pdfs_dir)
+    safe_path = os.path.normpath(os.path.join(pdfs_dir, filename))
+    if not safe_path.startswith(pdfs_dir):
+        abort(403)
+    if not os.path.isfile(safe_path):
+        abort(404)
+    return send_file(safe_path, conditional=True)
+
+
 @views_bp.route('/history')
 def history_page():
     """Paginated brief archive."""
