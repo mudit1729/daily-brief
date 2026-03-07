@@ -75,6 +75,35 @@
   opacity: 1;
 }
 
+/* ── Upload button ── */
+.rd-sidebar__upload {
+  padding: 8px 12px;
+  border-top: 1px solid var(--sb-border);
+  margin-top: auto;
+}
+
+.rd-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px dashed var(--sb-border);
+  border-radius: var(--sb-radius-md);
+  background: none;
+  color: var(--sb-text-muted);
+  font-size: var(--sb-text-sm);
+  font-family: var(--sb-font-ui);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.rd-upload-btn:hover {
+  background: var(--sb-bg-hover, rgba(255,255,255,0.04));
+  color: var(--sb-text-primary);
+  border-color: var(--sb-accent);
+}
+
 /* ── Main viewer area ── */
 .rd-main {
   flex: 1;
@@ -287,6 +316,13 @@
 
 .rd-layout.rd-highlight-mode .rd-page .textLayer span {
   cursor: crosshair;
+}
+
+/* ── Drag & drop overlay ── */
+.rd-viewer.rd-dragover {
+  outline: 2px dashed var(--sb-accent);
+  outline-offset: -4px;
+  background: rgba(59, 130, 246, 0.05);
 }
 
 /* ── Fullscreen ── */

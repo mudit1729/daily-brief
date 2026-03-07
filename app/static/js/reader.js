@@ -67,36 +67,113 @@ window.loadPDF = async function(filename, btn) {
   emptyEl.style.display = 'none';
   pagesContainer.style.display = 'none';
   loadingEl.style.display = '';
+  loadingEl.innerHTML = '<div class="rd-spinner"></div><p>Loading PDF...</p>';
 
   // Cleanup previous
   cleanup();
 
   try {
     const url = '/api/reader/file/' + encodeURIComponent(filename);
-    pdfDoc = await pdfjsLib.getDocument({ url, enableXfa: false }).promise;
-    totalPages = pdfDoc.numPages;
-    pageCountEl.textContent = totalPages;
-    pageInput.value = 1;
-    pageInput.max = totalPages;
-
-    loadingEl.style.display = 'none';
-    pagesContainer.style.display = '';
-
-    // Create placeholders for all pages
-    createPagePlaceholders();
-
-    // Set up lazy rendering
-    setupObserver();
-
-    // Auto fit-width on load
-    await fitWidthScale();
-
-    updateZoomLabel();
+    await openPDF({ url, enableXfa: false });
   } catch (err) {
     loadingEl.innerHTML = '<p style="color:var(--sb-text-muted)">Failed to load PDF</p>';
     console.error('PDF load error:', err);
   }
 };
+
+// ── Handle local file upload ──
+window.handleLocalFile = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Add to sidebar
+  const displayName = file.name.replace('.pdf', '').replace(/[-_]/g, ' ');
+  const li = document.createElement('li');
+  const btn = document.createElement('button');
+  btn.className = 'rd-book-item';
+  btn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span>${displayName}</span>`;
+  li.appendChild(btn);
+  document.getElementById('bookList').appendChild(li);
+
+  // Mark active
+  document.querySelectorAll('.rd-book-item').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Store blob URL for re-opening
+  const blobUrl = URL.createObjectURL(file);
+  btn.onclick = () => loadLocalBlobPDF(blobUrl, file.name, btn);
+
+  currentFile = 'local:' + file.name;
+  titleEl.textContent = displayName;
+
+  if (window.innerWidth <= 640) {
+    layout.classList.add('rd-viewing');
+  }
+
+  emptyEl.style.display = 'none';
+  pagesContainer.style.display = 'none';
+  loadingEl.style.display = '';
+  loadingEl.innerHTML = '<div class="rd-spinner"></div><p>Loading PDF...</p>';
+
+  cleanup();
+
+  try {
+    const data = await file.arrayBuffer();
+    await openPDF({ data, enableXfa: false });
+  } catch (err) {
+    loadingEl.innerHTML = '<p style="color:var(--sb-text-muted)">Failed to load PDF</p>';
+    console.error('Local PDF load error:', err);
+  }
+
+  // Reset input so same file can be reopened
+  input.value = '';
+};
+
+// Re-open a local blob
+async function loadLocalBlobPDF(blobUrl, filename, btn) {
+  document.querySelectorAll('.rd-book-item').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+
+  currentFile = 'local:' + filename;
+  titleEl.textContent = filename.replace('.pdf', '').replace(/[-_]/g, ' ');
+
+  if (window.innerWidth <= 640) {
+    layout.classList.add('rd-viewing');
+  }
+
+  emptyEl.style.display = 'none';
+  pagesContainer.style.display = 'none';
+  loadingEl.style.display = '';
+  loadingEl.innerHTML = '<div class="rd-spinner"></div><p>Loading PDF...</p>';
+
+  cleanup();
+
+  try {
+    await openPDF({ url: blobUrl, enableXfa: false });
+  } catch (err) {
+    loadingEl.innerHTML = '<p style="color:var(--sb-text-muted)">Failed to load PDF</p>';
+    console.error('PDF load error:', err);
+  }
+}
+
+// ── Shared PDF open logic ──
+async function openPDF(source) {
+  pdfDoc = await pdfjsLib.getDocument(source).promise;
+  totalPages = pdfDoc.numPages;
+  pageCountEl.textContent = totalPages;
+  pageInput.value = 1;
+  pageInput.max = totalPages;
+
+  loadingEl.style.display = 'none';
+  pagesContainer.style.display = '';
+
+  createPagePlaceholders();
+  setupObserver();
+  await fitWidthScale();
+  updateZoomLabel();
+}
 
 function cleanup() {
   if (observer) observer.disconnect();
@@ -457,6 +534,35 @@ document.addEventListener('keydown', (e) => {
     case 'Escape':
       if (isFullscreen) { e.preventDefault(); toggleFullscreen(); }
       break;
+  }
+});
+
+// ── Drag & drop PDF onto viewer ──
+viewer.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  viewer.classList.add('rd-dragover');
+});
+
+viewer.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  viewer.classList.remove('rd-dragover');
+});
+
+viewer.addEventListener('drop', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  viewer.classList.remove('rd-dragover');
+
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') {
+    // Reuse the local file handler by simulating a file input
+    const input = document.getElementById('localPdfInput');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    handleLocalFile(input);
   }
 });
 

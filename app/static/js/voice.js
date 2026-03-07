@@ -192,7 +192,7 @@ function stopDetecting() {
   detectedSwara.classList.remove('vc-in-tune');
   detectedFreq.textContent = '-- Hz';
   detectedCents.textContent = '';
-  centsNeedle.style.left = '50%';
+  centsNeedle.setAttribute('transform', 'rotate(0, 150, 160)');
   centsNeedle.classList.remove('vc-in-tune');
   volumeFill.style.width = '0%';
 }
@@ -309,10 +309,10 @@ function updateDisplay(freq) {
   const sign = cents >= 0 ? '+' : '';
   detectedCents.textContent = sign + cents.toFixed(0) + ' cents';
 
-  // Needle position (clamp to -50..+50 range, map to 0..100%)
+  // Needle rotation: -50 cents = -90°, 0 = 0°, +50 cents = +90°
   const clampedCents = Math.max(-50, Math.min(50, cents));
-  const pct = 50 + clampedCents; // 0 = -50 cents, 50 = in tune, 100 = +50 cents
-  centsNeedle.style.left = pct + '%';
+  const angle = (clampedCents / 50) * 90; // map -50..+50 to -90°..+90°
+  centsNeedle.setAttribute('transform', `rotate(${angle}, 150, 160)`);
   centsNeedle.classList.toggle('vc-in-tune', inTune);
 
   // Highlight matching keyboard key

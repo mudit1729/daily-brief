@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--sb-space-8);
+  margin-bottom: var(--sb-space-5);
 }
 
 .vc-header__title {
@@ -67,7 +67,7 @@
 
 /* ── Sargam Keyboard ── */
 .vc-keyboard {
-  margin-bottom: var(--sb-space-8);
+  margin-bottom: var(--sb-space-5);
 }
 
 .vc-keys {
@@ -145,89 +145,68 @@
   background: var(--sb-bg-secondary);
   border: 1px solid var(--sb-border);
   border-radius: var(--sb-radius-lg);
-  padding: var(--sb-space-6);
+  padding: var(--sb-space-4) var(--sb-space-6);
   text-align: center;
 }
 
-/* Gauge */
-.vc-gauge {
-  margin-bottom: var(--sb-space-5);
-}
-
-.vc-gauge__track {
-  max-width: 400px;
+/* Arc gauge */
+.vc-arc {
+  position: relative;
+  max-width: 340px;
   margin: 0 auto;
 }
 
-.vc-gauge__labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--sb-text-muted);
-  margin-bottom: 4px;
-  padding: 0 2px;
+.vc-arc__svg {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
-.vc-gauge__bar {
-  position: relative;
-  height: 8px;
-  background: var(--sb-bg-primary);
-  border-radius: 4px;
-  overflow: visible;
+.vc-arc__label {
+  fill: var(--sb-text-muted, rgba(255,255,255,0.4));
+  font-size: 11px;
+  font-family: var(--sb-font-ui, 'Inter', sans-serif);
 }
 
-.vc-gauge__center {
-  position: absolute;
-  left: 50%;
-  top: -2px;
-  width: 2px;
-  height: 12px;
-  background: var(--sb-text-muted);
-  transform: translateX(-50%);
-  border-radius: 1px;
+.vc-arc__needle {
+  transition: transform 0.1s ease-out;
+  transform-origin: 150px 160px;
 }
 
-.vc-gauge__needle {
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  width: 10px;
-  height: 16px;
-  background: var(--sb-accent);
-  border-radius: 3px;
-  transform: translateX(-50%);
-  transition: left 0.08s ease-out;
-  box-shadow: 0 0 8px rgba(59,130,246,0.5);
+.vc-arc__needle.vc-in-tune line {
+  stroke: #22c55e;
+  filter: url(#glowGreen);
 }
 
-.vc-gauge__needle.vc-in-tune {
-  background: #22c55e;
-  box-shadow: 0 0 8px rgba(34,197,94,0.5);
+.vc-arc__needle.vc-in-tune circle:first-of-type {
+  fill: #22c55e;
 }
 
-/* Detected note */
+/* Detected note (below arc) */
 .vc-detected {
-  margin-bottom: var(--sb-space-4);
+  text-align: center;
+  margin: var(--sb-space-3) 0 var(--sb-space-4);
 }
 
 .vc-detected__swara {
   display: block;
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1;
   color: var(--sb-text-primary);
 }
 
 .vc-detected__swara.vc-in-tune {
   color: #22c55e;
+  text-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
 }
 
 .vc-detected__freq {
   display: block;
   font-size: var(--sb-text-sm);
   color: var(--sb-text-muted);
-  margin-top: 4px;
+  margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -235,17 +214,23 @@
   display: block;
   font-size: var(--sb-text-xs);
   color: var(--sb-text-muted);
-  margin-top: 2px;
+  margin-top: 1px;
   font-variant-numeric: tabular-nums;
 }
 
-/* Volume meter */
+/* Bottom row: volume + mic */
+.vc-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: var(--sb-space-3);
+}
+
 .vc-volume {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 300px;
-  margin: 0 auto;
+  flex: 1;
 }
 
 .vc-volume__label {
@@ -272,27 +257,22 @@
   transition: width 0.05s;
 }
 
-/* ── Mic Button ── */
-.vc-mic-control {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--sb-space-5);
-}
-
 .vc-mic-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
+  gap: 6px;
+  padding: 8px 16px;
   border: 1px solid var(--sb-border);
-  border-radius: var(--sb-radius-lg);
-  background: var(--sb-bg-secondary);
+  border-radius: var(--sb-radius-md);
+  background: var(--sb-bg-primary);
   color: var(--sb-text-primary);
-  font-size: var(--sb-text-sm);
+  font-size: 12px;
   font-weight: 500;
   font-family: var(--sb-font-ui);
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .vc-mic-btn:hover {
@@ -370,6 +350,10 @@
   }
 
   .vc-detected__swara {
-    font-size: 2.5rem;
+    font-size: 2rem;
+  }
+
+  .vc-arc {
+    max-width: 320px;
   }
 }
