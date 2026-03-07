@@ -1,0 +1,375 @@
+/* ── Voice Coach ────────────────────────────────── */
+
+.vc-layout {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--sb-space-4) var(--sb-space-8);
+}
+
+/* ── Header ── */
+.vc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sb-space-8);
+}
+
+.vc-header__title {
+  font-size: var(--sb-text-3xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.vc-header__subtitle {
+  font-size: var(--sb-text-sm);
+  color: var(--sb-text-muted);
+}
+
+.vc-header__right {
+  display: flex;
+  gap: 4px;
+}
+
+.vc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px;
+  border: none;
+  background: none;
+  color: var(--sb-text-secondary);
+  border-radius: var(--sb-radius-sm);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.vc-icon-btn:hover {
+  background: var(--sb-bg-hover, rgba(255,255,255,0.06));
+  color: var(--sb-text-primary);
+}
+
+/* ── Section labels ── */
+.vc-section-label {
+  font-size: var(--sb-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sb-text-muted);
+  margin: 0 0 var(--sb-space-3) 0;
+}
+
+.vc-hint {
+  font-size: 11px;
+  color: var(--sb-text-muted);
+  margin: var(--sb-space-2) 0 0;
+  text-align: center;
+}
+
+/* ── Sargam Keyboard ── */
+.vc-keyboard {
+  margin-bottom: var(--sb-space-8);
+}
+
+.vc-keys {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.vc-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 4px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-md);
+  background: var(--sb-bg-secondary);
+  color: var(--sb-text-primary);
+  cursor: pointer;
+  transition: transform 0.08s, background 0.08s, border-color 0.08s, box-shadow 0.08s;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--sb-font-ui);
+}
+
+.vc-key:hover {
+  background: var(--sb-bg-hover, rgba(255,255,255,0.06));
+  border-color: var(--sb-accent);
+}
+
+.vc-key:active,
+.vc-key.playing {
+  transform: scale(0.95);
+  background: var(--sb-accent);
+  border-color: var(--sb-accent);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+}
+
+.vc-key__swara {
+  font-size: var(--sb-text-lg);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.vc-key__western {
+  font-size: 10px;
+  color: var(--sb-text-muted);
+  margin-top: 2px;
+}
+
+.vc-key:active .vc-key__western,
+.vc-key.playing .vc-key__western {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Highlight Sa and Pa (tonic and fifth) */
+.vc-key[data-swara="Sa"],
+.vc-key[data-swara="Sa'"] {
+  border-color: rgba(59,130,246,0.3);
+  background: rgba(59,130,246,0.06);
+}
+
+.vc-key[data-swara="Pa"] {
+  border-color: rgba(34,197,94,0.3);
+  background: rgba(34,197,94,0.06);
+}
+
+/* ── Pitch Detector ── */
+.vc-detector {
+  margin-bottom: var(--sb-space-6);
+}
+
+.vc-pitch-display {
+  background: var(--sb-bg-secondary);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-lg);
+  padding: var(--sb-space-6);
+  text-align: center;
+}
+
+/* Gauge */
+.vc-gauge {
+  margin-bottom: var(--sb-space-5);
+}
+
+.vc-gauge__track {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.vc-gauge__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--sb-text-muted);
+  margin-bottom: 4px;
+  padding: 0 2px;
+}
+
+.vc-gauge__bar {
+  position: relative;
+  height: 8px;
+  background: var(--sb-bg-primary);
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.vc-gauge__center {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 2px;
+  height: 12px;
+  background: var(--sb-text-muted);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+
+.vc-gauge__needle {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 10px;
+  height: 16px;
+  background: var(--sb-accent);
+  border-radius: 3px;
+  transform: translateX(-50%);
+  transition: left 0.08s ease-out;
+  box-shadow: 0 0 8px rgba(59,130,246,0.5);
+}
+
+.vc-gauge__needle.vc-in-tune {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34,197,94,0.5);
+}
+
+/* Detected note */
+.vc-detected {
+  margin-bottom: var(--sb-space-4);
+}
+
+.vc-detected__swara {
+  display: block;
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--sb-text-primary);
+}
+
+.vc-detected__swara.vc-in-tune {
+  color: #22c55e;
+}
+
+.vc-detected__freq {
+  display: block;
+  font-size: var(--sb-text-sm);
+  color: var(--sb-text-muted);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vc-detected__cents {
+  display: block;
+  font-size: var(--sb-text-xs);
+  color: var(--sb-text-muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Volume meter */
+.vc-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.vc-volume__label {
+  font-size: 10px;
+  color: var(--sb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.vc-volume__track {
+  flex: 1;
+  height: 4px;
+  background: var(--sb-bg-primary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.vc-volume__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--sb-accent);
+  border-radius: 2px;
+  transition: width 0.05s;
+}
+
+/* ── Mic Button ── */
+.vc-mic-control {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--sb-space-5);
+}
+
+.vc-mic-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-lg);
+  background: var(--sb-bg-secondary);
+  color: var(--sb-text-primary);
+  font-size: var(--sb-text-sm);
+  font-weight: 500;
+  font-family: var(--sb-font-ui);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
+}
+
+.vc-mic-btn:hover {
+  border-color: var(--sb-accent);
+}
+
+.vc-mic-btn.active {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.vc-mic-btn.active svg {
+  animation: vc-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes vc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Fullscreen ── */
+.vc-layout.vc-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  max-width: none;
+  background: var(--sb-bg-primary);
+  padding: var(--sb-space-6);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.vc-layout.vc-fullscreen .vc-keyboard,
+.vc-layout.vc-fullscreen .vc-detector {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* ── Light theme ── */
+[data-bs-theme="light"] .vc-key[data-swara="Sa"],
+[data-bs-theme="light"] .vc-key[data-swara="Sa'"] {
+  background: rgba(59,130,246,0.08);
+}
+
+[data-bs-theme="light"] .vc-key[data-swara="Pa"] {
+  background: rgba(34,197,94,0.08);
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .vc-layout {
+    padding: 0 var(--sb-space-3) var(--sb-space-6);
+  }
+
+  .vc-header__title {
+    font-size: var(--sb-text-xl);
+  }
+
+  .vc-keys {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .vc-key {
+    padding: 12px 4px;
+  }
+
+  .vc-key__swara {
+    font-size: var(--sb-text-md);
+  }
+
+  .vc-detected__swara {
+    font-size: 2.5rem;
+  }
+}
