@@ -192,7 +192,7 @@ function stopDetecting() {
   detectedSwara.classList.remove('vc-in-tune');
   detectedFreq.textContent = '-- Hz';
   detectedCents.textContent = '';
-  centsNeedle.setAttribute('transform', 'rotate(0, 150, 160)');
+  centsNeedle.style.transform = 'rotate(0deg)';
   centsNeedle.classList.remove('vc-in-tune');
   volumeFill.style.width = '0%';
 }
@@ -222,7 +222,7 @@ function detectLoop() {
     detectedSwara.classList.remove('vc-in-tune');
     detectedFreq.textContent = '-- Hz';
     detectedCents.textContent = '';
-    centsNeedle.style.left = '50%';
+    centsNeedle.style.transform = 'rotate(0deg)';
     centsNeedle.classList.remove('vc-in-tune');
   }
 
@@ -311,8 +311,8 @@ function updateDisplay(freq) {
 
   // Needle rotation: -50 cents = -90°, 0 = 0°, +50 cents = +90°
   const clampedCents = Math.max(-50, Math.min(50, cents));
-  const angle = (clampedCents / 50) * 90; // map -50..+50 to -90°..+90°
-  centsNeedle.setAttribute('transform', `rotate(${angle}, 150, 160)`);
+  const angle = (clampedCents / 50) * 90;
+  centsNeedle.style.transform = `rotate(${angle}deg)`;
   centsNeedle.classList.toggle('vc-in-tune', inTune);
 
   // Highlight matching keyboard key

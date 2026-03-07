@@ -169,8 +169,10 @@
 }
 
 .vc-arc__needle {
-  transition: transform 0.1s ease-out;
+  transform-box: view-box;
   transform-origin: 150px 160px;
+  transform: rotate(0deg);
+  transition: transform 0.12s ease-out;
 }
 
 .vc-arc__needle.vc-in-tune line {
