@@ -1403,6 +1403,16 @@ def calendar_seed():
     })
 
 
+@views_bp.route('/voice')
+def voice_page():
+    """Voice coach — sargam keyboard and pitch detector."""
+    return render_template(
+        'pages/voice.html',
+        active_tab='voice',
+        brief=_get_brief(),
+    )
+
+
 @views_bp.route('/reader')
 def reader_page():
     """PDF reader with highlighting and fullscreen support."""
