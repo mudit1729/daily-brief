@@ -112,7 +112,7 @@ document.addEventListener('keydown', function (e) {
 function _getDisplayName(filename) {
   var name = filename.replace(/\.md$/i, '').replace(/-/g, ' ').replace(/_/g, ' ');
   // Strip known prefixes
-  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper ', 'Planner '];
+  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper ', 'Planner ', 'VLA '];
   for (var i = 0; i < prefixes.length; i++) {
     if (name.startsWith(prefixes[i])) {
       name = name.substring(prefixes[i].length);
