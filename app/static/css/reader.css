@@ -1,0 +1,351 @@
+/* ── Reader: PDF Viewer ────────────────────────── */
+
+.rd-layout {
+  display: flex;
+  min-height: calc(100vh - 56px - 40px);
+  gap: 0;
+}
+
+/* ── Sidebar ── */
+.rd-sidebar {
+  width: 220px;
+  min-width: 220px;
+  border-right: 1px solid var(--sb-border);
+  background: var(--sb-bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.rd-sidebar__header {
+  padding: var(--sb-space-4) var(--sb-space-4) var(--sb-space-3);
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.rd-sidebar__title {
+  font-size: var(--sb-text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sb-text-muted);
+  margin: 0;
+}
+
+.rd-book-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--sb-space-2) 0;
+}
+
+.rd-book-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--sb-text-secondary);
+  font-size: var(--sb-text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  line-height: 1.4;
+  font-family: var(--sb-font-ui);
+}
+
+.rd-book-item:hover {
+  background: var(--sb-bg-hover, rgba(255,255,255,0.04));
+  color: var(--sb-text-primary);
+}
+
+.rd-book-item.active {
+  background: var(--sb-accent-bg, rgba(59,130,246,0.12));
+  color: var(--sb-accent);
+  font-weight: 500;
+}
+
+.rd-book-item svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.rd-book-item.active svg {
+  opacity: 1;
+}
+
+/* ── Main viewer area ── */
+.rd-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Toolbar ── */
+.rd-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--sb-border);
+  background: var(--sb-bg-secondary);
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.rd-toolbar__left,
+.rd-toolbar__center,
+.rd-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rd-toolbar__left { flex: 1; min-width: 0; }
+.rd-toolbar__center { flex-shrink: 0; }
+.rd-toolbar__right { flex: 1; justify-content: flex-end; }
+
+.rd-toolbar__back {
+  display: none !important;
+}
+
+.rd-toolbar__title {
+  font-size: var(--sb-text-sm);
+  font-weight: 500;
+  color: var(--sb-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rd-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  color: var(--sb-text-secondary);
+  border-radius: var(--sb-radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--sb-font-ui);
+  transition: background 0.1s, color 0.1s;
+}
+
+.rd-toolbar__btn:hover {
+  background: var(--sb-bg-hover, rgba(255,255,255,0.06));
+  color: var(--sb-text-primary);
+}
+
+.rd-toolbar__btn.active {
+  background: var(--sb-accent-bg, rgba(59,130,246,0.15));
+  color: var(--sb-accent);
+}
+
+.rd-toolbar__pageinfo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--sb-text-secondary);
+  font-family: var(--sb-font-ui);
+}
+
+.rd-toolbar__page-input {
+  width: 40px;
+  padding: 2px 4px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-sm);
+  background: var(--sb-bg-primary);
+  color: var(--sb-text-primary);
+  font-size: 12px;
+  text-align: center;
+  font-family: var(--sb-font-ui);
+  -moz-appearance: textfield;
+}
+
+.rd-toolbar__page-input::-webkit-outer-spin-button,
+.rd-toolbar__page-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.rd-toolbar__zoom-label {
+  font-size: 11px;
+  color: var(--sb-text-muted);
+  min-width: 36px;
+  text-align: center;
+  font-family: var(--sb-font-ui);
+}
+
+.rd-toolbar__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--sb-border);
+  margin: 0 4px;
+}
+
+/* ── PDF Viewer ── */
+.rd-viewer {
+  flex: 1;
+  overflow: auto;
+  background: var(--sb-bg-tertiary, #1a1a2e);
+  position: relative;
+}
+
+.rd-empty, .rd-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  color: var(--sb-text-muted);
+  gap: 12px;
+  font-size: var(--sb-text-sm);
+}
+
+.rd-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--sb-border);
+  border-top-color: var(--sb-accent);
+  border-radius: 50%;
+  animation: rd-spin 0.7s linear infinite;
+}
+
+@keyframes rd-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Pages container ── */
+.rd-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 8px;
+}
+
+/* ── Single page ── */
+.rd-page {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  margin: 0 auto;
+  line-height: 0;
+}
+
+.rd-page canvas {
+  display: block;
+}
+
+/* Text layer for selection & highlighting */
+.rd-page .textLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.25;
+  line-height: 1;
+  pointer-events: all;
+}
+
+.rd-page .textLayer span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  transform-origin: 0% 0%;
+  cursor: text;
+}
+
+.rd-page .textLayer ::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+/* Highlight overlay */
+.rd-page .textLayer span.rd-highlight {
+  background: rgba(250, 204, 21, 0.4);
+  border-radius: 2px;
+}
+
+.rd-page .textLayer span.rd-highlight:hover {
+  background: rgba(250, 204, 21, 0.6);
+}
+
+/* Highlight mode cursor */
+.rd-layout.rd-highlight-mode .rd-page .textLayer {
+  cursor: crosshair;
+}
+
+.rd-layout.rd-highlight-mode .rd-page .textLayer span {
+  cursor: crosshair;
+}
+
+/* ── Fullscreen ── */
+.rd-layout.rd-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--sb-bg-primary);
+  min-height: 100vh;
+}
+
+.rd-layout.rd-fullscreen .rd-viewer {
+  height: calc(100vh - 40px);
+}
+
+/* ── Light theme adjustments ── */
+[data-bs-theme="light"] .rd-viewer {
+  background: #e5e7eb;
+}
+
+[data-bs-theme="light"] .rd-page {
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .rd-layout {
+    flex-direction: column;
+    min-height: calc(100vh - 56px);
+  }
+
+  .rd-sidebar {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--sb-border);
+    max-height: none;
+  }
+
+  .rd-layout.rd-viewing .rd-sidebar {
+    display: none;
+  }
+
+  .rd-layout.rd-viewing .rd-toolbar__back {
+    display: inline-flex !important;
+  }
+
+  .rd-toolbar__title {
+    max-width: 120px;
+  }
+
+  .rd-toolbar__center {
+    gap: 2px;
+  }
+
+  .rd-toolbar__right .rd-toolbar__zoom-label,
+  .rd-toolbar__right #fitWidthBtn {
+    display: none;
+  }
+}
+
+/* ── Page header (hidden in reader – reader has its own layout) ── */
+.rd-layout ~ .sb-page-header { display: none; }
