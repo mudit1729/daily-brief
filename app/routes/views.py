@@ -923,8 +923,8 @@ def prep_page():
         {'label': 'ML Coursework', 'icon': 'book', 'match': ['CMU-']},
         # Substring-match categories after prefix categories
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems']},
-        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer']},
-        {'label': 'ML Theory', 'icon': 'book', 'match': ['ML-Comprehensive-Guide', 'Attention-Is-All-You-Need']},
+        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer', 'Attention-Is-All-You-Need']},
+        {'label': 'ML Theory', 'icon': 'book', 'match': ['ML-Comprehensive-Guide']},
     ]
 
     categorized = []
