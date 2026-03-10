@@ -1,25 +1,21 @@
-# ViT: An Image is Worth 16x16 Words -- Transformers for Image Recognition at Scale
+# ViT: An Image is Worth 16x16 Words - Transformers for Image Recognition at Scale
 
 ## Paper Overview
 
-| | |
-|---|---|
-| **Authors** | Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, et al. (Google Research) |
-| **Published** | 2020 (ICLR 2021) |
-| **Paper Link** | https://arxiv.org/abs/2010.11929 |
-
----
+**Authors:** Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, et al. (Google Research)
+**Published:** 2020 (ICLR 2021)
+**Paper Link:** https://arxiv.org/abs/2010.11929
 
 ## Detailed Description
 
-**Vision Transformer** (ViT) demonstrates that a pure transformer architecture, applied directly to sequences of image patches, can perform excellently on image classification tasks when pre-trained on large amounts of data. This paper challenged the dominance of convolutional neural networks (CNNs) in computer vision and showed that the transformer architecture, originally designed for NLP, could be adapted for vision tasks with remarkable success.
+Vision Transformer (ViT) demonstrates that a pure transformer architecture, applied directly to sequences of image patches, can perform excellently on image classification tasks when pre-trained on large amounts of data. This paper challenged the dominance of convolutional neural networks (CNNs) in computer vision and showed that the transformer architecture, originally designed for NLP, could be adapted for vision tasks with remarkable success.
 
-### Key Architecture Components
+### Key Architecture Components:
 
 1. **Patch Embedding:**
-   - Input image is divided into fixed-size patches (typically 16x16 pixels)
+   - Input image is divided into fixed-size patches (typically 16×16 pixels)
    - Each patch is linearly embedded into a vector
-   - For a 224x224 image with 16x16 patches, you get 196 patches
+   - For a 224×224 image with 16×16 patches, you get 196 patches
    - Patches are flattened and projected to embedding dimension
 
 2. **Position Embeddings:**
@@ -37,7 +33,7 @@
    - Standard transformer encoder (same as BERT)
    - Multi-head self-attention layers
    - MLP blocks with GELU activation
-   - Layer normalization (*pre-norm* architecture)
+   - Layer normalization (pre-norm architecture)
    - Residual connections
 
 5. **Classification Head:**
@@ -45,15 +41,13 @@
    - During pre-training: larger MLP
    - During fine-tuning: single linear layer
 
-### Model Variants
+### Model Variants:
 
-| Variant | Layers | Hidden Dim | Attention Heads | Parameters |
-|---------|--------|-----------|-----------------|------------|
-| **ViT-Base** | 12 | 768 | 12 | ~86M |
-| **ViT-Large** | 24 | 1024 | 16 | ~307M |
-| **ViT-Huge** | 32 | 1280 | 16 | ~632M |
+- **ViT-Base:** 12 layers, 768 hidden dim, 12 attention heads (~86M parameters)
+- **ViT-Large:** 24 layers, 1024 hidden dim, 16 attention heads (~307M parameters)
+- **ViT-Huge:** 32 layers, 1280 hidden dim, 16 attention heads (~632M parameters)
 
-### Training Strategy
+### Training Strategy:
 
 1. **Pre-training:**
    - Trained on large datasets (ImageNet-21K, JFT-300M)
@@ -66,32 +60,30 @@
    - Position embeddings interpolated for different resolutions
    - Shorter training compared to pre-training
 
-### Mathematical Formulation
+### Mathematical Formulation:
 
-**Patch Embedding:**
-```math
-Given image x in R^(H x W x C)
-Divide into N patches: x_p in R^(N x P^2 x C) where P is patch size
-Linear projection: z_0 = [x_class; E * x_p^1; E * x_p^2; ...; E * x_p^N] + E_pos
-```
+1. **Patch Embedding:**
+   ```
+   Given image x ∈ R^(H×W×C)
+   Divide into N patches: x_p ∈ R^(N×P²×C) where P is patch size
+   Linear projection: z_0 = [x_class; E·x_p^1; E·x_p^2; ...; E·x_p^N] + E_pos
+   ```
 
-**Transformer Encoder:**
-```math
-z'_l = MSA(LN(z_{l-1})) + z_{l-1}        (Multi-Head Self-Attention)
-z_l  = MLP(LN(z'_l)) + z'_l              (Feed-Forward)
-```
+2. **Transformer Encoder:**
+   ```
+   z'_l = MSA(LN(z_{l-1})) + z_{l-1}        (Multi-Head Self-Attention)
+   z_l = MLP(LN(z'_l)) + z'_l                (Feed-Forward)
+   ```
 
-**Classification:**
-```math
-y = LN(z_L^0)                             (Extract [CLS] token)
-output = MLP_head(y)                       (Classification head)
-```
-
----
+3. **Classification:**
+   ```
+   y = LN(z_L^0)                             (Extract [CLS] token)
+   output = MLP_head(y)                       (Classification head)
+   ```
 
 ## Pain Point Addressed
 
-### Limitations of Convolutional Networks
+### Limitations of Convolutional Networks:
 
 1. **Inductive Biases:**
    - CNNs have strong inductive biases (locality, translation equivariance)
@@ -104,7 +96,7 @@ output = MLP_head(y)                       (Classification head)
    - Transformers have global receptive field from the first layer via self-attention
 
 3. **Fixed Kernel Sizes:**
-   - Convolutional kernels have fixed sizes (3x3, 5x5, etc.)
+   - Convolutional kernels have fixed sizes (3×3, 5×5, etc.)
    - Multi-scale processing requires explicit architecture design (pyramids, FPN)
    - Transformers naturally capture multi-scale dependencies through attention
 
@@ -123,11 +115,9 @@ output = MLP_head(y)                       (Classification head)
    - Self-attention scales quadratically but parallelizes well
    - On large datasets with big models, ViT can be more efficient
 
----
-
 ## Novelty of the Paper
 
-### Key Innovations
+### Key Innovations:
 
 1. **Minimal Vision-Specific Modifications:**
    - Applied standard transformer architecture with minimal changes
@@ -166,11 +156,12 @@ output = MLP_head(y)                       (Classification head)
    - More efficient than ResNet-152 and EfficientNet in terms of compute vs accuracy
    - Better scaling with model size
 
-### Impact on Computer Vision
+### Impact on Computer Vision:
 
-> ViT sparked the "transformer revolution" in computer vision, leading to numerous variants (DeiT, Swin Transformer, BEiT, MAE) and enabling unified architectures for multi-modal models (CLIP, DALL-E).
-
----
+- Sparked the "transformer revolution" in computer vision
+- Led to numerous variants: DeiT, Swin Transformer, BEiT, MAE
+- Enabled unified architectures for multi-modal models (CLIP, DALL-E)
+- Influenced design of modern vision models
 
 ## Implementation
 
@@ -432,30 +423,34 @@ print("Predicted classes:", outputs.argmax(-1))
 print("Actual classes:", labels)
 ```
 
----
+## Key Results from the Paper:
 
-## Key Results from the Paper
+1. **ImageNet Performance:**
+   - ViT-H/14 achieved 88.55% top-1 accuracy (pre-trained on JFT-300M)
+   - Outperformed BiT-L (ResNet-152x4): 87.54%
+   - More efficient: ~2.5× less compute to pre-train
 
-| Metric | Result |
-|--------|--------|
-| **ViT-H/14 on ImageNet** | 88.55% top-1 accuracy (pre-trained on JFT-300M) |
-| **vs BiT-L (ResNet-152x4)** | Outperformed: 88.55% vs 87.54% |
-| **Compute efficiency** | ~2.5x less compute to pre-train |
-| **Transfer learning** | Excellent on 19 downstream tasks |
-| **ViT-L/16 vs EfficientNet-L2** | ~5x less compute for same performance |
+2. **Transfer Learning:**
+   - Excellent performance on 19 downstream tasks
+   - Often outperforms CNNs even with less pre-training data
 
----
+3. **Scaling:**
+   - Performance improves with model size (Base → Large → Huge)
+   - Improves with dataset size (ImageNet → ImageNet-21K → JFT)
+   - No saturation observed in scaling curves
 
-## Key Takeaways
+4. **Computational Efficiency:**
+   - ViT-L/16 requires ~5× less compute than EfficientNet-L2 for same performance
+   - Better scaling properties than CNNs
 
-> 1. **Transformers work for vision:** Pure transformer architecture is viable for computer vision
-> 2. **Scale matters:** ViT shines with large datasets and models
-> 3. **Inductive biases trade-off:** Fewer biases require more data but enable better scaling
-> 4. **Unified architecture:** Same architecture works for NLP and vision
-> 5. **Patch-based approach:** Treating images as sequences of patches is effective
-> 6. **Transfer learning:** Pre-trained ViTs transfer excellently to downstream tasks
+## Key Takeaways:
 
----
+1. **Transformers work for vision:** Pure transformer architecture is viable for computer vision
+2. **Scale matters:** ViT shines with large datasets and models
+3. **Inductive biases trade-off:** Fewer biases require more data but enable better scaling
+4. **Unified architecture:** Same architecture works for NLP and vision
+5. **Patch-based approach:** Treating images as sequences of patches is effective
+6. **Transfer learning:** Pre-trained ViTs transfer excellently to downstream tasks
 
 ## Repository Reference
 

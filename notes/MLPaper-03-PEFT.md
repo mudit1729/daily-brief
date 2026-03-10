@@ -2,76 +2,64 @@
 
 ## Paper Overview
 
-| | |
-|---|---|
-| **Concept** | Parameter-Efficient Fine-Tuning (PEFT) |
-| **Context** | A family of techniques rather than a single paper |
-
+**Concept:** Parameter-Efficient Fine-Tuning (PEFT)
+**Context:** A family of techniques rather than a single paper
 **Key Papers:**
-- "Parameter-Efficient Transfer Learning for NLP" (Houlsby et al., 2019) -- Adapters
+- "Parameter-Efficient Transfer Learning for NLP" (Houlsby et al., 2019) - Adapters
 - "Prefix-Tuning" (Li & Liang, 2021)
 - "LoRA" (Hu et al., 2021)
 - "The Power of Scale for Parameter-Efficient Prompt Tuning" (Lester et al., 2021)
 
----
-
 ## Detailed Description
 
-**Parameter-Efficient Fine-Tuning** (PEFT) refers to a collection of methods designed to adapt large pre-trained models to downstream tasks while updating only a small fraction of the model's parameters. PEFT has become crucial in the era of large language models, where full fine-tuning is computationally prohibitive.
+Parameter-Efficient Fine-Tuning (PEFT) refers to a collection of methods designed to adapt large pre-trained models to downstream tasks while updating only a small fraction of the model's parameters. PEFT has become crucial in the era of large language models, where full fine-tuning is computationally prohibitive.
 
-### Core PEFT Techniques
+### Core PEFT Techniques:
 
-#### 1. Adapter Layers (Houlsby et al., 2019)
+#### 1. **Adapter Layers (Houlsby et al., 2019)**
+   - Insert small bottleneck layers between transformer blocks
+   - Structure: Down-project → Non-linearity → Up-project
+   - Only adapter parameters are trained; original weights frozen
+   - Adds minimal parameters (~0.5-8% of original model)
 
-- Insert small bottleneck layers between transformer blocks
-- Structure: Down-project -> Non-linearity -> Up-project
-- Only adapter parameters are trained; original weights frozen
-- Adds minimal parameters (~0.5-8% of original model)
+#### 2. **Prefix Tuning (Li & Liang, 2021)**
+   - Prepends learnable "prefix" vectors to each layer
+   - Prefixes are virtual tokens that influence attention
+   - Original model parameters remain frozen
+   - Only prefix parameters are optimized
 
-#### 2. Prefix Tuning (Li & Liang, 2021)
+#### 3. **Prompt Tuning (Lester et al., 2021)**
+   - Simplified version of prefix tuning
+   - Adds learnable soft prompts only to the input layer
+   - Extremely parameter-efficient
+   - Scales well with model size
 
-- Prepends learnable "prefix" vectors to each layer
-- Prefixes are virtual tokens that influence attention
-- Original model parameters remain frozen
-- Only prefix parameters are optimized
+#### 4. **LoRA (Hu et al., 2021)**
+   - Low-rank decomposition of weight updates
+   - Injects trainable rank decomposition matrices
+   - Zero inference latency after merging
+   - Highly effective with minimal parameters
 
-#### 3. Prompt Tuning (Lester et al., 2021)
+#### 5. **(IA)³ - Infused Adapter by Inhibiting and Amplifying Inner Activations (Liu et al., 2022)**
+   - Learns vectors that scale activations
+   - Even more parameter-efficient than LoRA
+   - Rescales keys and values in attention, and feed-forward activations
 
-- Simplified version of prefix tuning
-- Adds learnable *soft prompts* only to the input layer
-- Extremely parameter-efficient
-- Scales well with model size
+#### 6. **BitFit: Back-propagation of Bias terms (Zaken et al., 2021)**
+   - Trains only bias terms in the model
+   - Extremely simple and parameter-efficient
+   - Surprisingly effective despite minimal changes
 
-#### 4. LoRA (Hu et al., 2021)
-
-- Low-rank decomposition of weight updates
-- Injects trainable rank decomposition matrices
-- Zero inference latency after merging
-- Highly effective with minimal parameters
-
-#### 5. (IA)^3 -- Infused Adapter by Inhibiting and Amplifying Inner Activations (Liu et al., 2022)
-
-- Learns vectors that scale activations
-- Even more parameter-efficient than LoRA
-- Rescales keys and values in attention, and feed-forward activations
-
-#### 6. BitFit: Back-propagation of Bias terms (Zaken et al., 2021)
-
-- Trains only bias terms in the model
-- Extremely simple and parameter-efficient
-- Surprisingly effective despite minimal changes
-
-### Common Principles
+### Common Principles:
 
 1. **Freeze Pre-trained Weights:** Keep the majority of model parameters frozen
 2. **Selective Updates:** Modify only specific, strategically chosen parameters
 3. **Additive Modifications:** Add new trainable components rather than modifying existing ones
 4. **Task-Specific Modules:** Create small, task-specific modules that can be swapped
 
-### PEFT in Practice
+### PEFT in Practice:
 
 The Hugging Face PEFT library provides unified implementations:
-
 ```python
 from peft import (
     get_peft_model,
@@ -95,16 +83,14 @@ model.print_trainable_parameters()
 # Output: trainable params: 2,359,296 || all params: 11,245,895,680 || trainable%: 0.02%
 ```
 
----
-
 ## Pain Point Addressed
 
-### Challenges with Full Fine-Tuning
+### Challenges with Full Fine-Tuning:
 
 1. **Computational Expense:**
    - Modern LLMs have billions to trillions of parameters
    - Full fine-tuning requires updating all parameters
-   - GPU memory requirements are enormous (3-4x model size for gradients + optimizer states)
+   - GPU memory requirements are enormous (3-4× model size for gradients + optimizer states)
    - Training time is prohibitively long
 
 2. **Storage Costs:**
@@ -139,11 +125,9 @@ model.print_trainable_parameters()
    - Regularization becomes more challenging
    - PEFT methods provide implicit regularization
 
----
-
 ## Novelty and Key Innovations
 
-### Conceptual Innovations
+### Conceptual Innovations:
 
 1. **Paradigm Shift:**
    - Challenges the assumption that all parameters need updating
@@ -165,7 +149,7 @@ model.print_trainable_parameters()
    - Task-specific adapters are small (KBs to MBs)
    - Enables "adapter hubs" for sharing task-specific modules
 
-### Technical Innovations
+### Technical Innovations:
 
 1. **Adapter Layers:**
    - Introduced bottleneck architecture for parameter efficiency
@@ -192,7 +176,7 @@ model.print_trainable_parameters()
    - No runtime overhead compared to full fine-tuning
    - Best of both worlds: efficiency in training, speed in inference
 
-### Comparison of PEFT Methods
+### Comparison of PEFT Methods:
 
 | Method | Trainable % | Inference Overhead | Storage per Task | Performance |
 |--------|-------------|-------------------|------------------|-------------|
@@ -201,18 +185,16 @@ model.print_trainable_parameters()
 | Prefix Tuning | 0.1-3% | Small | Small | Competitive |
 | Prompt Tuning | 0.001-0.1% | None | Tiny | Good (better with scale) |
 | LoRA | 0.01-1% | None (merged) | Small | Excellent |
-| (IA)^3 | 0.001-0.01% | Small | Tiny | Very good |
+| (IA)³ | 0.001-0.01% | Small | Tiny | Very good |
 | BitFit | 0.01-0.1% | None | Tiny | Moderate |
 
-> **When to use which method:** Use Adapters for best performance-efficiency balance, LoRA for zero-latency inference and broad compatibility, Prompt Tuning for extreme parameter efficiency on large models, Prefix Tuning for generation tasks, (IA)^3 for maximum efficiency, and BitFit for simplicity when computational constraints are minimal.
-
----
+**When to use which method:** Use Adapters for best performance-efficiency balance, LoRA for zero-latency inference and broad compatibility, Prompt Tuning for extreme parameter efficiency on large models, Prefix Tuning for generation tasks, (IA)³ for maximum efficiency, and BitFit for simplicity when computational constraints are minimal.
 
 ## Implementation Concepts
 
 While the repository doesn't have a specific PEFT implementation, here's a conceptual overview:
 
-### 1. Adapter Implementation
+### 1. Adapter Implementation:
 
 ```python
 import torch
@@ -248,7 +230,7 @@ class AdapterLayer(nn.Module):
         return x + residual  # Residual connection
 ```
 
-### 2. Prefix Tuning Implementation
+### 2. Prefix Tuning Implementation:
 
 ```python
 import torch
@@ -285,7 +267,7 @@ class PrefixTuning(nn.Module):
         return prefix.unsqueeze(0).expand(batch_size, -1, -1)
 ```
 
-### 3. Prompt Tuning Implementation
+### 3. Prompt Tuning Implementation:
 
 ```python
 import torch
@@ -318,7 +300,7 @@ class PromptTuning(nn.Module):
         return torch.cat([prompts, input_embeddings], dim=1)
 ```
 
-### 4. BitFit Implementation
+### 4. BitFit Implementation:
 
 ```python
 def apply_bitfit(model):
@@ -335,44 +317,34 @@ def apply_bitfit(model):
     print(f"Trainable: {trainable:,} ({100*trainable/total:.2f}%)")
 ```
 
----
+## Key Results:
 
-## Key Results
-
-### General Findings
-
+### General Findings:
 - PEFT methods match or exceed full fine-tuning on many tasks
-- Parameter reduction: 100x to 10,000x fewer trainable parameters
+- Parameter reduction: 100× to 10,000× fewer trainable parameters
 - Storage reduction: Multiple tasks can be stored for the cost of one full model
-- Training speed: 2-10x faster than full fine-tuning
+- Training speed: 2-10× faster than full fine-tuning
 
-### Task-Specific
-
+### Task-Specific:
 - **Natural Language Understanding:** Adapters and LoRA achieve 95-100% of full fine-tuning performance
 - **Generation Tasks:** Prefix tuning and LoRA excel, matching full fine-tuning
 - **Few-Shot Learning:** Prompt tuning particularly effective with large models
 - **Multi-Task:** PEFT enables efficient multi-task learning with shared base model
 
----
+## Key Takeaways:
 
-## Key Takeaways
+1. **Not All Parameters Matter:** Strategic selection of parameters is more important than quantity
+2. **Low-Dimensional Adaptation:** Task-specific adaptations exist in low-dimensional subspaces
+3. **Modularity Wins:** Separating base knowledge from task-specific skills is powerful
+4. **Scalability:** PEFT makes large model adaptation practical and accessible
+5. **Implicit Regularization:** Constraining updates provides regularization, reducing overfitting
+6. **Future-Proof:** As models grow larger, PEFT becomes increasingly essential
 
-> 1. **Not All Parameters Matter:** Strategic selection of parameters is more important than quantity
-> 2. **Low-Dimensional Adaptation:** Task-specific adaptations exist in low-dimensional subspaces
-> 3. **Modularity Wins:** Separating base knowledge from task-specific skills is powerful
-> 4. **Scalability:** PEFT makes large model adaptation practical and accessible
-> 5. **Implicit Regularization:** Constraining updates provides regularization, reducing overfitting
-> 6. **Future-Proof:** As models grow larger, PEFT becomes increasingly essential
+## Popular Libraries:
 
----
-
-## Popular Libraries
-
-- **Hugging Face PEFT:** Unified library for LoRA, Prefix Tuning, P-Tuning, Prompt Tuning, (IA)^3
+- **Hugging Face PEFT:** Unified library for LoRA, Prefix Tuning, P-Tuning, Prompt Tuning, (IA)³
 - **Adapter-Transformers:** Specialized library for adapter-based methods
 - **OpenDelta:** Microsoft's library for various delta-tuning methods
-
----
 
 ## Repository Reference
 
