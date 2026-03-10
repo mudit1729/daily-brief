@@ -112,10 +112,13 @@ document.addEventListener('keydown', function (e) {
 function _getDisplayName(filename) {
   var name = filename.replace(/\.md$/i, '').replace(/-/g, ' ').replace(/_/g, ' ');
   // Strip known prefixes
-  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper ', 'Planner ', 'VLA '];
+  var prefixes = ['Ilya30 ', 'BEV ', 'Paper ', 'Async ', 'MLTheory ', 'MLPaper ', 'Planner ', 'VLA ', 'CMU '];
   for (var i = 0; i < prefixes.length; i++) {
     if (name.startsWith(prefixes[i])) {
       name = name.substring(prefixes[i].length);
+      // CMU lectures: "Lec01 Introduction..." → "01. Introduction..."
+      var lecMatch = name.match(/^Lec(\d{2})\s+(.+)/);
+      if (lecMatch) { name = lecMatch[1] + '. ' + lecMatch[2]; break; }
       // Strip leading number prefix like "01 "
       if (/^\d{2}\s/.test(name)) name = name.substring(3);
       // Strip trailing " summary"

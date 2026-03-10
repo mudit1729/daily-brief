@@ -920,6 +920,7 @@ def prep_page():
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
         {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
         {'label': 'VLA Seminal Papers', 'icon': 'eye', 'match': ['VLA-']},
+        {'label': 'ML Coursework', 'icon': 'book', 'match': ['CMU-']},
         # Substring-match categories after prefix categories
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems']},
         {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer']},
