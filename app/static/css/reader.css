@@ -252,6 +252,37 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Download progress ── */
+.rd-dl-status { margin: 0; }
+.rd-dl-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(280px, 80%);
+  margin-top: 4px;
+}
+.rd-dl-progress__bar {
+  flex: 1;
+  height: 4px;
+  background: var(--sb-border, #333);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.rd-dl-progress__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--sb-accent, #3b82f6);
+  border-radius: 2px;
+  transition: width 0.2s ease-out;
+}
+.rd-dl-progress__text {
+  font-size: 11px;
+  color: var(--sb-text-muted);
+  white-space: nowrap;
+  min-width: 110px;
+  text-align: right;
+}
+
 /* ── Pages container ── */
 .rd-pages {
   display: flex;

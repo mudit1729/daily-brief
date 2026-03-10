@@ -1450,6 +1450,65 @@ def reader_file(filename):
     return send_file(safe_path, conditional=True)
 
 
+@views_bp.route('/api/reader/gdrive/<file_id>')
+def reader_gdrive(file_id):
+    """Proxy-download a PDF from Google Drive and cache it locally.
+
+    Streams the file back with Content-Length so the client can show
+    download progress.
+    """
+    import os
+    import re
+    import requests as _req
+    from flask import send_file, Response
+
+    # Validate file_id (alphanumeric + dash/underscore only)
+    if not re.match(r'^[\w-]+$', file_id):
+        abort(400)
+
+    cache_dir = os.path.abspath(
+        os.path.join(current_app.root_path, '..', 'pdfs', '.gdrive_cache'))
+    os.makedirs(cache_dir, exist_ok=True)
+    cached = os.path.join(cache_dir, file_id + '.pdf')
+
+    if not os.path.isfile(cached) or os.path.getsize(cached) < 10000:
+        # Remove stale/invalid cache (e.g. HTML error pages)
+        if os.path.isfile(cached):
+            os.remove(cached)
+
+        # Google Drive direct download URL (with confirm=t to skip virus scan)
+        url = (f'https://drive.usercontent.google.com/download'
+               f'?id={file_id}&export=download&confirm=t')
+        session = _req.Session()
+        resp = session.get(url, stream=True, timeout=(15, 300))
+
+        if resp.status_code != 200:
+            abort(502)
+
+        # Verify we got a PDF, not an HTML error/confirmation page
+        content_type = resp.headers.get('Content-Type', '')
+        if 'text/html' in content_type:
+            abort(502)
+
+        # Stream from GDrive → save to cache AND stream to client
+        total = resp.headers.get('Content-Length', '')
+
+        def generate():
+            with open(cached + '.tmp', 'wb') as f:
+                for chunk in resp.iter_content(65536):
+                    f.write(chunk)
+                    yield chunk
+            # Atomically move tmp → final
+            os.replace(cached + '.tmp', cached)
+
+        headers = {'Content-Type': 'application/pdf'}
+        if total:
+            headers['Content-Length'] = total
+        return Response(generate(), headers=headers)
+
+    return send_file(cached, mimetype='application/pdf', conditional=True)
+
+
 @views_bp.route('/history')
 def history_page():
     """Paginated brief archive."""
