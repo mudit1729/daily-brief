@@ -2,19 +2,15 @@
 
 ## Paper Overview
 
-| | |
-|---|---|
-| **Authors** | Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio |
-| **Published** | 2014 (NeurIPS) |
-| **Paper Link** | https://arxiv.org/abs/1406.2661 |
-
----
+**Authors:** Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio
+**Published:** 2014 (NeurIPS)
+**Paper Link:** https://arxiv.org/abs/1406.2661
 
 ## Detailed Description
 
-**Generative Adversarial Networks** (GANs) introduced a revolutionary framework for training generative models through an adversarial process. Two neural networks -- a *Generator* and a *Discriminator* -- compete against each other in a zero-sum game, where the generator learns to create realistic data and the discriminator learns to distinguish real from fake data.
+Generative Adversarial Networks (GANs) introduced a revolutionary framework for training generative models through an adversarial process. Two neural networks—a Generator and a Discriminator—compete against each other in a zero-sum game, where the generator learns to create realistic data and the discriminator learns to distinguish real from fake data.
 
-### Core Architecture
+### Core Architecture:
 
 1. **Generator (G):**
    - Input: Random noise vector z ~ p(z) (typically Gaussian)
@@ -25,12 +21,12 @@
 
 2. **Discriminator (D):**
    - Input: Either real samples x ~ p_data or fake samples G(z)
-   - Output: Probability that input is real: D(x) in [0, 1]
+   - Output: Probability that input is real: D(x) ∈ [0, 1]
    - Goal: Correctly classify real vs fake samples
    - Acts as learned loss function for generator
    - Provides feedback signal to generator
 
-### Training Process
+### Training Process:
 
 The training alternates between two steps:
 
@@ -38,32 +34,32 @@ The training alternates between two steps:
    - Sample mini-batch of real data: x ~ p_data
    - Sample mini-batch of noise: z ~ p(z)
    - Generate fake data: G(z)
-   - Update D to maximize: `log D(x) + log(1 - D(G(z)))`
+   - Update D to maximize: log D(x) + log(1 - D(G(z)))
    - D tries to output 1 for real, 0 for fake
 
 2. **Train Generator:**
    - Sample mini-batch of noise: z ~ p(z)
    - Generate fake data: G(z)
-   - Update G to maximize: `log D(G(z))`
-   - Equivalently, minimize: `log(1 - D(G(z)))`
+   - Update G to maximize: log D(G(z))
+   - Equivalently, minimize: log(1 - D(G(z)))
    - G tries to make D output 1 for fake samples
 
-### Mathematical Formulation
+### Mathematical Formulation:
 
 **Minimax Objective:**
-```math
+```
 min_G max_D V(D,G) = E_x~p_data[log D(x)] + E_z~p_z[log(1 - D(G(z)))]
 ```
 
 **Optimal Solution:**
-- When D is optimal for a given G: `D*(x) = p_data(x) / (p_data(x) + p_g(x))`
+- When D is optimal for a given G: D*(x) = p_data(x) / (p_data(x) + p_g(x))
 - At equilibrium: p_g = p_data (generator perfectly mimics data distribution)
 - Nash equilibrium: D(x) = 1/2 for all x
 
 **Non-Saturating Objective (Practical):**
-Instead of minimizing `log(1 - D(G(z)))`, maximize `log D(G(z))` for better gradients early in training.
+Instead of minimizing log(1 - D(G(z))), maximize log D(G(z)) for better gradients early in training.
 
-### Key Properties
+### Key Properties:
 
 1. **Game Theory Framework:**
    - Two-player minimax game
@@ -80,11 +76,9 @@ Instead of minimizing `log(1 - D(G(z)))`, maximize `log D(G(z))` for better grad
    - Avoids intractable partition functions
    - Enables training on complex, high-dimensional data
 
----
-
 ## Pain Point Addressed
 
-### Limitations of Previous Generative Models
+### Limitations of Previous Generative Models:
 
 1. **Restrictive Assumptions:**
    - Many generative models required specific distributional assumptions
@@ -117,11 +111,9 @@ Instead of minimizing `log(1 - D(G(z)))`, maximize `log D(G(z))` for better grad
    - Can fail to capture all modes of the data distribution
    - Training instability
 
----
-
 ## Novelty of the Paper
 
-### Revolutionary Innovations
+### Revolutionary Innovations:
 
 1. **Adversarial Training Framework:**
    - Completely new paradigm for training generative models
@@ -165,7 +157,7 @@ Instead of minimizing `log(1 - D(G(z)))`, maximize `log D(G(z))` for better grad
    - No sequential dependencies
    - Real-time generation possible
 
-### Theoretical Contributions
+### Theoretical Contributions:
 
 1. **Convergence Analysis:**
    - Proved that with optimal discriminator, minimizing V(G,D) is equivalent to minimizing Jensen-Shannon divergence
@@ -177,22 +169,18 @@ Instead of minimizing `log(1 - D(G(z)))`, maximize `log D(G(z))` for better grad
    - Different GAN variants correspond to different divergences
    - Rich theoretical framework emerged
 
-### Impact
+### Impact:
 
-> GANs spawned an entire field of adversarial learning and influenced countless applications in art, design, data augmentation, and drug discovery.
-
-Notable variants:
-
-| Variant | Contribution |
-|---------|-------------|
-| **DCGAN** | Deep Convolutional GAN |
-| **WGAN** | Wasserstein GAN (better training stability) |
-| **StyleGAN** | High-quality, controllable image synthesis |
-| **CycleGAN** | Unpaired image-to-image translation |
-| **BigGAN** | Large-scale high-fidelity image generation |
-| **Pix2Pix** | Paired image-to-image translation |
-
----
+- Spawned entire field of adversarial learning
+- Influenced development of countless variants:
+  - **DCGAN:** Deep Convolutional GAN
+  - **WGAN:** Wasserstein GAN (better training stability)
+  - **StyleGAN:** High-quality, controllable image synthesis
+  - **CycleGAN:** Unpaired image-to-image translation
+  - **BigGAN:** Large-scale high-fidelity image generation
+  - **Pix2Pix:** Paired image-to-image translation
+- Applications in art, design, data augmentation, drug discovery
+- Influenced adversarial robustness research
 
 ## Implementation
 
@@ -363,7 +351,7 @@ for epoch in range(num_epochs):
                 step += 1
 ```
 
-### Usage Example
+### Usage Example:
 
 ```python
 # After training, generate new samples
@@ -386,20 +374,27 @@ def generate_samples(generator, num_samples=64, z_dim=64):
 samples = generate_samples(gen, num_samples=64, z_dim=64)
 ```
 
----
+## Training Challenges and Solutions:
 
-## Training Challenges and Solutions
+### Common Issues:
 
-### Common Issues
+1. **Mode Collapse:**
+   - Generator produces limited variety
+   - Solution: Minibatch discrimination, unrolled GANs, multiple discriminators
 
-| Issue | Description | Solutions |
-|-------|-------------|----------|
-| **Mode Collapse** | Generator produces limited variety | Minibatch discrimination, unrolled GANs, multiple discriminators |
-| **Training Instability** | Loss oscillates, doesn't converge | Careful learning rate tuning, WGAN, Spectral Normalization |
-| **Vanishing Gradients** | Discriminator too strong, generator gets no useful gradient | Non-saturating loss, label smoothing, noise injection |
-| **Hyperparameter Sensitivity** | Requires careful tuning | Experience, architecture search, gradient penalty |
+2. **Training Instability:**
+   - Loss oscillates, doesn't converge
+   - Solution: Careful learning rate tuning, WGAN, Spectral Normalization
 
-### Best Practices
+3. **Vanishing Gradients:**
+   - Discriminator too strong, generator gets no useful gradient
+   - Solution: Non-saturating loss, label smoothing, noise injection
+
+4. **Hyperparameter Sensitivity:**
+   - Requires careful tuning
+   - Solution: Experience, architecture search, gradient penalty
+
+### Best Practices:
 
 - Use LeakyReLU in discriminator
 - Use batch normalization (except D input and G output)
@@ -409,11 +404,9 @@ samples = generate_samples(gen, num_samples=64, z_dim=64)
 - Use label smoothing
 - Add noise to discriminator inputs
 
----
+## Key Results and Applications:
 
-## Key Results and Applications
-
-### Capabilities
+### Capabilities:
 
 1. **Image Generation:** High-quality, realistic images
 2. **Image-to-Image Translation:** Style transfer, domain adaptation
@@ -422,29 +415,31 @@ samples = generate_samples(gen, num_samples=64, z_dim=64)
 5. **Inpainting:** Fill missing regions in images
 6. **Anomaly Detection:** Identify outliers
 
-### Advantages vs Limitations
+### Advantages:
 
-| Advantages | Limitations |
-|------------|------------|
-| Sharp, realistic generations | Training instability |
-| Fast sampling | Mode collapse |
-| Flexible architecture | Difficult to evaluate |
-| No explicit density required | Hyperparameter sensitive |
-| Captures complex distributions | No direct way to encode data |
+- Sharp, realistic generations
+- Fast sampling
+- Flexible architecture
+- No explicit density required
+- Captures complex distributions
 
----
+### Limitations:
 
-## Key Takeaways
+- Training instability
+- Mode collapse
+- Difficult to evaluate
+- Hyperparameter sensitive
+- No direct way to encode data
 
-> 1. **Adversarial training** is a powerful paradigm for generative modeling
-> 2. **Game-theoretic framework** provides elegant theoretical foundation
-> 3. **Sharp generations** superior to previous methods
-> 4. **Fast sampling** enables real-time applications
-> 5. **Flexible and scalable** architecture
-> 6. **Training challenges** require careful engineering
-> 7. Foundation for modern generative AI
+## Key Takeaways:
 
----
+1. **Adversarial training** is a powerful paradigm for generative modeling
+2. **Game-theoretic framework** provides elegant theoretical foundation
+3. **Sharp generations** superior to previous methods
+4. **Fast sampling** enables real-time applications
+5. **Flexible and scalable** architecture
+6. **Training challenges** require careful engineering
+7. Foundation for modern generative AI
 
 ## Repository Reference
 
