@@ -158,6 +158,88 @@ async function loadLocalBlobPDF(blobUrl, filename, btn) {
   }
 }
 
+// ── Load Google Drive PDF ──
+window.loadGDrivePDF = async function(fileId, displayName, btn) {
+  document.querySelectorAll('.rd-book-item').forEach(el => el.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  currentFile = 'gdrive:' + fileId;
+  titleEl.textContent = displayName;
+
+  if (window.innerWidth <= 640) {
+    layout.classList.add('rd-viewing');
+  }
+
+  emptyEl.style.display = 'none';
+  pagesContainer.style.display = 'none';
+  loadingEl.style.display = '';
+  loadingEl.innerHTML = `
+    <div class="rd-spinner"></div>
+    <p class="rd-dl-status">Downloading from Google Drive...</p>
+    <div class="rd-dl-progress" style="display:none">
+      <div class="rd-dl-progress__bar"><div class="rd-dl-progress__fill" id="dlFill"></div></div>
+      <span class="rd-dl-progress__text" id="dlText"></span>
+    </div>`;
+
+  cleanup();
+
+  try {
+    const url = '/api/reader/gdrive/' + encodeURIComponent(fileId);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('Download failed: ' + resp.status);
+
+    const contentLength = resp.headers.get('Content-Length');
+    const total = contentLength ? parseInt(contentLength) : 0;
+
+    // Show progress bar if we know the total size
+    const progressEl = loadingEl.querySelector('.rd-dl-progress');
+    const fillEl = document.getElementById('dlFill');
+    const textEl = document.getElementById('dlText');
+    if (total > 0) progressEl.style.display = '';
+
+    // Stream-read the response body to track progress
+    const reader = resp.body.getReader();
+    const chunks = [];
+    let received = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+
+      if (total > 0) {
+        const pct = Math.min(100, (received / total) * 100);
+        fillEl.style.width = pct.toFixed(1) + '%';
+        textEl.textContent = _formatBytes(received) + ' / ' + _formatBytes(total);
+      } else {
+        textEl.textContent = _formatBytes(received);
+        if (progressEl.style.display === 'none') progressEl.style.display = '';
+      }
+    }
+
+    // Combine chunks into one ArrayBuffer
+    const combined = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    loadingEl.querySelector('.rd-dl-status').textContent = 'Rendering PDF...';
+    await openPDF({ data: combined.buffer, enableXfa: false });
+  } catch (err) {
+    loadingEl.innerHTML = '<p style="color:var(--sb-text-muted)">Failed to download PDF</p>';
+    console.error('GDrive PDF load error:', err);
+  }
+};
+
+function _formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(0) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
 // ── Shared PDF open logic ──
 async function openPDF(source) {
   pdfDoc = await pdfjsLib.getDocument(source).promise;
