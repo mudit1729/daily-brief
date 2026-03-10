@@ -911,20 +911,19 @@ def prep_page():
     # Categorize notes into sections
     # Each category: { 'label': str, 'icon': str, 'notes': [filename, ...] }
     CATEGORIES = [
-        # Prefix-based categories first (more specific → less specific)
-        {'label': 'Ilya 30', 'icon': 'paper', 'match': ['Ilya30-']},
-        {'label': 'ML Paper Implementation', 'icon': 'cpu', 'match': ['MLPaper-']},
+        {'label': 'ML Coursework', 'icon': 'book', 'match': ['CMU-']},
+        {'label': 'ML Flashcards', 'icon': 'book', 'match': ['ML-Comprehensive-Guide']},
         {'label': 'ML Theory Interview', 'icon': 'book', 'match': ['MLTheory-']},
+        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer', 'Attention-Is-All-You-Need']},
+        {'label': 'ML Paper Implementation', 'icon': 'cpu', 'match': ['MLPaper-']},
+        {'label': 'Ilya 30', 'icon': 'paper', 'match': ['Ilya30-']},
         {'label': 'BEV Seminal Papers', 'icon': 'eye', 'match': ['BEV-']},
-        {'label': 'Paper Summaries', 'icon': 'paper', 'match': ['Paper-']},
-        {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
         {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
         {'label': 'VLA Seminal Papers', 'icon': 'eye', 'match': ['VLA-']},
-        {'label': 'ML Coursework', 'icon': 'book', 'match': ['CMU-']},
-        # Substring-match categories after prefix categories
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems']},
-        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer', 'Attention-Is-All-You-Need']},
-        {'label': 'ML Theory', 'icon': 'book', 'match': ['ML-Comprehensive-Guide']},
+        {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
+        # Catch-all for uncategorized prefix-based notes
+        {'label': 'Paper Summaries', 'icon': 'paper', 'match': ['Paper-']},
     ]
 
     categorized = []
