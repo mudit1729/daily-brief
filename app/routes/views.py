@@ -914,7 +914,7 @@ def prep_page():
         {'label': 'ML Coursework', 'icon': 'book', 'match': ['CMU-']},
         {'label': 'ML Flashcards', 'icon': 'book', 'match': ['ML-Comprehensive-Guide']},
         {'label': 'ML Theory Interview', 'icon': 'book', 'match': ['MLTheory-']},
-        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer', 'Attention-Is-All-You-Need']},
+        {'label': 'ML Coding', 'icon': 'cpu', 'match': ['DeepML', 'Transformers-ML150', 'Vision-Transformer', 'Attention-Is-All-You-Need', 'PyTorch-']},
         {'label': 'ML Paper Implementation', 'icon': 'cpu', 'match': ['MLPaper-']},
         {'label': 'Ilya 30', 'icon': 'paper', 'match': ['Ilya30-']},
         {'label': 'BEV Seminal Papers', 'icon': 'eye', 'match': ['BEV-']},
