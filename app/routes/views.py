@@ -920,7 +920,7 @@ def prep_page():
         {'label': 'BEV Seminal Papers', 'icon': 'eye', 'match': ['BEV-']},
         {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
         {'label': 'VLA Seminal Papers', 'icon': 'eye', 'match': ['VLA-']},
-        {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems']},
+        {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems', 'Torc-']},
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
         # Catch-all for uncategorized prefix-based notes
         {'label': 'Paper Summaries', 'icon': 'paper', 'match': ['Paper-']},
