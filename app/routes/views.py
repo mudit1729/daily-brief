@@ -1222,6 +1222,56 @@ def prep_rename_note():
     return jsonify({'filename': new_filename, 'old_filename': old_filename})
 
 
+@views_bp.route('/api/prep/annotations/<filename>', methods=['GET'])
+def prep_get_annotations(filename):
+    """Get stored annotations (highlights + comments) for a note."""
+    import os
+    import json as _json
+
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    ann_dir = os.path.join(notes_dir, '.annotations')
+    safe_name = filename.replace('/', '_').replace('..', '_')
+    ann_path = os.path.join(ann_dir, safe_name.rsplit('.', 1)[0] + '.json')
+
+    if os.path.isfile(ann_path):
+        with open(ann_path, 'r', encoding='utf-8') as f:
+            return jsonify(_json.load(f))
+    return jsonify({'highlights': [], 'comments': []})
+
+
+@views_bp.route('/api/prep/annotations/<filename>', methods=['POST'])
+def prep_save_annotations(filename):
+    """Save annotations (highlights + comments) for a note."""
+    import os
+    import json as _json
+
+    notes_dir = current_app.config.get('PREP_NOTES_DIR', 'notes')
+    if not os.path.isabs(notes_dir):
+        notes_dir = os.path.join(current_app.root_path, '..', notes_dir)
+    notes_dir = os.path.abspath(notes_dir)
+
+    ann_dir = os.path.join(notes_dir, '.annotations')
+    os.makedirs(ann_dir, exist_ok=True)
+
+    safe_name = filename.replace('/', '_').replace('..', '_')
+    ann_path = os.path.join(ann_dir, safe_name.rsplit('.', 1)[0] + '.json')
+
+    data = request.get_json(silent=True) or {}
+    payload = {
+        'highlights': data.get('highlights', []),
+        'comments': data.get('comments', []),
+    }
+
+    with open(ann_path, 'w', encoding='utf-8') as f:
+        _json.dump(payload, f, indent=2, ensure_ascii=False)
+
+    return jsonify({'ok': True})
+
+
 @views_bp.route('/api/prep/chat', methods=['POST'])
 def prep_chat():
     """Stream a Claude response about the currently viewed markdown note.
