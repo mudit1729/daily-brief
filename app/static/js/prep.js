@@ -1,6 +1,10 @@
 /* ── Prep: Notes Viewer ────────────────────────── */
 
 let _currentNote = null;
+let _currentArxivId = null;       // arxiv ID for the current note (null if not a paper)
+let _currentSource = 'notes';     // 'notes' | 'alphaxiv' | 'pdf'
+let _cachedNotesHtml = null;      // cached rendered markdown for quick toggle back
+let _cachedAlphaxivHtml = null;   // cached alphaxiv content
 
 function _isMobile() {
   return window.innerWidth <= 640;
@@ -25,12 +29,21 @@ function loadNote(filename, btn) {
     layout.scrollIntoView({ behavior: 'instant' });
   }
 
+  // Reset source state
+  _currentArxivId = null;
+  _currentSource = 'notes';
+  _cachedNotesHtml = null;
+  _cachedAlphaxivHtml = null;
+  var toggle = document.getElementById('sourceToggle');
+  if (toggle) toggle.style.display = 'none';
+
   fetch('/api/prep/notes/' + encodeURIComponent(filename))
     .then(r => {
       if (!r.ok) throw new Error('Failed to load note');
       return r.json();
     })
     .then(data => {
+      _cachedNotesHtml = data.html;
       content.innerHTML = '<div class="md-body">' + data.html + '</div>';
       // Apply syntax highlighting to all code blocks
       content.querySelectorAll('pre code').forEach(block => {
@@ -40,10 +53,143 @@ function loadNote(filename, btn) {
       _restoreHighlights();
       // Scroll content to top
       content.scrollTop = 0;
+
+      // Show source toggle if this note has an arxiv ID
+      if (data.arxiv_id) {
+        _currentArxivId = data.arxiv_id;
+        if (toggle) {
+          toggle.style.display = '';
+          // Reset toggle buttons
+          toggle.querySelectorAll('.sb-source-toggle__btn').forEach(function(b) {
+            b.classList.toggle('active', b.dataset.source === 'notes');
+          });
+        }
+      }
     })
     .catch(err => {
       content.innerHTML = '<div class="sb-notes-empty"><p>Error: ' + err.message + '</p></div>';
     });
+}
+
+/* ── Source Toggle (Notes / AlphaXiv / PDF) ─────── */
+
+function switchSource(source, btn) {
+  if (source === _currentSource || !_currentArxivId) return;
+  _currentSource = source;
+
+  // Update button states
+  var toggle = document.getElementById('sourceToggle');
+  if (toggle) {
+    toggle.querySelectorAll('.sb-source-toggle__btn').forEach(function(b) {
+      b.classList.toggle('active', b === btn);
+    });
+  }
+
+  var content = document.getElementById('notesContent');
+
+  if (source === 'notes') {
+    // Restore cached markdown
+    if (_cachedNotesHtml) {
+      content.innerHTML = '<div class="md-body">' + _cachedNotesHtml + '</div>';
+      content.querySelectorAll('pre code').forEach(function(block) {
+        if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+      });
+      _restoreHighlights();
+    }
+    content.scrollTop = 0;
+    return;
+  }
+
+  if (source === 'alphaxiv') {
+    // Check cache first
+    if (_cachedAlphaxivHtml) {
+      content.innerHTML = _cachedAlphaxivHtml;
+      content.querySelectorAll('pre code').forEach(function(block) {
+        if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+      });
+      content.scrollTop = 0;
+      return;
+    }
+
+    content.innerHTML = '<div class="sb-notes-empty"><p>Loading AlphaXiv overview...</p></div>';
+    fetch('/api/prep/alphaxiv/' + _currentArxivId)
+      .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      .then(function(res) {
+        if (!res.ok) {
+          content.innerHTML = '<div class="sb-notes-empty"><p>' + (res.data.error || 'Failed to load') + '</p></div>';
+          return;
+        }
+        // Use intermediateReport first, fall back to overview, then summary
+        var text = res.data.intermediateReport || res.data.overview || '';
+        if (!text && res.data.summary) {
+          var s = res.data.summary;
+          text = '# Summary\n\n' + (s.summary || '') +
+            '\n\n## Problem\n\n' + (s.originalProblem || '') +
+            '\n\n## Solution\n\n' + (s.solution || '') +
+            '\n\n## Key Insights\n\n' + (s.keyInsights || '') +
+            '\n\n## Results\n\n' + (s.results || '');
+        }
+        if (!text) {
+          content.innerHTML = '<div class="sb-notes-empty"><p>No AlphaXiv overview available for this paper yet.</p></div>';
+          return;
+        }
+        // Render markdown — use a simple conversion to HTML
+        _renderAlphaxivContent(content, text);
+        _cachedAlphaxivHtml = content.innerHTML;
+        content.scrollTop = 0;
+      })
+      .catch(function(err) {
+        content.innerHTML = '<div class="sb-notes-empty"><p>Error: ' + err.message + '</p></div>';
+      });
+    return;
+  }
+
+  if (source === 'pdf') {
+    var pdfUrl = 'https://arxiv.org/pdf/' + _currentArxivId;
+    content.innerHTML = '<iframe class="sb-pdf-embed" src="' + pdfUrl + '" title="arXiv PDF"></iframe>';
+    return;
+  }
+}
+
+function _renderAlphaxivContent(container, markdownText) {
+  // Convert markdown to HTML (basic conversion for AlphaXiv content)
+  var html = markdownText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // Headers
+    .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Code blocks
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Bullet lists
+    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+    // Horizontal rules
+    .replace(/^---$/gm, '<hr>')
+    // Paragraphs (double newline)
+    .replace(/\n\n/g, '</p><p>')
+    // Single newlines within paragraphs
+    .replace(/\n/g, '<br>');
+
+  // Wrap list items
+  html = html.replace(/(<li>.*?<\/li>(\s*<br>)?)+/g, function(match) {
+    return '<ul>' + match.replace(/<br>/g, '') + '</ul>';
+  });
+
+  container.innerHTML = '<div class="md-body"><p>' + html + '</p></div>';
+
+  // Syntax highlight code blocks
+  container.querySelectorAll('pre code').forEach(function(block) {
+    if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+  });
 }
 
 /* ── Mobile back button ────────────────────────── */
