@@ -1100,6 +1100,30 @@ def prep_alphaxiv(paper_id):
         return jsonify({'error': 'Failed to fetch from AlphaXiv'}), 502
 
 
+@views_bp.route('/api/prep/generate-summary', methods=['POST'])
+def prep_generate_summary():
+    """Generate a 12-section paper summary from an arXiv link.
+
+    Request JSON:
+        arxiv_url: str — arXiv URL or paper ID
+    """
+    data = request.get_json(silent=True) or {}
+    arxiv_url = (data.get('arxiv_url') or '').strip()
+    if not arxiv_url:
+        return jsonify({'error': 'arxiv_url is required'}), 400
+
+    try:
+        from app.services.paper_summary_service import PaperSummaryService
+        svc = PaperSummaryService(app_config=current_app.config)
+        result = svc.summarize_arxiv(arxiv_url)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Paper summary generation failed: {e}")
+        return jsonify({'error': f'Generation failed: {str(e)}'}), 500
+
+
 @views_bp.route('/api/prep/arxiv-pdf/<paper_id>')
 def prep_arxiv_pdf(paper_id):
     """Proxy-download an arXiv PDF and cache it locally."""
