@@ -145,8 +145,11 @@ function switchSource(source, btn) {
   }
 
   if (source === 'pdf') {
-    var pdfUrl = 'https://arxiv.org/pdf/' + _currentArxivId;
-    content.innerHTML = '<iframe class="sb-pdf-embed" src="' + pdfUrl + '" title="arXiv PDF"></iframe>';
+    content.innerHTML = '<div class="sb-notes-empty"><p>Loading PDF...</p></div>';
+    var pdfUrl = '/api/prep/arxiv-pdf/' + _currentArxivId;
+    content.innerHTML = '<object class="sb-pdf-embed" data="' + pdfUrl + '" type="application/pdf">' +
+      '<p>PDF could not be displayed. <a href="' + pdfUrl + '" target="_blank">Download PDF</a></p>' +
+      '</object>';
     return;
   }
 }
