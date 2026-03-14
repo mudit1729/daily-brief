@@ -1015,7 +1015,18 @@ def prep_note(filename):
         html,
     )
 
-    return jsonify({'filename': filename, 'html': html})
+    # Extract arxiv ID from the markdown content (first match only)
+    arxiv_id = None
+    PAPER_PREFIXES = ('Ilya30-', 'BEV-', 'Planner-', 'VLA-', 'MLPaper-', 'Paper-')
+    if filename.startswith(PAPER_PREFIXES) or 'Attention-Is-All-You-Need' in filename:
+        arxiv_match = re.search(r'(?:arxiv\.org/(?:abs|pdf)/|arXiv[:\s]+|ArXiv[:\s]+|arXiv\s+)(\d{4}\.\d{4,5})', raw, re.IGNORECASE)
+        if not arxiv_match:
+            # Try standalone arxiv ID pattern (e.g., "2112.11790" near metadata)
+            arxiv_match = re.search(r'\b(\d{4}\.\d{4,5})\b', raw)
+        if arxiv_match:
+            arxiv_id = arxiv_match.group(1)
+
+    return jsonify({'filename': filename, 'html': html, 'arxiv_id': arxiv_id})
 
 
 @views_bp.route('/api/prep/images/<path:filepath>')
@@ -1036,6 +1047,57 @@ def prep_image(filepath):
         abort(404)
 
     return send_file(safe_path)
+
+
+@views_bp.route('/api/prep/alphaxiv/<paper_id>')
+def prep_alphaxiv(paper_id):
+    """Proxy AlphaXiv API to avoid CORS issues.
+
+    1. Fetch paper metadata to get versionId
+    2. Fetch overview using versionId
+    Returns the intermediateReport, overview, or summary.
+    """
+    import requests as _requests
+
+    # Validate paper_id format
+    import re as _re
+    if not _re.match(r'^\d{4}\.\d{4,5}$', paper_id):
+        return jsonify({'error': 'Invalid paper ID format'}), 400
+
+    try:
+        # Step 1: Get versionId
+        meta_resp = _requests.get(
+            f'https://api.alphaxiv.org/papers/v3/{paper_id}',
+            timeout=10,
+        )
+        if meta_resp.status_code == 404:
+            return jsonify({'error': 'Paper not found on AlphaXiv'}), 404
+        meta_resp.raise_for_status()
+        meta = meta_resp.json()
+        version_id = meta.get('versionId') or meta.get('id')
+        if not version_id:
+            return jsonify({'error': 'Could not resolve versionId'}), 500
+
+        # Step 2: Get overview
+        overview_resp = _requests.get(
+            f'https://api.alphaxiv.org/papers/v3/{version_id}/overview/en',
+            timeout=15,
+        )
+        if overview_resp.status_code == 404:
+            return jsonify({'error': 'Overview not yet generated for this paper'}), 404
+        overview_resp.raise_for_status()
+        overview = overview_resp.json()
+
+        return jsonify({
+            'intermediateReport': overview.get('intermediateReport'),
+            'overview': overview.get('overview'),
+            'summary': overview.get('summary'),
+        })
+    except _requests.exceptions.Timeout:
+        return jsonify({'error': 'AlphaXiv API timed out'}), 504
+    except _requests.exceptions.RequestException as e:
+        logger.error(f"AlphaXiv API error for {paper_id}: {e}")
+        return jsonify({'error': 'Failed to fetch from AlphaXiv'}), 502
 
 
 @views_bp.route('/api/prep/notes/rename', methods=['POST'])

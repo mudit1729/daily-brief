@@ -262,6 +262,51 @@
   margin: 0 4px;
 }
 
+/* ── Source Toggle ─────────────────────────────── */
+.sb-source-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px var(--sb-space-3);
+  background: var(--sb-surface-elevated);
+  border-bottom: 1px solid var(--sb-border);
+  flex-shrink: 0;
+}
+
+.sb-source-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--sb-radius-md);
+  background: transparent;
+  color: var(--sb-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sb-source-toggle__btn:hover {
+  background: var(--sb-surface-hover);
+  color: var(--sb-text-primary);
+}
+
+.sb-source-toggle__btn.active {
+  background: var(--sb-accent);
+  color: #fff;
+  border-color: var(--sb-accent);
+}
+
+/* ── PDF embed ────────────────────────────────── */
+.sb-pdf-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+  min-height: calc(100vh - 300px);
+}
+
 /* ── Content area ──────────────────────────────── */
 .sb-notes-content {
   padding: var(--sb-space-5);
