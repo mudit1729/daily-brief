@@ -1100,6 +1100,38 @@ def prep_alphaxiv(paper_id):
         return jsonify({'error': 'Failed to fetch from AlphaXiv'}), 502
 
 
+@views_bp.route('/api/prep/arxiv-pdf/<paper_id>')
+def prep_arxiv_pdf(paper_id):
+    """Proxy-download an arXiv PDF and cache it locally."""
+    import os
+    import re as _re
+    import requests as _req
+    from flask import send_file
+
+    if not _re.match(r'^\d{4}\.\d{4,5}$', paper_id):
+        abort(400)
+
+    cache_dir = os.path.abspath(
+        os.path.join(current_app.root_path, '..', 'pdfs', '.arxiv_cache'))
+    os.makedirs(cache_dir, exist_ok=True)
+    cached = os.path.join(cache_dir, paper_id + '.pdf')
+
+    if not os.path.isfile(cached):
+        url = f'https://arxiv.org/pdf/{paper_id}'
+        try:
+            resp = _req.get(url, timeout=30, stream=True,
+                            headers={'User-Agent': 'Mozilla/5.0'})
+            resp.raise_for_status()
+            with open(cached, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        except _req.exceptions.RequestException as e:
+            logger.error(f"Failed to download arXiv PDF {paper_id}: {e}")
+            return jsonify({'error': 'Failed to download PDF from arXiv'}), 502
+
+    return send_file(cached, mimetype='application/pdf')
+
+
 @views_bp.route('/api/prep/notes/rename', methods=['POST'])
 def prep_rename_note():
     """Rename a markdown note file.
