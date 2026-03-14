@@ -63,8 +63,8 @@ function loadNote(filename, btn) {
       content.querySelectorAll('pre code').forEach(block => {
         if (typeof hljs !== 'undefined') hljs.highlightElement(block);
       });
-      // Restore highlights from localStorage
-      _restoreHighlights();
+      // Load annotations (highlights + comments) from backend
+      _loadAnnotations();
       // Scroll content to top
       content.scrollTop = 0;
 
@@ -554,156 +554,479 @@ function startRenameNote() {
 }
 
 
-/* ── Text Highlighting ─────────────────────────── */
-// Select text → click highlight button → wraps in <mark>.
-// Click a highlight to remove it. Stored in localStorage per note.
+/* ── Text Highlighting & Comments ────────────────── */
+// Highlights & comments are persisted to the backend (.annotations/ directory)
+// so they survive across git pushes, browser clears, and devices.
 
 let _highlightMode = false;
+let _commentMode = false;
+let _annotations = { highlights: [], comments: [] };
+let _saveTimer = null;
+let _commentIdCounter = 0;
 
 function toggleHighlightMode() {
   _highlightMode = !_highlightMode;
-  const btn = document.getElementById('highlightToggleBtn');
-  btn.classList.toggle('active', _highlightMode);
-  btn.title = _highlightMode ? 'Highlighting ON — select text to highlight' : 'Toggle highlighting';
-
-  const content = document.getElementById('notesContent');
-  content.classList.toggle('sb-highlight-mode', _highlightMode);
+  if (_highlightMode) _commentMode = false;  // mutual exclusion
+  _updateAnnotationModes();
 }
 
-// Listen for mouseup inside notes content to highlight selection
+function toggleCommentMode() {
+  _commentMode = !_commentMode;
+  if (_commentMode) _highlightMode = false;  // mutual exclusion
+  _updateAnnotationModes();
+}
+
+function _updateAnnotationModes() {
+  var hlBtn = document.getElementById('highlightToggleBtn');
+  var cmBtn = document.getElementById('commentToggleBtn');
+  var content = document.getElementById('notesContent');
+
+  if (hlBtn) {
+    hlBtn.classList.toggle('active', _highlightMode);
+    hlBtn.title = _highlightMode ? 'Highlighting ON — select text' : 'Toggle highlighting';
+  }
+  if (cmBtn) {
+    cmBtn.classList.toggle('active', _commentMode);
+    cmBtn.title = _commentMode ? 'Comment mode ON — select text to comment' : 'Add comment';
+  }
+  if (content) {
+    content.classList.toggle('sb-highlight-mode', _highlightMode);
+    content.classList.toggle('sb-comment-mode', _commentMode);
+  }
+}
+
+// ── Annotation persistence (backend) ─────────────
+
+function _loadAnnotations() {
+  if (!_currentNote) return;
+  fetch('/api/prep/annotations/' + encodeURIComponent(_currentNote))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      _annotations = data;
+      // Set counter past existing IDs
+      _commentIdCounter = 0;
+      (data.comments || []).forEach(function(c) {
+        var num = parseInt((c.id || '').replace('c', ''), 10);
+        if (num >= _commentIdCounter) _commentIdCounter = num + 1;
+      });
+      _restoreHighlights();
+      _restoreComments();
+      _renderCommentPanel();
+    })
+    .catch(function() {
+      // Fallback: try localStorage migration
+      _migrateFromLocalStorage();
+    });
+}
+
+function _migrateFromLocalStorage() {
+  var key = 'highlights_' + (_currentNote || '').replace(/[^a-zA-Z0-9]/g, '_');
+  var saved;
+  try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return; }
+  if (!saved.length) return;
+  _annotations.highlights = saved;
+  _restoreHighlights();
+  _saveAnnotations();
+  // Clean up old localStorage entry after migration
+  localStorage.removeItem(key);
+}
+
+function _saveAnnotations() {
+  if (!_currentNote) return;
+  // Debounce saves to avoid hammering the server
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() {
+    _collectHighlightsFromDOM();
+    fetch('/api/prep/annotations/' + encodeURIComponent(_currentNote), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_annotations),
+    }).catch(function(e) { console.warn('Failed to save annotations:', e); });
+  }, 500);
+}
+
+function _collectHighlightsFromDOM() {
+  var content = document.getElementById('notesContent');
+  if (!content) return;
+  var marks = content.querySelectorAll('mark.user-highlight');
+  var highlights = [];
+  marks.forEach(function(m) {
+    highlights.push({
+      text: m.textContent,
+      context: _getHighlightContext(m),
+    });
+  });
+  _annotations.highlights = highlights;
+}
+
+// ── Highlight creation ───────────────────────────
+
 document.addEventListener('mouseup', function (e) {
-  if (!_highlightMode || !_currentNote) return;
-  const content = document.getElementById('notesContent');
+  if (!_currentNote) return;
+  var content = document.getElementById('notesContent');
   if (!content || !content.contains(e.target)) return;
 
-  const sel = window.getSelection();
+  var sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-
-  const range = sel.getRangeAt(0);
-  // Don't highlight inside already-highlighted text
-  if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-highlight')) return;
-  // Ensure selection is within content
+  var range = sel.getRangeAt(0);
   if (!content.contains(range.commonAncestorContainer)) return;
 
-  try {
-    const mark = document.createElement('mark');
-    mark.className = 'user-highlight';
-    mark.addEventListener('click', _onHighlightClick);
-    range.surroundContents(mark);
-    sel.removeAllRanges();
-    _saveHighlights();
-  } catch (err) {
-    // surroundContents fails on partial element selections — that's ok
-    console.warn('Could not highlight selection:', err.message);
+  if (_highlightMode) {
+    // Don't double-highlight
+    if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-highlight')) return;
+    try {
+      var mark = document.createElement('mark');
+      mark.className = 'user-highlight';
+      mark.addEventListener('click', _onHighlightClick);
+      range.surroundContents(mark);
+      sel.removeAllRanges();
+      _saveAnnotations();
+    } catch (err) {
+      console.warn('Could not highlight selection:', err.message);
+    }
+  } else if (_commentMode) {
+    // Don't comment inside existing comment marks
+    if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-comment')) return;
+    var selectedText = sel.toString().trim();
+    if (!selectedText) return;
+    _showCommentPopup(range, selectedText);
   }
 });
 
 function _onHighlightClick(e) {
   if (!_highlightMode) return;
-  const mark = e.currentTarget;
-  // Unwrap: replace <mark> with its text content
-  const parent = mark.parentNode;
-  while (mark.firstChild) {
-    parent.insertBefore(mark.firstChild, mark);
-  }
+  var mark = e.currentTarget;
+  var parent = mark.parentNode;
+  while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
   parent.removeChild(mark);
   parent.normalize();
-  _saveHighlights();
-}
-
-function _getHighlightKey() {
-  return 'highlights_' + (_currentNote || '').replace(/[^a-zA-Z0-9]/g, '_');
-}
-
-function _saveHighlights() {
-  if (!_currentNote) return;
-  const content = document.getElementById('notesContent');
-  const marks = content.querySelectorAll('mark.user-highlight');
-  const highlights = [];
-  marks.forEach(m => {
-    // Save text + approximate path for restoration
-    highlights.push({
-      text: m.textContent,
-      // Store context: a few chars before and after to locate position
-      context: _getHighlightContext(m),
-    });
-  });
-  try {
-    localStorage.setItem(_getHighlightKey(), JSON.stringify(highlights));
-  } catch (e) { /* quota exceeded — silently ignore */ }
+  _saveAnnotations();
 }
 
 function _getHighlightContext(mark) {
-  const parent = mark.parentNode;
+  var parent = mark.parentNode;
   if (!parent) return '';
-  const fullText = parent.textContent || '';
-  const markText = mark.textContent;
-  const idx = fullText.indexOf(markText);
+  var fullText = parent.textContent || '';
+  var markText = mark.textContent;
+  var idx = fullText.indexOf(markText);
   if (idx === -1) return '';
-  const before = fullText.substring(Math.max(0, idx - 30), idx);
-  const after = fullText.substring(idx + markText.length, idx + markText.length + 30);
+  var before = fullText.substring(Math.max(0, idx - 30), idx);
+  var after = fullText.substring(idx + markText.length, idx + markText.length + 30);
   return before + '|||' + markText + '|||' + after;
 }
 
 function _restoreHighlights() {
-  if (!_currentNote) return;
-  const key = _getHighlightKey();
-  let saved;
-  try {
-    saved = JSON.parse(localStorage.getItem(key) || '[]');
-  } catch (e) { return; }
+  var saved = _annotations.highlights || [];
   if (!saved.length) return;
 
-  const content = document.getElementById('notesContent');
-  const mdBody = content.querySelector('.md-body');
+  var content = document.getElementById('notesContent');
+  var mdBody = content ? content.querySelector('.md-body') : null;
   if (!mdBody) return;
 
-  // Walk text nodes and find matches
-  saved.forEach(h => {
+  saved.forEach(function(h) {
     if (!h.text) return;
-    const walker = document.createTreeWalker(mdBody, NodeFilter.SHOW_TEXT, null, false);
-    let node;
+    var walker = document.createTreeWalker(mdBody, NodeFilter.SHOW_TEXT, null, false);
+    var node;
     while (node = walker.nextNode()) {
-      const idx = node.textContent.indexOf(h.text);
+      var idx = node.textContent.indexOf(h.text);
+      if (idx === -1) continue;
+      if (h.context) {
+        var parts = h.context.split('|||');
+        if (parts.length === 3) {
+          var parentText = node.parentNode.textContent || '';
+          var foundIdx = parentText.indexOf(h.text);
+          if (foundIdx === -1) continue;
+          var beforeCtx = parentText.substring(Math.max(0, foundIdx - 30), foundIdx);
+          if (parts[0] && !beforeCtx.includes(parts[0].slice(-10))) continue;
+        }
+      }
+      try {
+        var range = document.createRange();
+        range.setStart(node, idx);
+        range.setEnd(node, idx + h.text.length);
+        var mark = document.createElement('mark');
+        mark.className = 'user-highlight';
+        mark.addEventListener('click', _onHighlightClick);
+        range.surroundContents(mark);
+      } catch (e) { /* skip partial matches */ }
+      break;
+    }
+  });
+}
+
+function clearAllHighlights() {
+  if (!_currentNote) return;
+  var content = document.getElementById('notesContent');
+  content.querySelectorAll('mark.user-highlight').forEach(function(mark) {
+    var parent = mark.parentNode;
+    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+    parent.removeChild(mark);
+    parent.normalize();
+  });
+  _annotations.highlights = [];
+  _saveAnnotations();
+}
+
+
+/* ── Comments System ─────────────────────────────── */
+
+function _showCommentPopup(range, selectedText) {
+  // Remove any existing popup
+  var existing = document.getElementById('commentPopup');
+  if (existing) existing.remove();
+
+  var rect = range.getBoundingClientRect();
+  var popup = document.createElement('div');
+  popup.id = 'commentPopup';
+  popup.className = 'sb-comment-popup';
+  popup.innerHTML =
+    '<textarea class="sb-comment-popup__input" placeholder="Add a comment..." rows="3" autofocus></textarea>' +
+    '<div class="sb-comment-popup__actions">' +
+      '<button class="sb-comment-popup__cancel" onclick="document.getElementById(\'commentPopup\').remove()">Cancel</button>' +
+      '<button class="sb-comment-popup__save">Save</button>' +
+    '</div>';
+
+  popup.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+  popup.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 320)) + 'px';
+  document.body.appendChild(popup);
+
+  var textarea = popup.querySelector('textarea');
+  textarea.focus();
+
+  var saveBtn = popup.querySelector('.sb-comment-popup__save');
+  saveBtn.addEventListener('click', function() {
+    var commentText = textarea.value.trim();
+    if (!commentText) return;
+    _createComment(range, selectedText, commentText);
+    popup.remove();
+  });
+
+  // Save on Ctrl+Enter
+  textarea.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      saveBtn.click();
+    } else if (e.key === 'Escape') {
+      popup.remove();
+    }
+  });
+
+  // Close popup when clicking outside
+  setTimeout(function() {
+    document.addEventListener('mousedown', function handler(e) {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('mousedown', handler);
+      }
+    });
+  }, 100);
+}
+
+function _createComment(range, selectedText, commentText) {
+  var id = 'c' + (_commentIdCounter++);
+  var context = '';
+
+  // Wrap selected text in a comment mark
+  try {
+    var mark = document.createElement('mark');
+    mark.className = 'user-comment';
+    mark.dataset.commentId = id;
+    mark.title = commentText;
+    mark.addEventListener('click', function() { _scrollToComment(id); });
+
+    // Add comment badge
+    var badge = document.createElement('span');
+    badge.className = 'sb-comment-badge';
+    badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
+    badge.addEventListener('click', function(e) { e.stopPropagation(); _scrollToComment(id); });
+
+    range.surroundContents(mark);
+    mark.appendChild(badge);
+
+    // Get context for restoration
+    context = _getHighlightContext(mark);
+  } catch (err) {
+    console.warn('Could not create comment mark:', err.message);
+    return;
+  }
+
+  window.getSelection().removeAllRanges();
+
+  // Add to annotations
+  _annotations.comments.push({
+    id: id,
+    text: selectedText,
+    comment: commentText,
+    context: context,
+    timestamp: new Date().toISOString(),
+  });
+
+  _saveAnnotations();
+  _renderCommentPanel();
+  _updateCommentCount();
+
+  // Show comment panel
+  var panel = document.getElementById('commentPanel');
+  if (panel && !panel.classList.contains('sb-comment-panel--open')) {
+    toggleCommentPanel();
+  }
+}
+
+function _restoreComments() {
+  var comments = _annotations.comments || [];
+  if (!comments.length) return;
+
+  var content = document.getElementById('notesContent');
+  var mdBody = content ? content.querySelector('.md-body') : null;
+  if (!mdBody) return;
+
+  comments.forEach(function(c) {
+    if (!c.text) return;
+    var walker = document.createTreeWalker(mdBody, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    while (node = walker.nextNode()) {
+      var idx = node.textContent.indexOf(c.text);
       if (idx === -1) continue;
 
-      // Verify context if available
-      if (h.context) {
-        const parts = h.context.split('|||');
+      // Verify context
+      if (c.context) {
+        var parts = c.context.split('|||');
         if (parts.length === 3) {
-          const parentText = node.parentNode.textContent || '';
-          const foundIdx = parentText.indexOf(h.text);
+          var parentText = node.parentNode.textContent || '';
+          var foundIdx = parentText.indexOf(c.text);
           if (foundIdx === -1) continue;
-          const beforeCtx = parentText.substring(Math.max(0, foundIdx - 30), foundIdx);
+          var beforeCtx = parentText.substring(Math.max(0, foundIdx - 30), foundIdx);
           if (parts[0] && !beforeCtx.includes(parts[0].slice(-10))) continue;
         }
       }
 
       try {
-        const range = document.createRange();
+        var range = document.createRange();
         range.setStart(node, idx);
-        range.setEnd(node, idx + h.text.length);
-        const mark = document.createElement('mark');
-        mark.className = 'user-highlight';
-        mark.addEventListener('click', _onHighlightClick);
+        range.setEnd(node, idx + c.text.length);
+        var mark = document.createElement('mark');
+        mark.className = 'user-comment';
+        mark.dataset.commentId = c.id;
+        mark.title = c.comment;
+        mark.addEventListener('click', function() { _scrollToComment(c.id); });
+
+        var badge = document.createElement('span');
+        badge.className = 'sb-comment-badge';
+        badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
+        badge.addEventListener('click', function(ev) { ev.stopPropagation(); _scrollToComment(c.id); });
+
         range.surroundContents(mark);
-      } catch (e) { /* skip partial matches */ }
-      break; // Only highlight first occurrence
+        mark.appendChild(badge);
+      } catch (e) { /* skip */ }
+      break;
     }
   });
+
+  _updateCommentCount();
 }
 
-/* ── Clear all highlights for current note ─────── */
-function clearAllHighlights() {
-  if (!_currentNote) return;
-  const content = document.getElementById('notesContent');
-  content.querySelectorAll('mark.user-highlight').forEach(mark => {
-    const parent = mark.parentNode;
+function _scrollToComment(commentId) {
+  // Highlight the comment in the sidebar panel
+  var panel = document.getElementById('commentPanel');
+  if (panel && !panel.classList.contains('sb-comment-panel--open')) {
+    toggleCommentPanel();
+  }
+
+  // Highlight in panel
+  panel.querySelectorAll('.sb-comment-item').forEach(function(item) {
+    item.classList.remove('sb-comment-item--active');
+  });
+  var panelItem = panel.querySelector('[data-comment-id="' + commentId + '"]');
+  if (panelItem) {
+    panelItem.classList.add('sb-comment-item--active');
+    panelItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Scroll to the mark in the content
+  var mark = document.querySelector('mark.user-comment[data-comment-id="' + commentId + '"]');
+  if (mark) {
+    mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    mark.classList.add('sb-comment-flash');
+    setTimeout(function() { mark.classList.remove('sb-comment-flash'); }, 1500);
+  }
+}
+
+function _scrollToMark(commentId) {
+  var mark = document.querySelector('mark.user-comment[data-comment-id="' + commentId + '"]');
+  if (mark) {
+    mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    mark.classList.add('sb-comment-flash');
+    setTimeout(function() { mark.classList.remove('sb-comment-flash'); }, 1500);
+  }
+}
+
+function toggleCommentPanel() {
+  var panel = document.getElementById('commentPanel');
+  var layout = document.getElementById('notesLayout');
+  if (!panel || !layout) return;
+
+  var isOpen = panel.classList.contains('sb-comment-panel--open');
+  panel.classList.toggle('sb-comment-panel--open', !isOpen);
+  layout.classList.toggle('sb-comments-open', !isOpen);
+}
+
+function _renderCommentPanel() {
+  var list = document.getElementById('commentList');
+  if (!list) return;
+
+  var comments = _annotations.comments || [];
+  if (!comments.length) {
+    list.innerHTML = '<div class="sb-comment-empty">No comments yet. Select text and use the comment tool to add one.</div>';
+    return;
+  }
+
+  var html = '';
+  comments.forEach(function(c) {
+    var date = c.timestamp ? new Date(c.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    html += '<div class="sb-comment-item" data-comment-id="' + c.id + '" onclick="_scrollToMark(\'' + c.id + '\')">' +
+      '<div class="sb-comment-item__quote">"' + _escapeHtml(c.text.length > 80 ? c.text.substring(0, 80) + '...' : c.text) + '"</div>' +
+      '<div class="sb-comment-item__text">' + _escapeHtml(c.comment) + '</div>' +
+      '<div class="sb-comment-item__meta">' +
+        '<span>' + date + '</span>' +
+        '<button class="sb-comment-item__delete" onclick="event.stopPropagation(); _deleteComment(\'' + c.id + '\')" title="Delete comment">&times;</button>' +
+      '</div>' +
+    '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function _deleteComment(commentId) {
+  // Remove from DOM
+  var mark = document.querySelector('mark.user-comment[data-comment-id="' + commentId + '"]');
+  if (mark) {
+    // Remove badge
+    var badge = mark.querySelector('.sb-comment-badge');
+    if (badge) badge.remove();
+    // Unwrap mark
+    var parent = mark.parentNode;
     while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
     parent.removeChild(mark);
     parent.normalize();
-  });
-  localStorage.removeItem(_getHighlightKey());
+  }
+
+  // Remove from annotations
+  _annotations.comments = (_annotations.comments || []).filter(function(c) { return c.id !== commentId; });
+  _saveAnnotations();
+  _renderCommentPanel();
+  _updateCommentCount();
+}
+
+function _updateCommentCount() {
+  var badge = document.getElementById('commentCountBadge');
+  if (!badge) return;
+  var count = (_annotations.comments || []).length;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? '' : 'none';
+}
+
+function _escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 

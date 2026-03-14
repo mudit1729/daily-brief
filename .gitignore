@@ -49,6 +49,9 @@ htmlcov/
 # PDFs (too large for git)
 pdfs/
 
+# Annotations (highlights & comments — user-specific, persist locally)
+notes/.annotations/
+
 # Distribution
 *.tar.gz
 *.whl
