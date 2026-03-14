@@ -1,3 +1,13 @@
+/* ── PDF.js lazy loader ──────────────────────────── */
+var _pdfjsLib = null;
+async function _ensurePdfjs() {
+  if (_pdfjsLib) return _pdfjsLib;
+  _pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+  _pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  return _pdfjsLib;
+}
+
 /* ── Prep: Notes Viewer ────────────────────────── */
 
 let _currentNote = null;
@@ -5,6 +15,10 @@ let _currentArxivId = null;       // arxiv ID for the current note (null if not 
 let _currentSource = 'notes';     // 'notes' | 'alphaxiv' | 'pdf'
 let _cachedNotesHtml = null;      // cached rendered markdown for quick toggle back
 let _cachedAlphaxivHtml = null;   // cached alphaxiv content
+let _pdfDoc = null;               // current pdf.js document
+let _pdfRenderedPages = new Map();
+let _pdfObserver = null;
+let _pdfScale = 1.0;
 
 function _isMobile() {
   return window.innerWidth <= 640;
@@ -87,6 +101,9 @@ function switchSource(source, btn) {
 
   var content = document.getElementById('notesContent');
 
+  // Cleanup PDF when switching away
+  _cleanupPdf();
+
   if (source === 'notes') {
     // Restore cached markdown
     if (_cachedNotesHtml) {
@@ -145,18 +162,33 @@ function switchSource(source, btn) {
   }
 
   if (source === 'pdf') {
-    content.innerHTML = '<div class="sb-notes-empty"><p>Loading PDF...</p></div>';
-    var pdfUrl = '/api/prep/arxiv-pdf/' + _currentArxivId;
-    content.innerHTML = '<object class="sb-pdf-embed" data="' + pdfUrl + '" type="application/pdf">' +
-      '<p>PDF could not be displayed. <a href="' + pdfUrl + '" target="_blank">Download PDF</a></p>' +
-      '</object>';
+    _loadPdfInPrep(content);
     return;
   }
 }
 
 function _renderAlphaxivContent(container, markdownText) {
   // Convert markdown to HTML (basic conversion for AlphaXiv content)
-  var html = markdownText
+  // First, extract and protect images and links before escaping
+  var imgPlaceholders = [];
+  var linkPlaceholders = [];
+  var text = markdownText;
+
+  // Protect markdown images: ![alt](url)
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(_, alt, url) {
+    var idx = imgPlaceholders.length;
+    imgPlaceholders.push('<img src="' + url + '" alt="' + alt + '" style="max-width:100%;margin:8px 0;">');
+    return '%%IMG' + idx + '%%';
+  });
+
+  // Protect markdown links: [text](url)
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(_, linkText, url) {
+    var idx = linkPlaceholders.length;
+    linkPlaceholders.push('<a href="' + url + '" target="_blank" rel="noopener">' + linkText + '</a>');
+    return '%%LINK' + idx + '%%';
+  });
+
+  var html = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -187,12 +219,145 @@ function _renderAlphaxivContent(container, markdownText) {
     return '<ul>' + match.replace(/<br>/g, '') + '</ul>';
   });
 
+  // Restore images and links
+  imgPlaceholders.forEach(function(tag, i) {
+    html = html.replace('%%IMG' + i + '%%', tag);
+  });
+  linkPlaceholders.forEach(function(tag, i) {
+    html = html.replace('%%LINK' + i + '%%', tag);
+  });
+
   container.innerHTML = '<div class="md-body"><p>' + html + '</p></div>';
 
   // Syntax highlight code blocks
   container.querySelectorAll('pre code').forEach(function(block) {
     if (typeof hljs !== 'undefined') hljs.highlightElement(block);
   });
+}
+
+/* ── PDF Viewer (pdf.js) ──────────────────────── */
+
+function _cleanupPdf() {
+  if (_pdfObserver) _pdfObserver.disconnect();
+  _pdfObserver = null;
+  _pdfRenderedPages = new Map();
+  _pdfDoc = null;
+}
+
+async function _loadPdfInPrep(content) {
+  var pdfUrl = '/api/prep/arxiv-pdf/' + _currentArxivId;
+
+  // Action bar + pages container
+  content.innerHTML =
+    '<div class="sb-pdf-actions">' +
+      '<a href="' + pdfUrl + '" download="' + _currentArxivId + '.pdf" class="sb-pdf-actions__btn" title="Download">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+        '<span>Download</span>' +
+      '</a>' +
+      '<button class="sb-pdf-actions__btn" onclick="_printPdf()" title="Print">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
+        '<span>Print</span>' +
+      '</button>' +
+      '<a href="https://arxiv.org/abs/' + _currentArxivId + '" target="_blank" class="sb-pdf-actions__btn" title="Open on arXiv">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>' +
+        '<span>arXiv</span>' +
+      '</a>' +
+      '<span class="sb-pdf-actions__page" id="prepPdfPageInfo"></span>' +
+    '</div>' +
+    '<div class="sb-pdf-pages" id="prepPdfPages">' +
+      '<div class="sb-notes-empty"><p>Loading PDF...</p></div>' +
+    '</div>';
+
+  try {
+    var resp = await fetch(pdfUrl);
+    if (!resp.ok) throw new Error('Failed to load PDF');
+    var buf = await resp.arrayBuffer();
+
+    var pdfjs = await _ensurePdfjs();
+    _pdfDoc = await pdfjs.getDocument({ data: buf, enableXfa: false }).promise;
+    var pagesEl = document.getElementById('prepPdfPages');
+    pagesEl.innerHTML = '';
+
+    // Determine scale to fit width
+    var firstPage = await _pdfDoc.getPage(1);
+    var containerWidth = pagesEl.clientWidth - 32; // padding
+    var baseViewport = firstPage.getViewport({ scale: 1 });
+    _pdfScale = containerWidth / baseViewport.width;
+    if (_pdfScale < 0.5) _pdfScale = 0.5;
+    if (_pdfScale > 2.5) _pdfScale = 2.5;
+
+    // Create placeholders
+    for (var i = 1; i <= _pdfDoc.numPages; i++) {
+      var div = document.createElement('div');
+      div.className = 'sb-pdf-page';
+      div.dataset.page = i;
+      var vp = firstPage.getViewport({ scale: _pdfScale });
+      div.style.width = vp.width + 'px';
+      div.style.height = vp.height + 'px';
+      pagesEl.appendChild(div);
+      _pdfRenderedPages.set(i, { el: div, rendered: false, rendering: false });
+    }
+
+    var pageInfo = document.getElementById('prepPdfPageInfo');
+    if (pageInfo) pageInfo.textContent = _pdfDoc.numPages + ' pages';
+
+    // Lazy render with IntersectionObserver
+    _pdfObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var pageNum = parseInt(entry.target.dataset.page);
+          var info = _pdfRenderedPages.get(pageNum);
+          if (info && !info.rendered && !info.rendering) {
+            _renderPrepPdfPage(pageNum);
+          }
+        }
+      });
+    }, { root: pagesEl, rootMargin: '300px 0px', threshold: 0 });
+
+    _pdfRenderedPages.forEach(function(info) {
+      _pdfObserver.observe(info.el);
+    });
+  } catch (err) {
+    var pagesEl = document.getElementById('prepPdfPages');
+    if (pagesEl) pagesEl.innerHTML = '<div class="sb-notes-empty"><p>Error: ' + err.message + '</p></div>';
+  }
+}
+
+async function _renderPrepPdfPage(pageNum) {
+  var info = _pdfRenderedPages.get(pageNum);
+  if (!info || info.rendered || info.rendering) return;
+  info.rendering = true;
+
+  try {
+    var page = await _pdfDoc.getPage(pageNum);
+    var viewport = page.getViewport({ scale: _pdfScale });
+
+    info.el.style.width = viewport.width + 'px';
+    info.el.style.height = viewport.height + 'px';
+
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = viewport.width * dpr;
+    canvas.height = viewport.height * dpr;
+    canvas.style.width = viewport.width + 'px';
+    canvas.style.height = viewport.height + 'px';
+    ctx.scale(dpr, dpr);
+    info.el.appendChild(canvas);
+
+    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    info.rendered = true;
+    info.rendering = false;
+  } catch (err) {
+    info.rendering = false;
+    console.error('PDF render error page', pageNum, err);
+  }
+}
+
+function _printPdf() {
+  if (!_currentArxivId) return;
+  var w = window.open('/api/prep/arxiv-pdf/' + _currentArxivId);
+  w.addEventListener('load', function() { w.print(); });
 }
 
 /* ── Mobile back button ────────────────────────── */
