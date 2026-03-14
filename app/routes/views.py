@@ -919,6 +919,7 @@ def prep_page():
         {'label': 'Ilya 30', 'icon': 'paper', 'match': ['Ilya30-']},
         {'label': 'BEV Seminal Papers', 'icon': 'eye', 'match': ['BEV-']},
         {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
+        {'label': 'Auto VLA Papers', 'icon': 'car', 'match': ['AutoVLA-']},
         {'label': 'VLA Seminal Papers', 'icon': 'eye', 'match': ['VLA-']},
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems', 'Torc-']},
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
@@ -1017,7 +1018,7 @@ def prep_note(filename):
 
     # Extract arxiv ID from the markdown content (first match only)
     arxiv_id = None
-    PAPER_PREFIXES = ('Ilya30-', 'BEV-', 'Planner-', 'VLA-', 'MLPaper-', 'Paper-')
+    PAPER_PREFIXES = ('Ilya30-', 'BEV-', 'Planner-', 'VLA-', 'AutoVLA-', 'MLPaper-', 'Paper-')
     if filename.startswith(PAPER_PREFIXES) or 'Attention-Is-All-You-Need' in filename:
         arxiv_match = re.search(r'(?:arxiv\.org/(?:abs|pdf)/|arXiv[:\s]+|ArXiv[:\s]+|arXiv\s+)(\d{4}\.\d{4,5})', raw, re.IGNORECASE)
         if not arxiv_match:
@@ -1187,7 +1188,7 @@ def prep_rename_note():
     old_base = old_filename.rsplit('.', 1)[0]  # Remove .md
     prefix = ''
     KNOWN_PREFIXES = [
-        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-', 'Planner-',
+        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-', 'Planner-', 'AutoVLA-',
     ]
     for p in KNOWN_PREFIXES:
         if old_base.startswith(p):
