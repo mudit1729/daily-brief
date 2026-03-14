@@ -420,6 +420,23 @@ document.addEventListener('keydown', function (e) {
   }
 });
 
+/* ── Browser Fullscreen (F11-style) ──────────── */
+
+function toggleBrowserFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(function() {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+document.addEventListener('fullscreenchange', function() {
+  var isFs = !!document.fullscreenElement;
+  document.getElementById('browserFsEnter').style.display = isFs ? 'none' : '';
+  document.getElementById('browserFsExit').style.display = isFs ? '' : 'none';
+  document.getElementById('browserFullscreenBtn').title = isFs ? 'Exit browser fullscreen' : 'Browser fullscreen';
+});
+
 
 /* ── Note Title & Rename ─────────────────────────── */
 
