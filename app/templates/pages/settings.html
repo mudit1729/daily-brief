@@ -184,6 +184,23 @@
 
 <!-- Actions tab -->
 <div class="sb-tab-panel" id="panel-actions" style="display:none;">
+  <!-- Paper Summary Generator -->
+  <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-3) 0;">Generate Paper Summary</h3>
+  <p style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);margin:0 0 var(--sb-space-3) 0;">
+    Enter an arXiv link or paper ID to generate a 12-section implementation summary. The note will appear under <strong>Paper Summaries</strong> in Prep with Notes, AlphaXiv, and PDF views.
+  </p>
+  <form id="paperSummaryForm" style="display:flex;gap:var(--sb-space-2);align-items:flex-start;margin-bottom:var(--sb-space-4);">
+    <input type="text" id="arxivInput" placeholder="https://arxiv.org/abs/2301.00001 or 2301.00001"
+      style="flex:1;padding:8px 12px;border-radius:var(--sb-radius-md);border:1px solid var(--sb-border);background:var(--sb-surface);color:var(--sb-text-primary);font-size:var(--sb-text-sm);">
+    <button type="submit" id="generatePaperBtn"
+      style="padding:8px 16px;border-radius:var(--sb-radius-md);border:none;background:var(--sb-accent);color:#fff;font-size:var(--sb-text-sm);font-weight:500;cursor:pointer;white-space:nowrap;">
+      Generate
+    </button>
+  </form>
+  <div id="paperSummaryStatus" style="display:none;font-size:var(--sb-text-sm);padding:10px 14px;border-radius:var(--sb-radius-md);margin-bottom:var(--sb-space-4);"></div>
+
+  <hr style="border:none;border-top:1px solid var(--sb-border);margin:var(--sb-space-4) 0;">
+
   <h3 style="font-size:var(--sb-text-md);font-weight:var(--sb-weight-semibold);margin:0 0 var(--sb-space-4) 0;">Recent Actions</h3>
   <p style="font-size:var(--sb-text-sm);color:var(--sb-text-muted);">
     Your feedback actions (follows, mutes, votes) appear here.

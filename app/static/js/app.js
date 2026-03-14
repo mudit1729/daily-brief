@@ -498,7 +498,63 @@
   });
 
   // ────────────────────────────────────────────────
-  // 10. Card Stack Navigation
+  // 10. Paper Summary Generator
+  // ────────────────────────────────────────────────
+  const paperForm = document.getElementById('paperSummaryForm');
+  const arxivInput = document.getElementById('arxivInput');
+  const generateBtn = document.getElementById('generatePaperBtn');
+  const paperStatus = document.getElementById('paperSummaryStatus');
+
+  if (paperForm) {
+    paperForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const url = (arxivInput?.value || '').trim();
+      if (!url) return;
+
+      // Show loading state
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating...';
+      paperStatus.style.display = '';
+      paperStatus.style.background = 'var(--sb-surface-elevated)';
+      paperStatus.style.color = 'var(--sb-text-secondary)';
+      paperStatus.textContent = 'Fetching paper and generating summary... This may take 30-60 seconds.';
+
+      fetch('/api/prep/generate-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ arxiv_url: url }),
+      })
+        .then((r) => r.json().then((d) => ({ ok: r.ok, data: d })))
+        .then((res) => {
+          if (!res.ok) {
+            paperStatus.style.background = 'rgba(239,68,68,0.1)';
+            paperStatus.style.color = 'var(--sb-text-primary)';
+            paperStatus.textContent = res.data.error || 'Generation failed';
+            return;
+          }
+          const d = res.data;
+          paperStatus.style.background = 'rgba(34,197,94,0.1)';
+          paperStatus.style.color = 'var(--sb-text-primary)';
+          paperStatus.innerHTML =
+            '<strong>' + d.title + '</strong> saved as <code>' + d.filename + '</code>' +
+            (d.cost_usd ? ' — $' + d.cost_usd.toFixed(4) + ', ' + d.tokens_used + ' tokens' : '') +
+            '<br><a href="/prep" style="color:var(--sb-accent);">Open in Prep &rarr;</a>';
+          arxivInput.value = '';
+        })
+        .catch((err) => {
+          paperStatus.style.background = 'rgba(239,68,68,0.1)';
+          paperStatus.style.color = 'var(--sb-text-primary)';
+          paperStatus.textContent = 'Error: ' + err.message;
+        })
+        .finally(() => {
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate';
+        });
+    });
+  }
+
+  // ────────────────────────────────────────────────
+  // 11. Card Stack Navigation
   // ────────────────────────────────────────────────
   const MAX_VISIBLE_BEHIND = 3; // how many queued cards peek behind the active one
 
