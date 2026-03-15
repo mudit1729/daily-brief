@@ -12,6 +12,25 @@
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous"></script>
+<!-- MathJax for rendering LaTeX math in notes -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['$$', '$$']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  startup: {
+    ready: function() {
+      MathJax.startup.defaultReady();
+    }
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 {% endblock %}
 
 {% block content %}
@@ -119,6 +138,11 @@
               {% endif %}
               {% if display_name.endswith(' summary') %}
                 {% set display_name = display_name[:-8] %}
+              {% endif %}
+            {% elif display_name.startswith('RL ') %}
+              {% set display_name = display_name[3:] %}
+              {% if display_name[:2].isdigit() and display_name[2:3] == ' ' %}
+                {% set display_name = display_name[3:] %}
               {% endif %}
             {% elif display_name.startswith('CMU ') %}
               {% set display_name = display_name[4:] %}

@@ -921,6 +921,7 @@ def prep_page():
         {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
         {'label': 'Auto VLA Papers', 'icon': 'car', 'match': ['AutoVLA-']},
         {'label': 'VLA Seminal Papers', 'icon': 'eye', 'match': ['VLA-']},
+        {'label': 'RL Coursework', 'icon': 'book', 'match': ['RL-']},
         {'label': 'Scale Interview', 'icon': 'briefcase', 'match': ['Scale-']},
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems', 'Torc-']},
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
@@ -985,6 +986,11 @@ def prep_note(filename):
 
     with open(safe_path, 'r', encoding='utf-8') as f:
         raw = f.read()
+
+    # Protect LaTeX math delimiters from markdown processing.
+    # markdown2 strips single backslashes, so \( becomes ( and \) becomes ).
+    # We double the backslash so markdown2 outputs \( and \) for MathJax.
+    raw = raw.replace('\\(', '\\\\(').replace('\\)', '\\\\)')
 
     html = markdown2.markdown(
         raw,
@@ -1189,7 +1195,7 @@ def prep_rename_note():
     old_base = old_filename.rsplit('.', 1)[0]  # Remove .md
     prefix = ''
     KNOWN_PREFIXES = [
-        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-', 'Planner-', 'AutoVLA-',
+        'Ilya30-', 'MLPaper-', 'MLTheory-', 'BEV-', 'Paper-', 'Async-', 'Planner-', 'AutoVLA-', 'RL-',
     ]
     for p in KNOWN_PREFIXES:
         if old_base.startswith(p):

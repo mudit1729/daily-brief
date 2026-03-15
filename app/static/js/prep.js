@@ -63,6 +63,12 @@ function loadNote(filename, btn) {
       content.querySelectorAll('pre code').forEach(block => {
         if (typeof hljs !== 'undefined') hljs.highlightElement(block);
       });
+      // Typeset math with MathJax if available
+      if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+        MathJax.typesetPromise([content]).catch(function(err) {
+          console.warn('MathJax typeset error:', err);
+        });
+      }
       // Load annotations (highlights + comments) from backend
       _loadAnnotations();
       // Scroll content to top
