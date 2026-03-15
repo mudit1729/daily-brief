@@ -921,6 +921,7 @@ def prep_page():
         {'label': 'Planner Papers', 'icon': 'cpu', 'match': ['Planner-']},
         {'label': 'Auto VLA Papers', 'icon': 'car', 'match': ['AutoVLA-']},
         {'label': 'VLA Seminal Papers', 'icon': 'eye', 'match': ['VLA-']},
+        {'label': 'Scale Interview', 'icon': 'briefcase', 'match': ['Scale-']},
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems', 'Torc-']},
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
         # Catch-all for uncategorized prefix-based notes
