@@ -572,6 +572,65 @@ mark.user-comment.sb-comment-flash {
   opacity: 0.9;
 }
 
+/* ── Selection Toolbar (floating on text select) ── */
+.sb-selection-toolbar {
+  position: absolute;
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  background: var(--sb-bg-primary);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-lg);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  padding: 4px 5px;
+  animation: chatFadeIn 0.12s ease;
+}
+
+.sb-selection-toolbar.visible {
+  display: flex;
+}
+
+.sb-selection-toolbar__btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: var(--sb-radius-md);
+  background: transparent;
+  color: var(--sb-text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.sb-selection-toolbar__btn:hover {
+  background: var(--sb-surface-hover);
+}
+
+.sb-selection-toolbar__btn--highlight:hover {
+  background: var(--sb-highlight-bg);
+}
+
+.sb-selection-toolbar__btn--comment:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--sb-accent);
+}
+
+.sb-selection-toolbar__btn svg {
+  flex-shrink: 0;
+}
+
+.sb-selection-toolbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--sb-border);
+  margin: 0 2px;
+}
+
 /* Comment count badge on toolbar */
 .sb-comment-count-badge {
   display: inline-flex;

@@ -659,20 +659,39 @@ function _collectHighlightsFromDOM() {
   _annotations.highlights = highlights;
 }
 
-// ── Highlight creation ───────────────────────────
+// ── Selection toolbar & highlight/comment creation ──
+
+var _pendingSelectionRange = null;
+var _pendingSelectionText = null;
 
 document.addEventListener('mouseup', function (e) {
   if (!_currentNote) return;
   var content = document.getElementById('notesContent');
   if (!content || !content.contains(e.target)) return;
 
+  // Don't interfere with toolbar clicks
+  var toolbar = document.getElementById('selectionToolbar');
+  if (toolbar && (e.target === toolbar || toolbar.contains(e.target))) return;
+
   var sel = window.getSelection();
-  if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+  if (!sel || sel.isCollapsed || !sel.rangeCount) {
+    _hideSelectionToolbar();
+    return;
+  }
   var range = sel.getRangeAt(0);
-  if (!content.contains(range.commonAncestorContainer)) return;
+  if (!content.contains(range.commonAncestorContainer)) {
+    _hideSelectionToolbar();
+    return;
+  }
+
+  var selectedText = sel.toString().trim();
+  if (!selectedText) {
+    _hideSelectionToolbar();
+    return;
+  }
 
   if (_highlightMode) {
-    // Don't double-highlight
+    // Direct highlight in highlight mode
     if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-highlight')) return;
     try {
       var mark = document.createElement('mark');
@@ -685,11 +704,82 @@ document.addEventListener('mouseup', function (e) {
       console.warn('Could not highlight selection:', err.message);
     }
   } else if (_commentMode) {
-    // Don't comment inside existing comment marks
+    // Direct comment in comment mode
     if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-comment')) return;
-    var selectedText = sel.toString().trim();
-    if (!selectedText) return;
     _showCommentPopup(range, selectedText);
+  } else {
+    // Normal mode: show selection toolbar
+    _pendingSelectionRange = range.cloneRange();
+    _pendingSelectionText = selectedText;
+    _showSelectionToolbar(range, content);
+  }
+});
+
+function _showSelectionToolbar(range, content) {
+  var toolbar = document.getElementById('selectionToolbar');
+  if (!toolbar) return;
+
+  var rect = range.getBoundingClientRect();
+  var mainEl = content.closest('.sb-notes-main');
+  if (!mainEl) return;
+  var mainRect = mainEl.getBoundingClientRect();
+
+  // Position above the selection
+  toolbar.classList.add('visible');
+  var toolbarWidth = toolbar.offsetWidth;
+  var left = rect.left - mainRect.left + (rect.width / 2) - (toolbarWidth / 2);
+  // Clamp so it doesn't overflow
+  left = Math.max(4, Math.min(left, mainRect.width - toolbarWidth - 4));
+  toolbar.style.top = (rect.top - mainRect.top - toolbar.offsetHeight - 8) + 'px';
+  toolbar.style.left = left + 'px';
+}
+
+function _hideSelectionToolbar() {
+  var toolbar = document.getElementById('selectionToolbar');
+  if (toolbar) toolbar.classList.remove('visible');
+  _pendingSelectionRange = null;
+  _pendingSelectionText = null;
+}
+
+function _selectionToolbarHighlight() {
+  if (!_pendingSelectionRange || !_pendingSelectionText) return;
+  var range = _pendingSelectionRange;
+  // Don't double-highlight
+  if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-highlight')) {
+    _hideSelectionToolbar();
+    return;
+  }
+  try {
+    var mark = document.createElement('mark');
+    mark.className = 'user-highlight';
+    mark.addEventListener('click', _onHighlightClick);
+    range.surroundContents(mark);
+    window.getSelection().removeAllRanges();
+    _saveAnnotations();
+  } catch (err) {
+    console.warn('Could not highlight selection:', err.message);
+  }
+  _hideSelectionToolbar();
+}
+
+function _selectionToolbarComment() {
+  if (!_pendingSelectionRange || !_pendingSelectionText) return;
+  var range = _pendingSelectionRange;
+  var text = _pendingSelectionText;
+  // Don't comment inside existing comment marks
+  if (range.commonAncestorContainer.closest && range.commonAncestorContainer.closest('mark.user-comment')) {
+    _hideSelectionToolbar();
+    return;
+  }
+  _hideSelectionToolbar();
+  _showCommentPopup(range, text);
+}
+
+// Hide toolbar on click elsewhere
+document.addEventListener('mousedown', function (e) {
+  var toolbar = document.getElementById('selectionToolbar');
+  if (toolbar && !toolbar.contains(e.target)) {
+    _hideSelectionToolbar();
   }
 });
 
