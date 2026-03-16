@@ -1211,9 +1211,17 @@ function stopTTS() {
     if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
       MathJax.typesetPromise([content]).catch(function() {});
     }
-    // Re-restore annotations
-    _restoreHighlights();
-    _restoreComments();
+    // Re-attach click handlers on existing marks (don't re-create — they're already in the restored HTML)
+    mdBody.querySelectorAll('mark.user-highlight').forEach(function(m) {
+      m.addEventListener('click', _onHighlightClick);
+    });
+    mdBody.querySelectorAll('mark.user-comment').forEach(function(m) {
+      m.addEventListener('click', function() {
+        var id = m.dataset.commentId;
+        if (id) _scrollToCommentInPanel(id);
+      });
+    });
+    _renderCommentPanel();
   }
 
   _ttsActive = false;
