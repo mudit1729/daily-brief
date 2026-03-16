@@ -1248,7 +1248,7 @@ def prep_get_annotations(filename):
     if os.path.isfile(ann_path):
         with open(ann_path, 'r', encoding='utf-8') as f:
             return jsonify(_json.load(f))
-    return jsonify({'highlights': [], 'comments': []})
+    return jsonify({'highlights': [], 'comments': [], 'drawings': []})
 
 
 @views_bp.route('/api/prep/annotations/<filename>', methods=['POST'])
@@ -1272,6 +1272,7 @@ def prep_save_annotations(filename):
     payload = {
         'highlights': data.get('highlights', []),
         'comments': data.get('comments', []),
+        'drawings': data.get('drawings', []),
     }
 
     with open(ann_path, 'w', encoding='utf-8') as f:

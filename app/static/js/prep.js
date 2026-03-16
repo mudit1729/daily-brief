@@ -414,6 +414,9 @@ function toggleNotesFullscreen() {
 
   // Prevent body scroll when fullscreen
   document.body.style.overflow = isFs ? 'hidden' : '';
+
+  // Resize drawing canvas after layout change
+  setTimeout(_resizeDrawCanvas, 100);
 }
 
 // Esc key to exit fullscreen
@@ -566,19 +569,30 @@ function startRenameNote() {
 
 let _highlightMode = false;
 let _commentMode = false;
-let _annotations = { highlights: [], comments: [] };
+let _annotations = { highlights: [], comments: [], drawings: [] };
 let _saveTimer = null;
 let _commentIdCounter = 0;
 
+// ── Drawing state ──
+let _drawMode = false;
+let _eraserMode = false;
+let _drawColor = '#ef4444';
+let _drawStrokeSize = 3;
+let _drawCanvas = null;
+let _drawCtx = null;
+let _currentStroke = null;
+let _isDrawing = false;
+let _drawResizeObserver = null;
+
 function toggleHighlightMode() {
   _highlightMode = !_highlightMode;
-  if (_highlightMode) _commentMode = false;  // mutual exclusion
+  if (_highlightMode) { _commentMode = false; _drawMode = false; _eraserMode = false; _updateDrawModeUI(); }
   _updateAnnotationModes();
 }
 
 function toggleCommentMode() {
   _commentMode = !_commentMode;
-  if (_commentMode) _highlightMode = false;  // mutual exclusion
+  if (_commentMode) { _highlightMode = false; _drawMode = false; _eraserMode = false; _updateDrawModeUI(); }
   _updateAnnotationModes();
 }
 
@@ -609,6 +623,7 @@ function _loadAnnotations() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       _annotations = data;
+      if (!_annotations.drawings) _annotations.drawings = [];
       // Set counter past existing IDs
       _commentIdCounter = 0;
       (data.comments || []).forEach(function(c) {
@@ -618,6 +633,8 @@ function _loadAnnotations() {
       _restoreHighlights();
       _restoreComments();
       _renderCommentPanel();
+      // Initialize drawing canvas after annotations are loaded
+      _initDrawCanvas();
     })
     .catch(function() {
       // Fallback: try localStorage migration
@@ -663,6 +680,308 @@ function _collectHighlightsFromDOM() {
     });
   });
   _annotations.highlights = highlights;
+}
+
+// ── Drawing (Apple Pencil / stylus) ─────────────
+
+function _initDrawCanvas() {
+  if (_drawCanvas) { _drawCanvas.remove(); _drawCanvas = null; }
+
+  var main = document.querySelector('.sb-notes-main');
+  var content = document.getElementById('notesContent');
+  if (!main || !content) return;
+
+  var canvas = document.createElement('canvas');
+  canvas.id = 'drawCanvas';
+  canvas.className = 'sb-draw-canvas';
+  // Insert canvas as a child of .sb-notes-main, overlaying the content viewport
+  main.appendChild(canvas);
+
+  _drawCanvas = canvas;
+  _drawCtx = canvas.getContext('2d');
+
+  // Bind pointer events
+  canvas.addEventListener('pointerdown', _onDrawPointerDown);
+  canvas.addEventListener('pointermove', _onDrawPointerMove);
+  canvas.addEventListener('pointerup', _onDrawPointerUp);
+  canvas.addEventListener('pointerleave', _onDrawPointerUp);
+  canvas.addEventListener('pointercancel', _onDrawPointerUp);
+
+  // Set initial interaction state
+  if (!_drawMode) canvas.style.pointerEvents = 'none';
+
+  // Size canvas to match the visible content viewport
+  _resizeDrawCanvas();
+
+  // Re-render strokes when user scrolls the content
+  content.addEventListener('scroll', _renderAllStrokes);
+
+  // Watch for viewport resize
+  window.addEventListener('resize', _resizeDrawCanvas);
+}
+
+function _resizeDrawCanvas() {
+  if (!_drawCanvas) return;
+  var content = document.getElementById('notesContent');
+  if (!content) return;
+
+  // Canvas covers only the visible viewport of the content area
+  var rect = content.getBoundingClientRect();
+  var mainRect = _drawCanvas.parentElement.getBoundingClientRect();
+  var width = rect.width;
+  var height = rect.height;
+  var dpr = window.devicePixelRatio || 1;
+
+  _drawCanvas.width = Math.round(width * dpr);
+  _drawCanvas.height = Math.round(height * dpr);
+  _drawCanvas.style.width = width + 'px';
+  _drawCanvas.style.height = height + 'px';
+  // Position canvas to overlay the content area within .sb-notes-main
+  _drawCanvas.style.top = (rect.top - mainRect.top) + 'px';
+  _drawCanvas.style.left = (rect.left - mainRect.left) + 'px';
+  _drawCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  _renderAllStrokes();
+}
+
+function _onDrawPointerDown(e) {
+  if (!_drawMode) return;
+  e.preventDefault();
+  e.stopPropagation();
+  _isDrawing = true;
+  _drawCanvas.setPointerCapture(e.pointerId);
+
+  var pos = _getDocPos(e);
+
+  if (_eraserMode) {
+    _eraseAtPoint(pos.x, pos.y);
+    return;
+  }
+
+  _currentStroke = {
+    points: [{ x: pos.x, y: pos.y, p: e.pressure || 0.5 }],
+    color: _drawColor,
+    size: _drawStrokeSize,
+  };
+
+  // Draw the first dot
+  var vp = _docToViewport(pos.x, pos.y);
+  _drawCtx.beginPath();
+  _drawCtx.fillStyle = _drawColor;
+  _drawCtx.arc(vp.x, vp.y, _drawStrokeSize * (e.pressure || 0.5), 0, Math.PI * 2);
+  _drawCtx.fill();
+}
+
+function _onDrawPointerMove(e) {
+  if (!_isDrawing) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  var pos = _getDocPos(e);
+
+  if (_eraserMode) {
+    _eraseAtPoint(pos.x, pos.y);
+    return;
+  }
+
+  if (!_currentStroke) return;
+
+  var pts = _currentStroke.points;
+  pts.push({ x: pos.x, y: pos.y, p: e.pressure || 0.5 });
+
+  // Draw segment in viewport coords
+  var prev = pts[pts.length - 2];
+  var curr = pts[pts.length - 1];
+  var vpPrev = _docToViewport(prev.x, prev.y);
+  var vpCurr = _docToViewport(curr.x, curr.y);
+
+  _drawCtx.beginPath();
+  _drawCtx.strokeStyle = _currentStroke.color;
+  _drawCtx.lineWidth = _currentStroke.size * curr.p * 2;
+  _drawCtx.lineCap = 'round';
+  _drawCtx.lineJoin = 'round';
+  _drawCtx.moveTo(vpPrev.x, vpPrev.y);
+  _drawCtx.lineTo(vpCurr.x, vpCurr.y);
+  _drawCtx.stroke();
+}
+
+function _onDrawPointerUp(e) {
+  if (!_isDrawing) return;
+  _isDrawing = false;
+
+  if (_currentStroke && _currentStroke.points.length > 1 && !_eraserMode) {
+    _currentStroke.points = _simplifyStroke(_currentStroke.points, 1.0);
+    if (!_annotations.drawings) _annotations.drawings = [];
+    _annotations.drawings.push(_currentStroke);
+    _saveAnnotations();
+  }
+  _currentStroke = null;
+}
+
+// Get position in document space (accounts for scroll)
+function _getDocPos(e) {
+  var content = document.getElementById('notesContent');
+  var rect = content.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top + content.scrollTop,
+  };
+}
+
+// Convert document-space coords to viewport (canvas) coords
+function _docToViewport(docX, docY) {
+  var content = document.getElementById('notesContent');
+  return {
+    x: docX,
+    y: docY - (content ? content.scrollTop : 0),
+  };
+}
+
+function _renderAllStrokes() {
+  if (!_drawCtx || !_drawCanvas) return;
+  var dpr = window.devicePixelRatio || 1;
+  var w = _drawCanvas.width / dpr;
+  var h = _drawCanvas.height / dpr;
+  _drawCtx.clearRect(0, 0, w, h);
+
+  var content = document.getElementById('notesContent');
+  var scrollTop = content ? content.scrollTop : 0;
+  var viewH = content ? content.clientHeight : h;
+
+  var strokes = (_annotations.drawings || []);
+  strokes.forEach(function(stroke) { _renderStroke(stroke, scrollTop, viewH); });
+
+  // Also render current in-progress stroke
+  if (_currentStroke) _renderStroke(_currentStroke, scrollTop, viewH);
+}
+
+function _renderStroke(stroke, scrollTop, viewH) {
+  if (!stroke.points || stroke.points.length < 2) return;
+
+  // Quick visibility check: skip strokes entirely outside viewport
+  var minY = Infinity, maxY = -Infinity;
+  for (var j = 0; j < stroke.points.length; j++) {
+    if (stroke.points[j].y < minY) minY = stroke.points[j].y;
+    if (stroke.points[j].y > maxY) maxY = stroke.points[j].y;
+  }
+  if (maxY < scrollTop - 50 || minY > scrollTop + viewH + 50) return;
+
+  for (var i = 1; i < stroke.points.length; i++) {
+    var prev = stroke.points[i - 1];
+    var curr = stroke.points[i];
+    var vpPrev = _docToViewport(prev.x, prev.y);
+    var vpCurr = _docToViewport(curr.x, curr.y);
+    _drawCtx.beginPath();
+    _drawCtx.strokeStyle = stroke.color || '#ef4444';
+    _drawCtx.lineWidth = (stroke.size || 3) * (curr.p || 0.5) * 2;
+    _drawCtx.lineCap = 'round';
+    _drawCtx.lineJoin = 'round';
+    _drawCtx.moveTo(vpPrev.x, vpPrev.y);
+    _drawCtx.lineTo(vpCurr.x, vpCurr.y);
+    _drawCtx.stroke();
+  }
+}
+
+function _eraseAtPoint(docX, docY) {
+  var radius = _drawStrokeSize * 8;
+  var drawings = _annotations.drawings || [];
+  var changed = false;
+
+  _annotations.drawings = drawings.filter(function(stroke) {
+    for (var i = 0; i < stroke.points.length; i++) {
+      var dx = stroke.points[i].x - docX;
+      var dy = stroke.points[i].y - docY;
+      if (dx * dx + dy * dy < radius * radius) {
+        changed = true;
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (changed) {
+    _renderAllStrokes();
+    _saveAnnotations();
+  }
+}
+
+// Ramer-Douglas-Peucker line simplification
+function _simplifyStroke(points, tolerance) {
+  if (points.length <= 2) return points;
+
+  var dmax = 0, idx = 0;
+  var first = points[0], last = points[points.length - 1];
+  for (var i = 1; i < points.length - 1; i++) {
+    var d = _perpendicularDist(points[i], first, last);
+    if (d > dmax) { dmax = d; idx = i; }
+  }
+
+  if (dmax > tolerance) {
+    var left = _simplifyStroke(points.slice(0, idx + 1), tolerance);
+    var right = _simplifyStroke(points.slice(idx), tolerance);
+    return left.slice(0, -1).concat(right);
+  }
+  return [first, last];
+}
+
+function _perpendicularDist(pt, lineStart, lineEnd) {
+  var dx = lineEnd.x - lineStart.x;
+  var dy = lineEnd.y - lineStart.y;
+  var mag = Math.sqrt(dx * dx + dy * dy);
+  if (mag === 0) return Math.sqrt((pt.x - lineStart.x) ** 2 + (pt.y - lineStart.y) ** 2);
+  return Math.abs(dx * (lineStart.y - pt.y) - dy * (lineStart.x - pt.x)) / mag;
+}
+
+function toggleDrawMode() {
+  _drawMode = !_drawMode;
+  if (_drawMode) {
+    _highlightMode = false;
+    _commentMode = false;
+    _updateAnnotationModes();
+  }
+  _eraserMode = false;
+  _updateDrawModeUI();
+}
+
+function toggleEraserMode() {
+  if (!_drawMode) return;
+  _eraserMode = !_eraserMode;
+  _updateDrawModeUI();
+}
+
+function setDrawColor(color) {
+  _drawColor = color;
+}
+
+function setDrawStrokeSize(size) {
+  _drawStrokeSize = parseFloat(size);
+}
+
+function clearAllDrawings() {
+  if (!_currentNote) return;
+  _annotations.drawings = [];
+  _renderAllStrokes();
+  _saveAnnotations();
+}
+
+function _updateDrawModeUI() {
+  var drawBtn = document.getElementById('drawToggleBtn');
+  var eraserBtn = document.getElementById('eraserToggleBtn');
+  var drawTools = document.getElementById('drawTools');
+  var content = document.getElementById('notesContent');
+
+  if (drawBtn) drawBtn.classList.toggle('active', _drawMode);
+  if (eraserBtn) eraserBtn.classList.toggle('active', _eraserMode);
+  if (drawTools) drawTools.style.display = _drawMode ? '' : 'none';
+
+  if (content) {
+    content.classList.toggle('sb-draw-mode', _drawMode);
+    content.classList.toggle('sb-eraser-mode', _eraserMode);
+  }
+
+  if (_drawCanvas) {
+    _drawCanvas.style.pointerEvents = _drawMode ? 'auto' : 'none';
+  }
 }
 
 // ── Selection toolbar & highlight/comment creation ──

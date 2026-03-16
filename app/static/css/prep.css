@@ -420,6 +420,58 @@
 .sb-notes-content .md-body img { max-width: 100%; height: auto; border-radius: var(--sb-radius-md); margin: var(--sb-space-3) 0; background: var(--sb-surface-elevated); }
 .sb-notes-content .md-body em { color: var(--sb-text-secondary); font-size: var(--sb-text-sm); }
 
+/* ── Drawing Canvas ──────────────────────────────── */
+.sb-draw-canvas {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.sb-draw-mode .sb-draw-canvas {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.sb-draw-mode.sb-eraser-mode .sb-draw-canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect x='4' y='4' width='16' height='16' rx='2' fill='%23666' fill-opacity='0.4' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+.sb-draw-mode .md-body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Draw toolbar sub-controls */
+.sb-draw-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sb-draw-tools__color {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-sm);
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  -webkit-appearance: none;
+  vertical-align: middle;
+}
+
+.sb-draw-tools__color::-webkit-color-swatch-wrapper { padding: 1px; }
+.sb-draw-tools__color::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+.sb-draw-tools__size {
+  width: 50px;
+  height: 4px;
+  cursor: pointer;
+  accent-color: var(--sb-accent);
+  vertical-align: middle;
+}
+
 /* ── Highlighting ──────────────────────────────── */
 mark.user-highlight {
   background: var(--sb-highlight-bg);
