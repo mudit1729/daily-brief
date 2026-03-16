@@ -58,7 +58,7 @@ Where:
 ### Function Signature
 
 ```python
-def positional_encoding(seq_len: int, d_model: int) -> np.ndarray:
+def positional_encoding(seq_len: int, d_model: int) -> torch.Tensor:
     """
     Generate sinusoidal positional encodings.
 
@@ -67,14 +67,14 @@ def positional_encoding(seq_len: int, d_model: int) -> np.ndarray:
         d_model: Dimensionality of the model (must be even)
 
     Returns:
-        np.ndarray: Positional encodings of shape (seq_len, d_model) with dtype float32
+        torch.Tensor: Positional encodings of shape (seq_len, d_model) with dtype float32
     """
 ```
 
 ### Constraints
 
 - `d_model` is guaranteed to be even
-- Pure NumPy implementation (no loops preferred)
+- PyTorch implementation (no loops preferred)
 - Output dtype must be `float32`
 
 ### Example
@@ -89,9 +89,10 @@ pe = positional_encoding(4, 4)
 ### Complete Solution
 
 ```python
-import numpy as np
+import torch
+import math
 
-def positional_encoding(seq_len: int, d_model: int) -> np.ndarray:
+def positional_encoding(seq_len: int, d_model: int) -> torch.Tensor:
     """
     Generate sinusoidal positional encodings.
 
@@ -100,15 +101,15 @@ def positional_encoding(seq_len: int, d_model: int) -> np.ndarray:
         d_model: Dimensionality of the model (must be even)
 
     Returns:
-        np.ndarray: Positional encodings of shape (seq_len, d_model) with dtype float32
+        torch.Tensor: Positional encodings of shape (seq_len, d_model) with dtype float32
     """
     # Create position indices: shape (seq_len, 1)
-    positions = np.arange(seq_len, dtype=np.float32).reshape(-1, 1)
+    positions = torch.arange(seq_len, dtype=torch.float32).reshape(-1, 1)
 
     # Create dimension indices: shape (1, d_model)
     # For even indices: 0, 2, 4, ...
     # For odd indices: 0, 2, 4, ... (same as even, will be used with cos)
-    dim_indices = np.arange(d_model, dtype=np.float32).reshape(1, -1)
+    dim_indices = torch.arange(d_model, dtype=torch.float32).reshape(1, -1)
 
     # Compute the angle rates
     # 10000^(2i/d_model) for each dimension
@@ -118,10 +119,9 @@ def positional_encoding(seq_len: int, d_model: int) -> np.ndarray:
     angles = positions * angle_rates
 
     # Apply sin to even indices, cos to odd indices
-    # We can use np.where with the mod operation
-    pe = np.zeros((seq_len, d_model), dtype=np.float32)
-    pe[:, 0::2] = np.sin(angles[:, 0::2])  # Even indices: sin
-    pe[:, 1::2] = np.cos(angles[:, 1::2])  # Odd indices: cos
+    pe = torch.zeros((seq_len, d_model), dtype=torch.float32)
+    pe[:, 0::2] = torch.sin(angles[:, 0::2])  # Even indices: sin
+    pe[:, 1::2] = torch.cos(angles[:, 1::2])  # Odd indices: cos
 
     return pe
 ```
@@ -188,7 +188,7 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 
 ### Constraints
 
-- Pure NumPy implementation
+- PyTorch implementation
 - Mask should be added to scaled scores before softmax
 - Mask typically uses large negative values (e.g., -10^9) to effectively zero out attention weights
 - Return both output and attention weights
@@ -198,9 +198,9 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 ```python
 batch_size, seq_len, d_k = 2, 3, 4
 
-Q = np.random.randn(batch_size, seq_len, d_k).astype(np.float32)
-K = np.random.randn(batch_size, seq_len, d_k).astype(np.float32)
-V = np.random.randn(batch_size, seq_len, d_k).astype(np.float32)
+Q = torch.randn(batch_size, seq_len, d_k, dtype=torch.float32)
+K = torch.randn(batch_size, seq_len, d_k, dtype=torch.float32)
+V = torch.randn(batch_size, seq_len, d_k, dtype=torch.float32)
 
 output, weights = scaled_dot_product_attention(Q, K, V)
 # output shape: (2, 3, 4)
@@ -229,7 +229,7 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 
     # Compute attention scores: Q @ K^T / √d_k
     # q: (batch, seq_q, d_k) @ k^T: (batch, d_k, seq_k) -> (batch, seq_q, seq_k)
-    scores = np.matmul(q, k.transpose(0, 2, 1)) / np.sqrt(d_k)
+    scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
 
     # Apply mask if provided
     if mask is not None:
@@ -237,12 +237,11 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 
     # Apply softmax to get attention weights
     # Compute softmax across the key dimension (last dimension)
-    exp_scores = np.exp(scores - np.max(scores, axis=-1, keepdims=True))
-    weights = exp_scores / np.sum(exp_scores, axis=-1, keepdims=True)
+    weights = torch.softmax(scores, dim=-1)
 
     # Apply attention weights to values
     # weights: (batch, seq_q, seq_k) @ v: (batch, seq_k, d_v) -> (batch, seq_q, d_v)
-    output = np.matmul(weights, v)
+    output = torch.matmul(weights, v)
 
     return output, weights
 ```
@@ -255,7 +254,7 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 2. **Masking**: Add mask (with large negative values) to scores before softmax
    - This effectively zeros out masked positions after softmax
 3. **Softmax Normalization**: Convert scores to attention weights
-   - Use numerical stability trick: subtract max before exp
+   - Use `torch.softmax` which handles numerical stability internally
 4. **Weighted Sum**: Multiply weights by V to get the output
 5. **Return**: Return both the output and weights for interpretability
 
@@ -309,13 +308,13 @@ def single_attention_head(x_q, x_k, x_v, W_q, W_k, W_v):
         W_v: Value projection matrix of shape (d_model, d_v)
 
     Returns:
-        np.ndarray: Head output of shape (batch_size, seq_q, d_v)
+        torch.Tensor: Head output of shape (batch_size, seq_q, d_v)
     """
 ```
 
 ### Constraints
 
-- Pure NumPy implementation
+- PyTorch implementation
 - Return only the output (not attention weights)
 - Apply projections before attention
 
@@ -335,13 +334,13 @@ def single_attention_head(x_q, x_k, x_v, W_q, W_k, W_v):
         W_v: Value projection matrix of shape (d_model, d_v)
 
     Returns:
-        np.ndarray: Head output of shape (batch_size, seq_q, d_v)
+        torch.Tensor: Head output of shape (batch_size, seq_q, d_v)
     """
     # Project inputs using learnable weight matrices
     # x: (batch, seq, d_model) @ W: (d_model, d_out) -> (batch, seq, d_out)
-    Q = np.matmul(x_q, W_q)
-    K = np.matmul(x_k, W_k)
-    V = np.matmul(x_v, W_v)
+    Q = torch.matmul(x_q, W_q)
+    K = torch.matmul(x_k, W_k)
+    V = torch.matmul(x_v, W_v)
 
     # Apply scaled dot-product attention
     output, _ = scaled_dot_product_attention(Q, K, V)
@@ -402,13 +401,13 @@ def multi_head_attention(x, num_heads, W_q, W_k, W_v, W_o):
         W_o: Output projection matrix of shape (d_model, d_model)
 
     Returns:
-        np.ndarray: Output of shape (batch_size, seq_len, d_model)
+        torch.Tensor: Output of shape (batch_size, seq_len, d_model)
     """
 ```
 
 ### Constraints
 
-- Pure NumPy implementation
+- PyTorch implementation
 - Implements self-attention where Q = K = V = x
 - `d_model` must be divisible by `num_heads`
 - Each head has dimension `d_k = d_model / num_heads`
@@ -439,16 +438,16 @@ def multi_head_attention(x, num_heads, W_q, W_k, W_v, W_o):
         W_o: Output projection matrix of shape (d_model, d_model)
 
     Returns:
-        np.ndarray: Output of shape (batch_size, seq_len, d_model)
+        torch.Tensor: Output of shape (batch_size, seq_len, d_model)
     """
     batch_size, seq_len, d_model = x.shape
     d_k = d_model // num_heads
 
     # Project input through full projection matrices
     # (batch, seq, d_model) @ (d_model, d_model) -> (batch, seq, d_model)
-    Q = np.matmul(x, W_q)
-    K = np.matmul(x, W_k)
-    V = np.matmul(x, W_v)
+    Q = torch.matmul(x, W_q)
+    K = torch.matmul(x, W_k)
+    V = torch.matmul(x, W_v)
 
     # Reshape to separate heads: (batch, seq, d_model) -> (batch, seq, num_heads, d_k)
     Q = Q.reshape(batch_size, seq_len, num_heads, d_k)
@@ -456,9 +455,9 @@ def multi_head_attention(x, num_heads, W_q, W_k, W_v, W_o):
     V = V.reshape(batch_size, seq_len, num_heads, d_k)
 
     # Transpose to group by heads: (batch, seq, num_heads, d_k) -> (batch, num_heads, seq, d_k)
-    Q = Q.transpose(0, 2, 1, 3)
-    K = K.transpose(0, 2, 1, 3)
-    V = V.transpose(0, 2, 1, 3)
+    Q = Q.permute(0, 2, 1, 3)
+    K = K.permute(0, 2, 1, 3)
+    V = V.permute(0, 2, 1, 3)
 
     # Flatten batch and heads for attention computation
     # (batch, num_heads, seq, d_k) -> (batch * num_heads, seq, d_k)
@@ -475,13 +474,13 @@ def multi_head_attention(x, num_heads, W_q, W_k, W_v, W_o):
     attn_output = attn_output.reshape(batch_size, num_heads, seq_len, d_k)
 
     # Transpose back: (batch, num_heads, seq, d_k) -> (batch, seq, num_heads, d_k)
-    attn_output = attn_output.transpose(0, 2, 1, 3)
+    attn_output = attn_output.permute(0, 2, 1, 3)
 
     # Concatenate heads: (batch, seq, num_heads, d_k) -> (batch, seq, d_model)
     attn_output = attn_output.reshape(batch_size, seq_len, d_model)
 
     # Apply output projection: (batch, seq, d_model) @ (d_model, d_model)
-    output = np.matmul(attn_output, W_o)
+    output = torch.matmul(attn_output, W_o)
 
     return output
 ```
@@ -543,22 +542,22 @@ def layer_norm(x, eps=1e-5):
         eps: Small constant for numerical stability
 
     Returns:
-        np.ndarray: Normalized array of the same shape
+        torch.Tensor: Normalized tensor of the same shape
     """
 ```
 
 ### Constraints
 
-- Pure NumPy implementation
-- Normalize over the last dimension (axis=-1)
+- PyTorch implementation
+- Normalize over the last dimension (dim=-1)
 - This is a simplified version without learnable scale (γ) and shift (β) parameters
 - Assumes γ = 1 and β = 0
 
 ### Example
 
 ```python
-x = np.array([[1.0, 2.0, 3.0],
-              [4.0, 5.0, 6.0]], dtype=np.float32)
+x = torch.tensor([[1.0, 2.0, 3.0],
+                   [4.0, 5.0, 6.0]], dtype=torch.float32)
 
 normalized = layer_norm(x)
 # Normalizes each row independently
@@ -578,28 +577,28 @@ def layer_norm(x, eps=1e-5):
         eps: Small constant for numerical stability
 
     Returns:
-        np.ndarray: Normalized array of the same shape
+        torch.Tensor: Normalized tensor of the same shape
     """
     # Compute mean over the last dimension
-    mean = np.mean(x, axis=-1, keepdims=True)
+    mean = torch.mean(x, dim=-1, keepdim=True)
 
     # Compute variance over the last dimension
-    var = np.var(x, axis=-1, keepdims=True)
+    var = torch.var(x, dim=-1, keepdim=True, correction=0)
 
     # Normalize: (x - mean) / sqrt(var + eps)
-    normalized = (x - mean) / np.sqrt(var + eps)
+    normalized = (x - mean) / torch.sqrt(var + eps)
 
     return normalized
 ```
 
 ### Explanation
 
-1. **Compute Mean**: Calculate the mean across the last dimension with keepdims=True to preserve shape
-2. **Compute Variance**: Calculate the variance across the last dimension
+1. **Compute Mean**: Calculate the mean across the last dimension with keepdim=True to preserve shape
+2. **Compute Variance**: Calculate the variance across the last dimension (using `correction=0` for population variance, matching the layer norm formula)
 3. **Normalize**: Apply the normalization formula with epsilon for numerical stability
 4. **Return**: Return the normalized tensor with the same shape as input
 
-The keepdims=True parameter is crucial because it allows NumPy to broadcast the mean and variance back across the entire tensor, normalizing each position independently.
+The keepdim=True parameter is crucial because it allows PyTorch to broadcast the mean and variance back across the entire tensor, normalizing each position independently.
 
 ---
 
@@ -656,13 +655,13 @@ def transformer_forward(x, pos_encoding, W_q, W_k, W_v, W_o, W_ff1, W_ff2, num_h
         num_heads: Number of attention heads
 
     Returns:
-        np.ndarray: Output of shape (batch_size, seq_len, d_model)
+        torch.Tensor: Output of shape (batch_size, seq_len, d_model)
     """
 ```
 
 ### Constraints
 
-- Pure NumPy implementation
+- PyTorch implementation
 - Use functions from previous tasks (multi_head_attention, layer_norm)
 - Use ReLU activation in the feed-forward network
 - Pre-norm architecture: apply layer normalization *before* each sub-layer (attention/FFN), then add the residual connection
@@ -682,6 +681,8 @@ def transformer_forward(x, pos_encoding, W_q, W_k, W_v, W_o, W_ff1, W_ff2, num_h
 ### Complete Solution
 
 ```python
+import torch.nn.functional as F
+
 def transformer_forward(x, pos_encoding, W_q, W_k, W_v, W_o, W_ff1, W_ff2, num_heads):
     """
     Complete Transformer encoder forward pass.
@@ -698,7 +699,7 @@ def transformer_forward(x, pos_encoding, W_q, W_k, W_v, W_o, W_ff1, W_ff2, num_h
         num_heads: Number of attention heads
 
     Returns:
-        np.ndarray: Output of shape (batch_size, seq_len, d_model)
+        torch.Tensor: Output of shape (batch_size, seq_len, d_model)
     """
     # Step 1: Add positional encoding to input
     # x: (batch, seq_len, d_model), pos_encoding: (seq_len, d_model)
@@ -720,9 +721,9 @@ def transformer_forward(x, pos_encoding, W_q, W_k, W_v, W_o, W_ff1, W_ff2, num_h
     x_norm = layer_norm(x)
 
     # Apply feed-forward network: ReLU(x @ W_ff1) @ W_ff2
-    ff_hidden = np.matmul(x_norm, W_ff1)  # (batch, seq, d_model) @ (d_model, d_ff)
-    ff_hidden = np.maximum(ff_hidden, 0)   # ReLU activation
-    ff_output = np.matmul(ff_hidden, W_ff2)  # (batch, seq, d_ff) @ (d_ff, d_model)
+    ff_hidden = torch.matmul(x_norm, W_ff1)  # (batch, seq, d_model) @ (d_model, d_ff)
+    ff_hidden = F.relu(ff_hidden)              # ReLU activation
+    ff_output = torch.matmul(ff_hidden, W_ff2)  # (batch, seq, d_ff) @ (d_ff, d_model)
 
     # Add residual connection
     x = x + ff_output
@@ -751,22 +752,26 @@ The residual connections are critical for training deep networks, allowing gradi
 ### Complete Working Example
 
 ```python
+import torch
+import math
+import torch.nn.functional as F
+
 # Set up dimensions
 batch_size, seq_len, d_model = 2, 4, 8
 num_heads = 2
 d_ff = 16
 
 # Initialize inputs
-x = np.random.randn(batch_size, seq_len, d_model).astype(np.float32)
+x = torch.randn(batch_size, seq_len, d_model, dtype=torch.float32)
 pos_encoding = positional_encoding(seq_len, d_model)
 
 # Initialize weight matrices
-W_q = np.random.randn(d_model, d_model).astype(np.float32) * 0.01
-W_k = np.random.randn(d_model, d_model).astype(np.float32) * 0.01
-W_v = np.random.randn(d_model, d_model).astype(np.float32) * 0.01
-W_o = np.random.randn(d_model, d_model).astype(np.float32) * 0.01
-W_ff1 = np.random.randn(d_model, d_ff).astype(np.float32) * 0.01
-W_ff2 = np.random.randn(d_ff, d_model).astype(np.float32) * 0.01
+W_q = torch.randn(d_model, d_model, dtype=torch.float32) * 0.01
+W_k = torch.randn(d_model, d_model, dtype=torch.float32) * 0.01
+W_v = torch.randn(d_model, d_model, dtype=torch.float32) * 0.01
+W_o = torch.randn(d_model, d_model, dtype=torch.float32) * 0.01
+W_ff1 = torch.randn(d_model, d_ff, dtype=torch.float32) * 0.01
+W_ff2 = torch.randn(d_ff, d_model, dtype=torch.float32) * 0.01
 
 # Forward pass
 output = transformer_forward(x, pos_encoding, W_q, W_k, W_v, W_o, W_ff1, W_ff2, num_heads)

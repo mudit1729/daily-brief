@@ -41,7 +41,7 @@ Given an image **x** ∈ ℝ^(H×W×C) and patch size P:
 ### Function Signature
 
 ```python
-def patch_embedding_forward(image: np.ndarray, patch_size: int) -> np.ndarray:
+def patch_embedding_forward(image: torch.Tensor, patch_size: int) -> torch.Tensor:
     """
     Extract and flatten non-overlapping patches from an image.
 
@@ -58,13 +58,13 @@ def patch_embedding_forward(image: np.ndarray, patch_size: int) -> np.ndarray:
 ### Constraints
 
 - H and W must be divisible by patch_size
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Patches should be extracted in row-major order
 
 ### Example
 
 ```python
-image = np.random.randn(4, 4, 3).astype(np.float32)
+image = torch.randn(4, 4, 3, dtype=torch.float32)
 patches = patch_embedding_forward(image, patch_size=2)
 # Returns shape (4, 12)
 # 4 patches: (4//2) * (4//2) = 4
@@ -74,9 +74,9 @@ patches = patch_embedding_forward(image, patch_size=2)
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def patch_embedding_forward(image: np.ndarray, patch_size: int) -> np.ndarray:
+def patch_embedding_forward(image: torch.Tensor, patch_size: int) -> torch.Tensor:
     """
     Extract and flatten non-overlapping patches from an image.
 
@@ -98,12 +98,12 @@ def patch_embedding_forward(image: np.ndarray, patch_size: int) -> np.ndarray:
     image_patches = image.reshape(num_patches_h, P, num_patches_w, P, C)
 
     # Transpose to get patches in row-major order: (num_patches_h, num_patches_w, P, P, C)
-    image_patches = image_patches.transpose(0, 2, 1, 3, 4)
+    image_patches = image_patches.permute(0, 2, 1, 3, 4)
 
     # Reshape to flatten each patch: (num_patches_h * num_patches_w, P * P * C)
     patches = image_patches.reshape(num_patches_h * num_patches_w, P * P * C)
 
-    return patches.astype(np.float32)
+    return patches.to(torch.float32)
 ```
 
 ### Explanation
@@ -150,8 +150,8 @@ Where N is the number of patches and D is the embedding dimension.
 ### Function Signature
 
 ```python
-def position_embedding_add(patch_embeddings: np.ndarray,
-                          position_embeddings: np.ndarray) -> np.ndarray:
+def position_embedding_add(patch_embeddings: torch.Tensor,
+                          position_embeddings: torch.Tensor) -> torch.Tensor:
     """
     Add position embeddings to patch embeddings element-wise.
 
@@ -167,13 +167,13 @@ def position_embedding_add(patch_embeddings: np.ndarray,
 ### Constraints
 
 - Both inputs must have the same shape
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 
 ### Example
 
 ```python
-patch_emb = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
-pos_emb = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
+patch_emb = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+pos_emb = torch.tensor([[0.1, 0.2], [0.3, 0.4]], dtype=torch.float32)
 result = position_embedding_add(patch_emb, pos_emb)
 # Returns [[1.1, 2.2], [3.3, 4.4]]
 ```
@@ -181,10 +181,10 @@ result = position_embedding_add(patch_emb, pos_emb)
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def position_embedding_add(patch_embeddings: np.ndarray,
-                          position_embeddings: np.ndarray) -> np.ndarray:
+def position_embedding_add(patch_embeddings: torch.Tensor,
+                          position_embeddings: torch.Tensor) -> torch.Tensor:
     """
     Add position embeddings to patch embeddings element-wise.
 
@@ -195,7 +195,7 @@ def position_embedding_add(patch_embeddings: np.ndarray,
     Returns:
         Combined embeddings of shape (N, D)
     """
-    return (patch_embeddings + position_embeddings).astype(np.float32)
+    return (patch_embeddings + position_embeddings).to(torch.float32)
 ```
 
 ### Explanation
@@ -242,8 +242,8 @@ Where [;] denotes concatenation along the sequence dimension.
 ### Function Signature
 
 ```python
-def class_token_prepend(patch_embeddings: np.ndarray,
-                       class_token: np.ndarray) -> np.ndarray:
+def class_token_prepend(patch_embeddings: torch.Tensor,
+                       class_token: torch.Tensor) -> torch.Tensor:
     """
     Prepend a class token to the sequence of patch embeddings.
 
@@ -259,13 +259,13 @@ def class_token_prepend(patch_embeddings: np.ndarray,
 ### Constraints
 
 - Both inputs must have the same embedding dimension D
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 
 ### Example
 
 ```python
-patch_emb = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=np.float32)
-class_token = np.array([[0.5, 0.5]], dtype=np.float32)
+patch_emb = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=torch.float32)
+class_token = torch.tensor([[0.5, 0.5]], dtype=torch.float32)
 result = class_token_prepend(patch_emb, class_token)
 # Returns shape (4, 2):
 # [[0.5, 0.5],
@@ -277,10 +277,10 @@ result = class_token_prepend(patch_emb, class_token)
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def class_token_prepend(patch_embeddings: np.ndarray,
-                       class_token: np.ndarray) -> np.ndarray:
+def class_token_prepend(patch_embeddings: torch.Tensor,
+                       class_token: torch.Tensor) -> torch.Tensor:
     """
     Prepend a class token to the sequence of patch embeddings.
 
@@ -291,12 +291,12 @@ def class_token_prepend(patch_embeddings: np.ndarray,
     Returns:
         Sequence with class token of shape (N+1, D)
     """
-    return np.concatenate([class_token, patch_embeddings], axis=0).astype(np.float32)
+    return torch.cat([class_token, patch_embeddings], dim=0).to(torch.float32)
 ```
 
 ### Explanation
 
-1. **Concatenate at Axis 0**: Prepend class_token to the sequence using np.concatenate along the sequence dimension
+1. **Concatenate at Dim 0**: Prepend class_token to the sequence using torch.cat along the sequence dimension
 2. **CLS Token Role**: The class token (analogous to BERT's [CLS]) serves as an aggregator token that attends to all patch tokens
 3. **Output Shape**: Result has shape (N+1, D) where the class token is at index 0 and patches follow
 4. **Learnable Token**: Like position embeddings, the class token is a learnable parameter initialized randomly and optimized during training
@@ -346,8 +346,8 @@ GELU(x) = 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x³)))
 ### Function Signature
 
 ```python
-def vit_mlp_block_forward(x: np.ndarray, W1: np.ndarray, b1: np.ndarray,
-                         W2: np.ndarray, b2: np.ndarray) -> np.ndarray:
+def vit_mlp_block_forward(x: torch.Tensor, W1: torch.Tensor, b1: torch.Tensor,
+                         W2: torch.Tensor, b2: torch.Tensor) -> torch.Tensor:
     """
     Forward pass through a ViT MLP block with GELU activation.
 
@@ -365,26 +365,27 @@ def vit_mlp_block_forward(x: np.ndarray, W1: np.ndarray, b1: np.ndarray,
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Must use GELU activation (not ReLU or other activations)
 - Use the tanh-based approximation for GELU
 
 ### Solution
 
 ```python
-import numpy as np
+import torch
+import torch.nn.functional as F
 
-def gelu(x: np.ndarray) -> np.ndarray:
+def gelu(x: torch.Tensor) -> torch.Tensor:
     """
     GELU activation function (Gaussian Error Linear Unit).
 
     Approximation: 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x³)))
     """
-    return 0.5 * x * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * x**3)))
+    return F.gelu(x, approximate='tanh')
 
 
-def vit_mlp_block_forward(x: np.ndarray, W1: np.ndarray, b1: np.ndarray,
-                         W2: np.ndarray, b2: np.ndarray) -> np.ndarray:
+def vit_mlp_block_forward(x: torch.Tensor, W1: torch.Tensor, b1: torch.Tensor,
+                         W2: torch.Tensor, b2: torch.Tensor) -> torch.Tensor:
     """
     Forward pass through a ViT MLP block with GELU activation.
 
@@ -399,15 +400,15 @@ def vit_mlp_block_forward(x: np.ndarray, W1: np.ndarray, b1: np.ndarray,
         Output of shape (N, D)
     """
     # First linear layer
-    hidden = np.matmul(x, W1) + b1  # (N, D_ff)
+    hidden = torch.matmul(x, W1) + b1  # (N, D_ff)
 
     # GELU activation
     hidden = gelu(hidden)
 
     # Second linear layer
-    output = np.matmul(hidden, W2) + b2  # (N, D)
+    output = torch.matmul(hidden, W2) + b2  # (N, D)
 
-    return output.astype(np.float32)
+    return output.to(torch.float32)
 ```
 
 ### Explanation
@@ -470,9 +471,9 @@ Where:
 ### Function Signature
 
 ```python
-def vit_encoder_layer_forward(x: np.ndarray, attn_params: dict,
+def vit_encoder_layer_forward(x: torch.Tensor, attn_params: dict,
                               mlp_params: dict, ln1_params: dict,
-                              ln2_params: dict) -> np.ndarray:
+                              ln2_params: dict) -> torch.Tensor:
     """
     Forward pass through a single ViT encoder layer.
 
@@ -490,17 +491,17 @@ def vit_encoder_layer_forward(x: np.ndarray, attn_params: dict,
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Pre-LN architecture: LayerNorm → Attention → Residual, then LayerNorm → MLP → Residual
 - epsilon = 1e-5 for layer normalization
 
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def layer_norm(x: np.ndarray, gamma: np.ndarray, beta: np.ndarray,
-               epsilon: float = 1e-5) -> np.ndarray:
+def layer_norm(x: torch.Tensor, gamma: torch.Tensor, beta: torch.Tensor,
+               epsilon: float = 1e-5) -> torch.Tensor:
     """
     Layer normalization.
 
@@ -513,15 +514,15 @@ def layer_norm(x: np.ndarray, gamma: np.ndarray, beta: np.ndarray,
     Returns:
         Normalized output of shape (N, D)
     """
-    mean = np.mean(x, axis=-1, keepdims=True)
-    variance = np.var(x, axis=-1, keepdims=True)
-    x_norm = (x - mean) / np.sqrt(variance + epsilon)
-    return (gamma * x_norm + beta).astype(np.float32)
+    mean = torch.mean(x, dim=-1, keepdim=True)
+    variance = torch.var(x, dim=-1, keepdim=True, unbiased=False)
+    x_norm = (x - mean) / torch.sqrt(variance + epsilon)
+    return (gamma * x_norm + beta).to(torch.float32)
 
 
-def vit_encoder_layer_forward(x: np.ndarray, attn_params: dict,
+def vit_encoder_layer_forward(x: torch.Tensor, attn_params: dict,
                               mlp_params: dict, ln1_params: dict,
-                              ln2_params: dict) -> np.ndarray:
+                              ln2_params: dict) -> torch.Tensor:
     """
     Forward pass through a single ViT encoder layer.
 
@@ -558,7 +559,7 @@ def vit_encoder_layer_forward(x: np.ndarray, attn_params: dict,
     )
     x = x + mlp_output  # Residual connection
 
-    return x.astype(np.float32)
+    return x.to(torch.float32)
 ```
 
 ### Explanation
@@ -614,8 +615,8 @@ Where:
 ### Function Signature
 
 ```python
-def scaled_dot_product_attention(Q: np.ndarray, K: np.ndarray,
-                                 V: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+def scaled_dot_product_attention(Q: torch.Tensor, K: torch.Tensor,
+                                 V: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
     """
     Compute scaled dot-product attention.
 
@@ -632,7 +633,7 @@ def scaled_dot_product_attention(Q: np.ndarray, K: np.ndarray,
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Q and K must have the same last dimension (d_k)
 - If mask is provided, masked positions should be set to very negative values before softmax
 - Implement numerically stable softmax (subtract max before exp)
@@ -640,10 +641,11 @@ def scaled_dot_product_attention(Q: np.ndarray, K: np.ndarray,
 ### Solution
 
 ```python
-import numpy as np
+import torch
+import math
 
-def scaled_dot_product_attention(Q: np.ndarray, K: np.ndarray,
-                                 V: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+def scaled_dot_product_attention(Q: torch.Tensor, K: torch.Tensor,
+                                 V: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
     """
     Compute scaled dot-product attention.
 
@@ -659,21 +661,19 @@ def scaled_dot_product_attention(Q: np.ndarray, K: np.ndarray,
     d_k = K.shape[-1]
 
     # Compute attention scores: QK^T / √d_k
-    scores = np.matmul(Q, K.T) / np.sqrt(d_k)  # (N, M)
+    scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(d_k)  # (N, M)
 
     # Apply mask if provided (True = mask out)
     if mask is not None:
-        scores = np.where(mask, -1e9, scores)
+        scores = scores.masked_fill(mask, -1e9)
 
-    # Numerically stable softmax
-    scores_max = np.max(scores, axis=-1, keepdims=True)
-    exp_scores = np.exp(scores - scores_max)
-    attention_weights = exp_scores / np.sum(exp_scores, axis=-1, keepdims=True)  # (N, M)
+    # Apply softmax along last dimension
+    attention_weights = torch.softmax(scores, dim=-1)  # (N, M)
 
     # Apply attention weights to values
-    output = np.matmul(attention_weights, V)  # (N, d_v)
+    output = torch.matmul(attention_weights, V)  # (N, d_v)
 
-    return output.astype(np.float32)
+    return output.to(torch.float32)
 ```
 
 ### Explanation
@@ -681,7 +681,7 @@ def scaled_dot_product_attention(Q: np.ndarray, K: np.ndarray,
 1. **Score Computation**: Compute QK^T to measure query-key similarity, then scale by 1/√d_k to prevent extreme dot products
 2. **Scaling Factor**: √d_k scaling keeps gradients well-behaved—without it, large dot products push softmax into saturation regions with vanishing gradients
 3. **Optional Masking**: If provided, replace masked positions with -1e9 before softmax (effectively zeros out after softmax)
-4. **Numerically Stable Softmax**: Subtract max(scores) before exp to prevent overflow when exponentiating large numbers
+4. **Numerically Stable Softmax**: PyTorch's torch.softmax handles numerical stability internally (subtracts max before exp)
 5. **Weighted Aggregation**: Multiply normalized attention weights by values to get the output—high-weight positions contribute more
 6. **Output Shape**: Result has shape (N, d_v), same query count but value dimensions
 
@@ -728,9 +728,9 @@ Then split into h heads:
 ### Function Signature
 
 ```python
-def multi_head_attention_forward(x: np.ndarray, W_q: np.ndarray, W_k: np.ndarray,
-                                 W_v: np.ndarray, W_o: np.ndarray,
-                                 num_heads: int, mask: np.ndarray = None) -> np.ndarray:
+def multi_head_attention_forward(x: torch.Tensor, W_q: torch.Tensor, W_k: torch.Tensor,
+                                 W_v: torch.Tensor, W_o: torch.Tensor,
+                                 num_heads: int, mask: torch.Tensor = None) -> torch.Tensor:
     """
     Compute multi-head self-attention.
 
@@ -750,7 +750,7 @@ def multi_head_attention_forward(x: np.ndarray, W_q: np.ndarray, W_k: np.ndarray
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - D must be divisible by num_heads
 - d_k = D / num_heads (head dimension)
 - Apply scaled dot-product attention to each head independently
@@ -758,11 +758,12 @@ def multi_head_attention_forward(x: np.ndarray, W_q: np.ndarray, W_k: np.ndarray
 ### Solution
 
 ```python
-import numpy as np
+import torch
+import math
 
-def multi_head_attention_forward(x: np.ndarray, W_q: np.ndarray, W_k: np.ndarray,
-                                 W_v: np.ndarray, W_o: np.ndarray,
-                                 num_heads: int, mask: np.ndarray = None) -> np.ndarray:
+def multi_head_attention_forward(x: torch.Tensor, W_q: torch.Tensor, W_k: torch.Tensor,
+                                 W_v: torch.Tensor, W_o: torch.Tensor,
+                                 num_heads: int, mask: torch.Tensor = None) -> torch.Tensor:
     """
     Compute multi-head self-attention.
 
@@ -780,44 +781,42 @@ def multi_head_attention_forward(x: np.ndarray, W_q: np.ndarray, W_k: np.ndarray
     d_k = D // num_heads
 
     # Linear projections
-    Q = np.matmul(x, W_q)  # (N, D)
-    K = np.matmul(x, W_k)  # (N, D)
-    V = np.matmul(x, W_v)  # (N, D)
+    Q = torch.matmul(x, W_q)  # (N, D)
+    K = torch.matmul(x, W_k)  # (N, D)
+    V = torch.matmul(x, W_v)  # (N, D)
 
     # Reshape and transpose for multi-head attention
     # Split D into num_heads and d_k: (N, num_heads, d_k)
-    Q = Q.reshape(N, num_heads, d_k).transpose(1, 0, 2)  # (num_heads, N, d_k)
-    K = K.reshape(N, num_heads, d_k).transpose(1, 0, 2)  # (num_heads, N, d_k)
-    V = V.reshape(N, num_heads, d_k).transpose(1, 0, 2)  # (num_heads, N, d_k)
+    Q = Q.reshape(N, num_heads, d_k).permute(1, 0, 2)  # (num_heads, N, d_k)
+    K = K.reshape(N, num_heads, d_k).permute(1, 0, 2)  # (num_heads, N, d_k)
+    V = V.reshape(N, num_heads, d_k).permute(1, 0, 2)  # (num_heads, N, d_k)
 
     # Scaled dot-product attention for each head
-    d_k_sqrt = np.sqrt(d_k)
+    d_k_sqrt = math.sqrt(d_k)
     attn_outputs = []
 
     for i in range(num_heads):
         # Attention scores
-        scores = np.matmul(Q[i], K[i].T) / d_k_sqrt  # (N, N)
+        scores = torch.matmul(Q[i], K[i].transpose(-2, -1)) / d_k_sqrt  # (N, N)
 
         # Apply mask if provided
         if mask is not None:
-            scores = np.where(mask, -1e9, scores)
+            scores = scores.masked_fill(mask, -1e9)
 
         # Softmax
-        scores_max = np.max(scores, axis=-1, keepdims=True)
-        exp_scores = np.exp(scores - scores_max)
-        attn_weights = exp_scores / np.sum(exp_scores, axis=-1, keepdims=True)
+        attn_weights = torch.softmax(scores, dim=-1)
 
         # Apply to values
-        attn_out = np.matmul(attn_weights, V[i])  # (N, d_k)
+        attn_out = torch.matmul(attn_weights, V[i])  # (N, d_k)
         attn_outputs.append(attn_out)
 
     # Concatenate all heads: (N, D)
-    multi_head_output = np.concatenate(attn_outputs, axis=-1)
+    multi_head_output = torch.cat(attn_outputs, dim=-1)
 
     # Final linear projection
-    output = np.matmul(multi_head_output, W_o)  # (N, D)
+    output = torch.matmul(multi_head_output, W_o)  # (N, D)
 
-    return output.astype(np.float32)
+    return output.to(torch.float32)
 ```
 
 ### Explanation
@@ -864,7 +863,7 @@ The final output is Z_L.
 ### Function Signature
 
 ```python
-def vit_encoder_forward(x: np.ndarray, layers_params: list) -> np.ndarray:
+def vit_encoder_forward(x: torch.Tensor, layers_params: list) -> torch.Tensor:
     """
     Apply a stack of encoder layers sequentially.
 
@@ -883,7 +882,7 @@ def vit_encoder_forward(x: np.ndarray, layers_params: list) -> np.ndarray:
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Apply each encoder layer sequentially
 - Each layer has its own set of parameters
 - Output shape remains the same as input shape
@@ -891,7 +890,7 @@ def vit_encoder_forward(x: np.ndarray, layers_params: list) -> np.ndarray:
 ### Example
 
 ```python
-x = np.random.randn(10, 64).astype(np.float32)
+x = torch.randn(10, 64, dtype=torch.float32)
 layer1_params = {
     'attn_params': {...},
     'mlp_params': {...},
@@ -912,9 +911,9 @@ output = vit_encoder_forward(x, layers_params)
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def vit_encoder_forward(x: np.ndarray, layers_params: list) -> np.ndarray:
+def vit_encoder_forward(x: torch.Tensor, layers_params: list) -> torch.Tensor:
     """
     Apply a stack of encoder layers sequentially.
 
@@ -937,7 +936,7 @@ def vit_encoder_forward(x: np.ndarray, layers_params: list) -> np.ndarray:
             layer_params['ln2_params']
         )
 
-    return output.astype(np.float32)
+    return output.to(torch.float32)
 ```
 
 ### Explanation
@@ -987,8 +986,8 @@ Where:
 ### Function Signature
 
 ```python
-def vit_classification_head(encoder_output: np.ndarray, W_cls: np.ndarray,
-                            b_cls: np.ndarray) -> np.ndarray:
+def vit_classification_head(encoder_output: torch.Tensor, W_cls: torch.Tensor,
+                            b_cls: torch.Tensor) -> torch.Tensor:
     """
     Extract class token and apply classification layer.
 
@@ -1004,16 +1003,16 @@ def vit_classification_head(encoder_output: np.ndarray, W_cls: np.ndarray,
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Extract the class token at index 0
 - Apply linear transformation to get logits
 
 ### Example
 
 ```python
-encoder_output = np.random.randn(11, 64).astype(np.float32)  # 10 patches + 1 class token
-W_cls = np.random.randn(64, 1000).astype(np.float32)  # 1000 classes
-b_cls = np.random.randn(1000).astype(np.float32)
+encoder_output = torch.randn(11, 64, dtype=torch.float32)  # 10 patches + 1 class token
+W_cls = torch.randn(64, 1000, dtype=torch.float32)  # 1000 classes
+b_cls = torch.randn(1000, dtype=torch.float32)
 logits = vit_classification_head(encoder_output, W_cls, b_cls)
 # Returns shape (1000,)
 ```
@@ -1027,10 +1026,10 @@ logits = vit_classification_head(encoder_output, W_cls, b_cls)
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def vit_classification_head(encoder_output: np.ndarray, W_cls: np.ndarray,
-                            b_cls: np.ndarray) -> np.ndarray:
+def vit_classification_head(encoder_output: torch.Tensor, W_cls: torch.Tensor,
+                            b_cls: torch.Tensor) -> torch.Tensor:
     """
     Extract class token and apply classification layer.
 
@@ -1046,9 +1045,9 @@ def vit_classification_head(encoder_output: np.ndarray, W_cls: np.ndarray,
     class_token = encoder_output[0]  # (D,)
 
     # Linear classification layer
-    logits = np.matmul(class_token, W_cls) + b_cls  # (num_classes,)
+    logits = torch.matmul(class_token, W_cls) + b_cls  # (num_classes,)
 
-    return logits.astype(np.float32)
+    return logits.to(torch.float32)
 ```
 
 ### Explanation
@@ -1101,10 +1100,10 @@ Given an image **x** ∈ ℝ^(H×W×C):
 ### Function Signature
 
 ```python
-def vit_forward_pipeline(image: np.ndarray, patch_size: int,
-                        position_embeddings: np.ndarray, class_token: np.ndarray,
-                        encoder_params: list, W_cls: np.ndarray,
-                        b_cls: np.ndarray) -> np.ndarray:
+def vit_forward_pipeline(image: torch.Tensor, patch_size: int,
+                        position_embeddings: torch.Tensor, class_token: torch.Tensor,
+                        encoder_params: list, W_cls: torch.Tensor,
+                        b_cls: torch.Tensor) -> torch.Tensor:
     """
     Complete Vision Transformer forward pass.
 
@@ -1124,21 +1123,21 @@ def vit_forward_pipeline(image: np.ndarray, patch_size: int,
 
 ### Constraints
 
-- Use pure NumPy (PyTorch/JAX not allowed)
+- PyTorch implementation (no NumPy)
 - Use all previously implemented functions
 - H and W must be divisible by patch_size
 
 ### Example
 
 ```python
-image = np.random.randn(16, 16, 3).astype(np.float32)
+image = torch.randn(16, 16, 3, dtype=torch.float32)
 patch_size = 4  # 16 patches: (16/4) * (16/4) = 16
 # Each patch: 4*4*3 = 48 dimensions
-position_embeddings = np.random.randn(16, 48).astype(np.float32)
-class_token = np.random.randn(1, 48).astype(np.float32)
+position_embeddings = torch.randn(16, 48, dtype=torch.float32)
+class_token = torch.randn(1, 48, dtype=torch.float32)
 encoder_params = [...]  # List of layer parameters
-W_cls = np.random.randn(48, 10).astype(np.float32)
-b_cls = np.random.randn(10).astype(np.float32)
+W_cls = torch.randn(48, 10, dtype=torch.float32)
+b_cls = torch.randn(10, dtype=torch.float32)
 
 logits = vit_forward_pipeline(image, patch_size, position_embeddings,
                               class_token, encoder_params, W_cls, b_cls)
@@ -1148,12 +1147,12 @@ logits = vit_forward_pipeline(image, patch_size, position_embeddings,
 ### Solution
 
 ```python
-import numpy as np
+import torch
 
-def vit_forward_pipeline(image: np.ndarray, patch_size: int,
-                        position_embeddings: np.ndarray, class_token: np.ndarray,
-                        encoder_params: list, W_cls: np.ndarray,
-                        b_cls: np.ndarray) -> np.ndarray:
+def vit_forward_pipeline(image: torch.Tensor, patch_size: int,
+                        position_embeddings: torch.Tensor, class_token: torch.Tensor,
+                        encoder_params: list, W_cls: torch.Tensor,
+                        b_cls: torch.Tensor) -> torch.Tensor:
     """
     Complete Vision Transformer forward pass.
 
@@ -1176,7 +1175,7 @@ def vit_forward_pipeline(image: np.ndarray, patch_size: int,
     # patch_dim → d_model here. For simplicity, this implementation assumes
     # patch_dim == d_model (i.e., position_embeddings already match patch_dim).
     # To add the projection, uncomment:
-    # patches = np.matmul(patches, W_proj) + b_proj  # (N, d_model)
+    # patches = torch.matmul(patches, W_proj) + b_proj  # (N, d_model)
 
     # 2. Add Position Embeddings
     embedded_patches = position_embedding_add(patches, position_embeddings)  # (N, D)
@@ -1209,10 +1208,10 @@ This end-to-end pipeline demonstrates the insight that justifies ViT: pure trans
 ## Complete Usage Example
 
 ```python
-import numpy as np
+import torch
 
 # Set random seed for reproducibility
-np.random.seed(42)
+torch.manual_seed(42)
 
 # Configuration
 H, W, C = 32, 32, 3
@@ -1225,43 +1224,43 @@ num_layers = 2
 num_classes = 10
 
 # Create sample image
-image = np.random.randn(H, W, C).astype(np.float32)
+image = torch.randn(H, W, C, dtype=torch.float32)
 
 # Initialize parameters
-position_embeddings = np.random.randn(num_patches, d_model).astype(np.float32) * 0.02
-class_token = np.random.randn(1, d_model).astype(np.float32) * 0.02
+position_embeddings = torch.randn(num_patches, d_model, dtype=torch.float32) * 0.02
+class_token = torch.randn(1, d_model, dtype=torch.float32) * 0.02
 
 # Encoder parameters
 encoder_params = []
 for _ in range(num_layers):
     layer_params = {
         'attn_params': {
-            'W_q': np.random.randn(d_model, d_model).astype(np.float32) * 0.02,
-            'W_k': np.random.randn(d_model, d_model).astype(np.float32) * 0.02,
-            'W_v': np.random.randn(d_model, d_model).astype(np.float32) * 0.02,
-            'W_o': np.random.randn(d_model, d_model).astype(np.float32) * 0.02,
+            'W_q': torch.randn(d_model, d_model, dtype=torch.float32) * 0.02,
+            'W_k': torch.randn(d_model, d_model, dtype=torch.float32) * 0.02,
+            'W_v': torch.randn(d_model, d_model, dtype=torch.float32) * 0.02,
+            'W_o': torch.randn(d_model, d_model, dtype=torch.float32) * 0.02,
             'num_heads': num_heads
         },
         'mlp_params': {
-            'W1': np.random.randn(d_model, d_ff).astype(np.float32) * 0.02,
-            'b1': np.zeros(d_ff, dtype=np.float32),
-            'W2': np.random.randn(d_ff, d_model).astype(np.float32) * 0.02,
-            'b2': np.zeros(d_model, dtype=np.float32)
+            'W1': torch.randn(d_model, d_ff, dtype=torch.float32) * 0.02,
+            'b1': torch.zeros(d_ff, dtype=torch.float32),
+            'W2': torch.randn(d_ff, d_model, dtype=torch.float32) * 0.02,
+            'b2': torch.zeros(d_model, dtype=torch.float32)
         },
         'ln1_params': {
-            'gamma': np.ones(d_model, dtype=np.float32),
-            'beta': np.zeros(d_model, dtype=np.float32)
+            'gamma': torch.ones(d_model, dtype=torch.float32),
+            'beta': torch.zeros(d_model, dtype=torch.float32)
         },
         'ln2_params': {
-            'gamma': np.ones(d_model, dtype=np.float32),
-            'beta': np.zeros(d_model, dtype=np.float32)
+            'gamma': torch.ones(d_model, dtype=torch.float32),
+            'beta': torch.zeros(d_model, dtype=torch.float32)
         }
     }
     encoder_params.append(layer_params)
 
 # Classification head
-W_cls = np.random.randn(d_model, num_classes).astype(np.float32) * 0.02
-b_cls = np.zeros(num_classes, dtype=np.float32)
+W_cls = torch.randn(d_model, num_classes, dtype=torch.float32) * 0.02
+b_cls = torch.zeros(num_classes, dtype=torch.float32)
 
 # Run complete pipeline
 logits = vit_forward_pipeline(
@@ -1270,7 +1269,7 @@ logits = vit_forward_pipeline(
 )
 
 # Get predicted class
-predicted_class = np.argmax(logits)
+predicted_class = torch.argmax(logits).item()
 
 print(f"Input image shape: {image.shape}")
 print(f"Number of patches: {num_patches}")
@@ -1282,7 +1281,7 @@ print(f"Predicted class: {predicted_class}")
 
 ## Summary
 
-This implementation provides a complete, working Vision Transformer from scratch using only NumPy. All 10 tasks build upon each other to create the full pipeline:
+This implementation provides a complete, working Vision Transformer from scratch using only PyTorch. All 10 tasks build upon each other to create the full pipeline:
 
 1. **Patch Embedding**: Convert image to sequence of flattened patches
 2. **Position Embedding**: Add positional information
