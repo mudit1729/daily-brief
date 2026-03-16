@@ -472,6 +472,65 @@
   vertical-align: middle;
 }
 
+/* ── TTS (Text-to-Speech) ────────────────────────── */
+.sb-tts-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sb-tts-controls__speed,
+.sb-tts-controls__voice {
+  background: var(--sb-surface-elevated);
+  color: var(--sb-text-primary);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-sm);
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+  height: 26px;
+}
+
+.sb-tts-controls__voice {
+  max-width: 110px;
+}
+
+/* Word highlight during TTS playback */
+.sb-tts-word {
+  transition: background 0.08s, color 0.08s;
+  border-radius: 2px;
+}
+
+.sb-tts-word--active {
+  background: var(--sb-accent);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* TTS progress bar at the bottom of content area */
+.sb-tts-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--sb-border);
+  z-index: 6;
+  display: none;
+}
+
+.sb-tts-progress.active { display: block; }
+
+.sb-tts-progress__bar {
+  height: 100%;
+  background: var(--sb-accent);
+  width: 0%;
+  transition: width 0.3s linear;
+}
+
 /* ── Highlighting ──────────────────────────────── */
 mark.user-highlight {
   background: var(--sb-highlight-bg);

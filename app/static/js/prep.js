@@ -29,6 +29,9 @@ function loadNote(filename, btn) {
   document.querySelectorAll('.sb-notes-list__item').forEach(el => el.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
+  // Stop TTS if playing
+  if (_ttsActive) stopTTS();
+
   _currentNote = filename;
   const content = document.getElementById('notesContent');
   const toolbar = document.getElementById('notesToolbar');
@@ -981,6 +984,294 @@ function _updateDrawModeUI() {
 
   if (_drawCanvas) {
     _drawCanvas.style.pointerEvents = _drawMode ? 'auto' : 'none';
+  }
+}
+
+// ── TTS (Text-to-Speech with word highlighting) ─────
+
+let _ttsActive = false;
+let _ttsPaused = false;
+let _ttsUtterance = null;
+let _ttsSpeed = 1;
+let _ttsVoiceName = '';
+let _ttsTextNodes = [];     // flat array of {node, offset, length} for each word
+let _ttsWordSpans = [];     // <span> wrappers around each word
+let _ttsCurrentIdx = 0;     // current word index being spoken
+let _ttsTotalWords = 0;
+let _ttsOriginalHTML = '';   // to restore DOM after TTS ends
+
+// Populate voice selector when voices load
+function _populateTTSVoices() {
+  var sel = document.getElementById('ttsVoice');
+  if (!sel) return;
+  var voices = speechSynthesis.getVoices();
+  if (!voices.length) return;
+  sel.innerHTML = '';
+  // Prefer English voices, sort by name
+  var enVoices = voices.filter(function(v) { return v.lang.startsWith('en'); });
+  if (!enVoices.length) enVoices = voices;
+  enVoices.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  enVoices.forEach(function(v) {
+    var opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = v.name.replace(/Microsoft |Google |Apple /, '').substring(0, 20);
+    // Default to a good macOS voice if available
+    if (v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Karen')) {
+      opt.selected = true;
+      _ttsVoiceName = v.name;
+    }
+    sel.appendChild(opt);
+  });
+  if (!_ttsVoiceName && enVoices.length) _ttsVoiceName = enVoices[0].name;
+}
+
+if (typeof speechSynthesis !== 'undefined') {
+  speechSynthesis.onvoiceschanged = _populateTTSVoices;
+  _populateTTSVoices();
+}
+
+function toggleTTS() {
+  if (_ttsActive) {
+    stopTTS();
+  } else {
+    _startTTS();
+  }
+}
+
+function _startTTS() {
+  var content = document.getElementById('notesContent');
+  var mdBody = content ? content.querySelector('.md-body') : null;
+  if (!mdBody || typeof speechSynthesis === 'undefined') return;
+
+  // Cancel any ongoing speech
+  speechSynthesis.cancel();
+
+  // Save original HTML for restoration
+  _ttsOriginalHTML = mdBody.innerHTML;
+
+  // Extract text and wrap each word in a span
+  _wrapWordsForTTS(mdBody);
+
+  // Collect all word spans
+  _ttsWordSpans = Array.from(mdBody.querySelectorAll('.sb-tts-word'));
+  _ttsTotalWords = _ttsWordSpans.length;
+  _ttsCurrentIdx = 0;
+
+  if (!_ttsTotalWords) return;
+
+  // Build full text from spans
+  var fullText = _ttsWordSpans.map(function(s) { return s.textContent; }).join(' ');
+
+  // Create utterance
+  _ttsUtterance = new SpeechSynthesisUtterance(fullText);
+  _ttsUtterance.rate = _ttsSpeed;
+
+  // Set voice
+  var voices = speechSynthesis.getVoices();
+  var voice = voices.find(function(v) { return v.name === _ttsVoiceName; });
+  if (voice) _ttsUtterance.voice = voice;
+
+  // Word boundary event — highlight current word
+  var wordIdx = 0;
+  _ttsUtterance.addEventListener('boundary', function(e) {
+    if (e.name !== 'word') return;
+
+    // Find which word span matches this boundary
+    // The charIndex is relative to the full text string
+    var charPos = e.charIndex;
+    var accumulated = 0;
+    var idx = -1;
+    for (var i = 0; i < _ttsWordSpans.length; i++) {
+      var wLen = _ttsWordSpans[i].textContent.length;
+      if (accumulated >= charPos && accumulated <= charPos + 2) {
+        idx = i;
+        break;
+      }
+      accumulated += wLen + 1; // +1 for the space we joined with
+    }
+    if (idx === -1) {
+      // Fallback: use sequential counter
+      idx = wordIdx;
+    }
+    wordIdx = idx + 1;
+
+    _highlightTTSWord(idx);
+  });
+
+  _ttsUtterance.addEventListener('end', function() {
+    stopTTS();
+  });
+
+  _ttsUtterance.addEventListener('error', function() {
+    stopTTS();
+  });
+
+  // Update UI
+  _ttsActive = true;
+  _ttsPaused = false;
+  _updateTTSUI();
+
+  // Start speaking
+  speechSynthesis.speak(_ttsUtterance);
+}
+
+function _wrapWordsForTTS(element) {
+  // Walk all text-bearing elements and wrap words in spans
+  var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+  var textNodes = [];
+  while (walker.nextNode()) {
+    var node = walker.currentNode;
+    // Skip empty/whitespace-only nodes and code blocks
+    if (!node.textContent.trim()) continue;
+    var parent = node.parentElement;
+    if (parent && (parent.tagName === 'CODE' || parent.tagName === 'PRE' || parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) continue;
+    textNodes.push(node);
+  }
+
+  textNodes.forEach(function(node) {
+    var text = node.textContent;
+    // Split by word boundaries, preserving whitespace
+    var parts = text.split(/(\s+)/);
+    var frag = document.createDocumentFragment();
+
+    parts.forEach(function(part) {
+      if (/^\s+$/.test(part) || !part) {
+        frag.appendChild(document.createTextNode(part));
+      } else {
+        var span = document.createElement('span');
+        span.className = 'sb-tts-word';
+        span.textContent = part;
+        frag.appendChild(span);
+      }
+    });
+
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+
+function _highlightTTSWord(idx) {
+  // Remove previous highlight
+  if (_ttsCurrentIdx >= 0 && _ttsCurrentIdx < _ttsWordSpans.length) {
+    _ttsWordSpans[_ttsCurrentIdx].classList.remove('sb-tts-word--active');
+  }
+
+  _ttsCurrentIdx = idx;
+
+  if (idx >= 0 && idx < _ttsWordSpans.length) {
+    var span = _ttsWordSpans[idx];
+    span.classList.add('sb-tts-word--active');
+
+    // Scroll the word into view if needed
+    var content = document.getElementById('notesContent');
+    if (content) {
+      var spanRect = span.getBoundingClientRect();
+      var contentRect = content.getBoundingClientRect();
+      if (spanRect.bottom > contentRect.bottom - 40 || spanRect.top < contentRect.top + 40) {
+        span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Update progress
+    _updateTTSProgress(idx);
+  }
+}
+
+function _updateTTSProgress(idx) {
+  var bar = document.querySelector('.sb-tts-progress__bar');
+  if (bar && _ttsTotalWords > 0) {
+    bar.style.width = ((idx + 1) / _ttsTotalWords * 100) + '%';
+  }
+}
+
+function toggleTTSPause() {
+  if (!_ttsActive) return;
+  if (_ttsPaused) {
+    speechSynthesis.resume();
+    _ttsPaused = false;
+  } else {
+    speechSynthesis.pause();
+    _ttsPaused = true;
+  }
+  _updateTTSUI();
+}
+
+function stopTTS() {
+  speechSynthesis.cancel();
+
+  // Restore original HTML
+  var content = document.getElementById('notesContent');
+  var mdBody = content ? content.querySelector('.md-body') : null;
+  if (mdBody && _ttsOriginalHTML) {
+    mdBody.innerHTML = _ttsOriginalHTML;
+    // Re-apply syntax highlighting
+    content.querySelectorAll('pre code').forEach(function(block) {
+      if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+    });
+    // Re-typeset math
+    if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+      MathJax.typesetPromise([content]).catch(function() {});
+    }
+    // Re-restore annotations
+    _restoreHighlights();
+    _restoreComments();
+  }
+
+  _ttsActive = false;
+  _ttsPaused = false;
+  _ttsOriginalHTML = '';
+  _ttsWordSpans = [];
+  _ttsCurrentIdx = 0;
+  _ttsTotalWords = 0;
+  _updateTTSUI();
+}
+
+function setTTSSpeed(val) {
+  _ttsSpeed = parseFloat(val);
+  // If currently playing, restart with new speed
+  if (_ttsActive) {
+    var idx = _ttsCurrentIdx;
+    stopTTS();
+    // Small delay to let cancel complete
+    setTimeout(function() { _startTTS(); }, 100);
+  }
+}
+
+function setTTSVoice(name) {
+  _ttsVoiceName = name;
+  if (_ttsActive) {
+    var idx = _ttsCurrentIdx;
+    stopTTS();
+    setTimeout(function() { _startTTS(); }, 100);
+  }
+}
+
+function _updateTTSUI() {
+  var btn = document.getElementById('ttsToggleBtn');
+  var controls = document.getElementById('ttsControls');
+  var pauseBtn = document.getElementById('ttsPauseBtn');
+
+  if (btn) btn.classList.toggle('active', _ttsActive);
+  if (controls) controls.style.display = _ttsActive ? '' : 'none';
+
+  // Update pause button icon
+  if (pauseBtn) {
+    if (_ttsPaused) {
+      pauseBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+      pauseBtn.title = 'Resume';
+    } else {
+      pauseBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+      pauseBtn.title = 'Pause';
+    }
+  }
+
+  // Show/hide progress bar
+  var progress = document.querySelector('.sb-tts-progress');
+  if (progress) {
+    progress.classList.toggle('active', _ttsActive);
+    if (!_ttsActive) {
+      var bar = progress.querySelector('.sb-tts-progress__bar');
+      if (bar) bar.style.width = '0%';
+    }
   }
 }
 
