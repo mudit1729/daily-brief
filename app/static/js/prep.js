@@ -29,6 +29,9 @@ function loadNote(filename, btn) {
   document.querySelectorAll('.sb-notes-list__item').forEach(el => el.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
+  // Flush any pending annotation save for the current note before switching
+  _flushAnnotationSave();
+
   // Stop TTS if playing
   if (_ttsActive) stopTTS();
 
@@ -657,11 +660,25 @@ function _migrateFromLocalStorage() {
   localStorage.removeItem(key);
 }
 
+function _flushAnnotationSave() {
+  if (!_saveTimer) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
+  if (!_currentNote) return;
+  _collectHighlightsFromDOM();
+  fetch('/api/prep/annotations/' + encodeURIComponent(_currentNote), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(_annotations),
+  }).catch(function(e) { console.warn('Failed to save annotations:', e); });
+}
+
 function _saveAnnotations() {
   if (!_currentNote) return;
   // Debounce saves to avoid hammering the server
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() {
+    _saveTimer = null;
     _collectHighlightsFromDOM();
     fetch('/api/prep/annotations/' + encodeURIComponent(_currentNote), {
       method: 'POST',
