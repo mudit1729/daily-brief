@@ -1327,6 +1327,40 @@ mark.user-comment.sb-comment-flash {
     display: inline-flex;
   }
 
+  /* Toolbar: compact on mobile — only essential buttons */
+  .sb-notes-toolbar {
+    padding: 4px var(--sb-space-2);
+  }
+
+  .sb-notes-toolbar__left {
+    gap: 4px;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .sb-notes-toolbar__title {
+    max-width: 80px;
+  }
+
+  .sb-notes-toolbar__right {
+    gap: 1px;
+    flex-wrap: nowrap;
+  }
+
+  .sb-notes-toolbar__btn {
+    padding: 6px;
+    flex-shrink: 0;
+  }
+  .sb-notes-toolbar__btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Hide all dividers on mobile */
+  .sb-notes-toolbar__divider {
+    display: none;
+  }
+
   /* Hide text labels on toolbar buttons */
   .sb-notes-toolbar__btn span {
     display: none;
@@ -1334,6 +1368,29 @@ mark.user-comment.sb-comment-flash {
   /* But show back button text */
   .sb-notes-toolbar__back span {
     display: inline;
+    font-size: 11px;
+  }
+
+  /* Hide secondary toolbar buttons on mobile:
+     - clear highlights (trash)
+     - comment panel
+     - draw mode
+     - dark mode toggle
+     - expand (keep fullscreen)
+  */
+  .sb-notes-toolbar__btn[onclick="clearAllHighlights()"],
+  .sb-notes-toolbar__btn[id="commentPanelBtn"],
+  .sb-notes-toolbar__btn[id="drawToggleBtn"],
+  .sb-notes-toolbar__btn[id="prepThemeToggle"],
+  .sb-notes-toolbar__btn[id="notesExpandBtn"],
+  .sb-notes-toolbar__btn[id="browserFullscreenBtn"],
+  .sb-chat-toggle {
+    display: none;
+  }
+
+  /* Draw tools inline (only visible when draw mode active on desktop) */
+  .sb-draw-tools__size {
+    max-width: 50px;
   }
 
   /* Content padding tighter on mobile */

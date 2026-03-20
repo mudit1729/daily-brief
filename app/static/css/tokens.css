@@ -85,6 +85,30 @@
   --sb-max-width: 1100px;
 }
 
+/* ===== Mobile: scale down for information density ===== */
+@media (max-width: 640px) {
+  :root {
+    --sb-text-xs: 0.625rem;       /* 10px */
+    --sb-text-sm: 0.6875rem;      /* 11px */
+    --sb-text-base: 0.8125rem;    /* 13px */
+    --sb-text-md: 0.875rem;       /* 14px */
+    --sb-text-lg: 1.0625rem;      /* 17px */
+    --sb-text-xl: 1.25rem;        /* 20px */
+    --sb-text-2xl: 1.625rem;      /* 26px */
+    --sb-text-3xl: 2rem;          /* 32px */
+
+    --sb-space-4: 12px;
+    --sb-space-5: 16px;
+    --sb-space-6: 20px;
+    --sb-space-8: 24px;
+    --sb-space-10: 32px;
+    --sb-space-12: 40px;
+    --sb-space-16: 52px;
+
+    --sb-radius-xl: 12px;
+  }
+}
+
 /* ===== Dark Theme (default) ===== */
 [data-bs-theme="dark"] {
   --sb-bg-primary: #09090b;

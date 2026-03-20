@@ -925,6 +925,7 @@ def prep_page():
         {'label': 'Scale Interview', 'icon': 'briefcase', 'match': ['Scale-']},
         {'label': 'Coding', 'icon': 'code', 'match': ['Amazon-150', 'Blind-75', 'Graph-Problems', 'Torc-']},
         {'label': 'Async Processing', 'icon': 'async', 'match': ['Async-']},
+        {'label': 'X Bookmarks', 'icon': 'bookmark', 'match': ['XBookmark-']},
         # Catch-all for uncategorized prefix-based notes
         {'label': 'Paper Summaries', 'icon': 'paper', 'match': ['Paper-']},
     ]

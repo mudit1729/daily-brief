@@ -669,8 +669,96 @@
     }
   });
 
+  // ────────────────────────────────────────────────
+  // 11a. Card Stack — Touch Swipe Gestures
+  // ────────────────────────────────────────────────
+  function initSwipeGestures() {
+    document.querySelectorAll('.sb-card-stack').forEach((stack) => {
+      let startX = 0, startY = 0, currentX = 0;
+      let isDragging = false;
+      let activeItem = null;
+      const SWIPE_THRESHOLD = 60;
+      const SWIPE_VELOCITY_THRESHOLD = 0.3;
+      let startTime = 0;
+
+      stack.addEventListener('touchstart', (e) => {
+        activeItem = stack.querySelector('.sb-card-stack__item.is-active');
+        if (!activeItem) return;
+
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        currentX = 0;
+        startTime = Date.now();
+        isDragging = false;
+      }, { passive: true });
+
+      stack.addEventListener('touchmove', (e) => {
+        if (!activeItem) return;
+
+        const touch = e.touches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+
+        // Only start dragging if horizontal movement dominates
+        if (!isDragging) {
+          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            isDragging = true;
+            activeItem.classList.add('is-dragging');
+          } else {
+            return;
+          }
+        }
+
+        e.preventDefault();
+        currentX = dx;
+
+        // Apply transform with drag resistance
+        const resistance = currentX > 0 ? 0.3 : 1;
+        const tx = currentX * resistance;
+        const rotate = tx * 0.03;
+        const opacity = Math.max(0.5, 1 - Math.abs(tx) / 400);
+        activeItem.style.transform = `translateX(${tx}px) rotate(${rotate}deg)`;
+        activeItem.style.opacity = opacity;
+      }, { passive: false });
+
+      stack.addEventListener('touchend', () => {
+        if (!isDragging || !activeItem) {
+          if (activeItem) activeItem.classList.remove('is-dragging');
+          return;
+        }
+
+        activeItem.classList.remove('is-dragging');
+        activeItem.style.transform = '';
+        activeItem.style.opacity = '';
+
+        const elapsed = Date.now() - startTime;
+        const velocity = Math.abs(currentX) / elapsed;
+        const current = parseInt(stack.dataset.current, 10) || 0;
+        const total = stack.querySelectorAll('.sb-card-stack__item').length;
+
+        // Swipe left = next card
+        if (currentX < -SWIPE_THRESHOLD || (currentX < -30 && velocity > SWIPE_VELOCITY_THRESHOLD)) {
+          if (current < total - 1) {
+            updateStack(stack, current + 1);
+          }
+        }
+        // Swipe right = previous card
+        else if (currentX > SWIPE_THRESHOLD || (currentX > 30 && velocity > SWIPE_VELOCITY_THRESHOLD)) {
+          if (current > 0) {
+            updateStack(stack, current - 1);
+          }
+        }
+
+        isDragging = false;
+        activeItem = null;
+      }, { passive: true });
+    });
+  }
+
   // Initialize all stacks on the page
   initCardStacks();
+  initSwipeGestures();
 
   // ────────────────────────────────────────────────
   // 11. Story Accordion Toggle
@@ -923,5 +1011,36 @@
         contentEl.innerHTML = `<p style="color:var(--sb-danger);">Failed to load analysis. Please try again.</p>`;
       });
   });
+
+  // ────────────────────────────────────────────────
+  // Mobile "More" Menu
+  // ────────────────────────────────────────────────
+  const moreBtn = document.getElementById('mobileMoreBtn');
+  const moreMenu = document.getElementById('mobileMoreMenu');
+  const moreBackdrop = document.getElementById('mobileMoreBackdrop');
+
+  function openMoreMenu() {
+    if (moreMenu) moreMenu.classList.add('is-open');
+  }
+  function closeMoreMenu() {
+    if (moreMenu) moreMenu.classList.remove('is-open');
+  }
+
+  if (moreBtn) {
+    moreBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openMoreMenu();
+    });
+  }
+  if (moreBackdrop) {
+    moreBackdrop.addEventListener('click', closeMoreMenu);
+  }
+  // Close on link tap
+  if (moreMenu) {
+    moreMenu.querySelectorAll('.sb-more-menu__item').forEach(link => {
+      link.addEventListener('click', closeMoreMenu);
+    });
+  }
 
 })();

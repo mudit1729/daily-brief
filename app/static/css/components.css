@@ -2701,3 +2701,256 @@ body {
     justify-content: center;
   }
 }
+
+/* ===================================================================
+   MOBILE WEBAPP ENHANCEMENTS
+   =================================================================== */
+
+/* Safe area insets for notched devices */
+:root {
+  --sb-safe-top: env(safe-area-inset-top, 0px);
+  --sb-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sb-safe-left: env(safe-area-inset-left, 0px);
+  --sb-safe-right: env(safe-area-inset-right, 0px);
+  --sb-bottom-nav-height: 0px;
+}
+
+/* ===== Bottom Navigation Bar (mobile only) ===== */
+.sb-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --sb-bottom-nav-height: calc(56px + var(--sb-safe-bottom));
+  }
+
+  /* Hide top nav tabs on mobile, keep brand */
+  .sb-nav__tabs { display: none; }
+  .sb-nav__right { display: none; }
+  .sb-nav__inner { gap: 0; }
+  .sb-nav { padding: var(--sb-space-1) 0; }
+
+  /* Show bottom nav */
+  .sb-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: var(--sb-bg-secondary);
+    border-top: 1px solid var(--sb-border);
+    padding: var(--sb-space-1) 0;
+    padding-bottom: var(--sb-safe-bottom);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .sb-bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--sb-space-1) var(--sb-space-2);
+    color: var(--sb-text-muted);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: var(--sb-weight-medium);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--sb-radius-md);
+    transition: color var(--sb-transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    min-width: 56px;
+  }
+
+  .sb-bottom-nav__item.active {
+    color: var(--sb-accent);
+  }
+
+  .sb-bottom-nav__item:active {
+    color: var(--sb-text-primary);
+    background: var(--sb-bg-surface);
+  }
+
+  /* Add bottom padding to body for the nav bar */
+  body {
+    padding-bottom: var(--sb-bottom-nav-height);
+  }
+
+  /* Reduce main padding on mobile */
+  .sb-main {
+    padding: var(--sb-space-4) var(--sb-space-3);
+  }
+
+  .sb-footer {
+    padding: var(--sb-space-4) var(--sb-space-3);
+    margin-bottom: var(--sb-space-4);
+  }
+}
+
+/* ===== Mobile "More" Menu (Bottom Sheet) ===== */
+.sb-more-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+}
+
+.sb-more-menu.is-open {
+  display: block;
+}
+
+.sb-more-menu__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  animation: sb-fade-in 0.2s ease;
+}
+
+.sb-more-menu__sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--sb-bg-secondary);
+  border-radius: var(--sb-radius-xl) var(--sb-radius-xl) 0 0;
+  padding: var(--sb-space-3) var(--sb-space-5);
+  padding-bottom: calc(var(--sb-space-8) + var(--sb-safe-bottom));
+  animation: sb-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sb-more-menu__handle {
+  width: 36px;
+  height: 4px;
+  background: var(--sb-text-muted);
+  border-radius: var(--sb-radius-full);
+  margin: 0 auto var(--sb-space-5);
+  opacity: 0.4;
+}
+
+.sb-more-menu__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sb-space-3);
+}
+
+.sb-more-menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sb-space-2);
+  padding: var(--sb-space-4) var(--sb-space-2);
+  color: var(--sb-text-secondary);
+  text-decoration: none;
+  font-size: var(--sb-text-sm);
+  font-weight: var(--sb-weight-medium);
+  border-radius: var(--sb-radius-lg);
+  transition: background var(--sb-transition-fast), color var(--sb-transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sb-more-menu__item.active {
+  color: var(--sb-accent);
+  background: var(--sb-accent-subtle);
+}
+
+.sb-more-menu__item:active {
+  background: var(--sb-bg-surface);
+  color: var(--sb-text-primary);
+}
+
+@keyframes sb-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== Card Stack — Swipe Gesture Visual Feedback ===== */
+.sb-card-stack__item.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.sb-card-stack__item.is-active {
+  touch-action: pan-y;
+}
+
+/* Swipe hint indicator (visible on mobile) */
+@media (max-width: 640px) {
+  .sb-stack-controls {
+    gap: var(--sb-space-1);
+  }
+
+  .sb-stack-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Section title smaller on mobile */
+  .sb-section__title {
+    font-size: var(--sb-text-md);
+  }
+
+  /* Cards: increase touch targets */
+  .sb-card {
+    border-radius: var(--sb-radius-lg);
+  }
+
+  .sb-card__body {
+    padding: var(--sb-space-3);
+  }
+
+  /* Weather grid: 1 column on small mobile */
+  .sb-weather__grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Brief header compact */
+  .sb-brief-header__date {
+    font-size: var(--sb-text-xl);
+  }
+}
+
+/* ===== Touch-friendly active states ===== */
+@media (hover: none) and (pointer: coarse) {
+  /* Replace hover effects with active/tap states for touch */
+  .sb-card:active {
+    background: var(--sb-bg-card-hover);
+    box-shadow: var(--sb-shadow-md);
+  }
+
+  .sb-timeline-card:active {
+    background: var(--sb-bg-card-hover);
+    box-shadow: var(--sb-shadow-md);
+  }
+
+  .sb-weather__location:active {
+    background: var(--sb-bg-surface-raised);
+  }
+
+  .sb-story-toggle:active {
+    background: var(--sb-bg-surface);
+  }
+
+  /* Prevent double-tap zoom on interactive elements */
+  button, a, .sb-stack-btn, .sb-bottom-nav__item {
+    touch-action: manipulation;
+  }
+}
+
+/* ===== Standalone PWA mode adjustments ===== */
+@media (display-mode: standalone) {
+  .sb-nav {
+    padding-top: var(--sb-safe-top);
+  }
+
+  /* Hide brand text in standalone — the app icon is enough */
+  .sb-nav__brand {
+    font-size: var(--sb-text-base);
+  }
+}

@@ -103,7 +103,7 @@ def nms(boxes: torch.Tensor, scores: torch.Tensor, iou_thresh: float = 0.5) -> t
     return torch.tensor(keep, dtype=torch.long)
 
 # --- test ---
-boxes  = torch.tensor([[0,0,10,10],[1,1,11,11],[20,20,30,30]], dtype=torch.float)
+boxes  = torch.tensor([[0,0,10,10],[1,1,11,11],[20,20,30,30]], dtype=torch.float)p
 scores = torch.tensor([0.9, 0.85, 0.7])
 print(nms(boxes, scores, 0.5))  # tensor([0, 2]) — middle box suppressed
 ```

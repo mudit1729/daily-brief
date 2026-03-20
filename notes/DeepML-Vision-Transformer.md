@@ -580,10 +580,6 @@ The Pre-LN variant with residual connections is the modern architecture choice. 
 **Difficulty**: Medium (Micro)
 **Time Limit**: 2s
 
-![Scaled Dot-Product Attention Mechanism](diagrams/scaled_dot_product_attention.png)
-
-*Figure: Scaled dot-product attention computing weights from query-key similarity and applying them to values.*
-
 Image credit: ["Self-Attention (Scaled dot-product Attention)"](https://commons.wikimedia.org/wiki/File:Self-Attention_(Scaled_dot-product_Attention).png) by Unknown author, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 
