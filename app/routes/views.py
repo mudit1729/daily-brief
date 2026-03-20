@@ -1775,3 +1775,89 @@ def deep_dive(cluster_id):
     except Exception as e:
         logger.error(f"Deep dive failed for cluster {cluster_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ── Social Media Follows ──────────────────────────────────────────
+
+@views_bp.route('/social')
+def social_page():
+    from app.services.social_service import SocialService
+    service = SocialService()
+    channels = service.list_channels(active_only=True)
+    week_summary = service.get_week_summary()
+    recent_posts = service.get_all_posts(limit=20, days=7)
+    return render_template(
+        'pages/social.html',
+        active_tab='social',
+        brief=_get_brief(),
+        channels=channels,
+        week_summary=week_summary,
+        recent_posts=recent_posts,
+    )
+
+
+@views_bp.route('/api/social/follow', methods=['POST'])
+def social_follow():
+    data = request.get_json()
+    if not data or not data.get('feed_url'):
+        return jsonify({'error': 'feed_url required'}), 400
+    from app.services.social_service import SocialService
+    service = SocialService()
+    try:
+        channel = service.follow_channel(
+            feed_url=data['feed_url'],
+            name=data.get('name'),
+            platform=data.get('platform'),
+        )
+        return jsonify(channel)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 409
+    except Exception as e:
+        logger.error(f"Follow failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@views_bp.route('/api/social/unfollow/<int:channel_id>', methods=['POST'])
+def social_unfollow(channel_id):
+    from app.services.social_service import SocialService
+    SocialService().unfollow_channel(channel_id)
+    return jsonify({'ok': True})
+
+
+@views_bp.route('/api/social/channels')
+def social_channels():
+    from app.services.social_service import SocialService
+    return jsonify(SocialService().list_channels())
+
+
+@views_bp.route('/api/social/channel/<int:channel_id>/posts')
+def social_channel_posts(channel_id):
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    from app.services.social_service import SocialService
+    posts = SocialService().get_channel_posts(channel_id, limit, offset)
+    return jsonify(posts)
+
+
+@views_bp.route('/api/social/posts')
+def social_all_posts():
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    days = request.args.get('days', 7, type=int)
+    from app.services.social_service import SocialService
+    posts = SocialService().get_all_posts(limit, offset, days)
+    return jsonify(posts)
+
+
+@views_bp.route('/api/social/fetch', methods=['POST'])
+def social_fetch_now():
+    from app.services.social_service import SocialService
+    count = SocialService().fetch_new_posts()
+    return jsonify({'new_posts': count})
+
+
+@views_bp.route('/api/social/summarize/<int:post_id>', methods=['POST'])
+def social_summarize_post(post_id):
+    from app.services.social_service import SocialService
+    SocialService().generate_post_summary(post_id)
+    return jsonify({'ok': True})

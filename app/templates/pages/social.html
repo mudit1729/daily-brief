@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Pulse — Social{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/social.css') }}">
+{% endblock %}
+
+{% block content %}
+
+{# ── Header ── #}
+<header class="sb-page-header">
+  <h1 class="sb-page-title">Social</h1>
+  <p class="sb-page-subtitle">Your followed channels &amp; latest content</p>
+</header>
+
+{# ── Follow bar ── #}
+<section class="sb-social-follow-bar">
+  <input type="text" id="followUrl" placeholder="Paste YouTube / Substack / Twitter / RSS feed URL..." class="sb-social-follow-bar__input">
+  <button id="followBtn" onclick="followChannel()" class="sb-social-follow-bar__btn">Follow</button>
+</section>
+
+{# ── Week summary card ── #}
+{% if week_summary %}
+<section class="sb-social-week-summary">
+  <div class="sb-social-week-summary__stats">
+    <span class="sb-social-week-summary__stat">
+      <strong>{{ week_summary.total_posts }}</strong> posts
+    </span>
+    <span class="sb-social-week-summary__stat">
+      <strong>{{ week_summary.channels | length }}</strong> active channels
+    </span>
+    <span class="sb-social-week-summary__date-range">{{ week_summary.date_range }}</span>
+  </div>
+  <div class="sb-social-week-summary__chips">
+    {% for ch in week_summary.channels[:5] %}
+    <span class="sb-social-week-summary__chip sb-platform--{{ ch.platform }}" onclick="showChannel({{ ch.id }})">
+      {{ ch.name }} <span class="sb-social-week-summary__chip-count">({{ ch.post_count }})</span>
+    </span>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── Tab bar ── #}
+<div class="sb-social-tabs">
+  <button class="sb-social-tab active" data-view="top" onclick="switchView('top', this)">Top Channels</button>
+  <button class="sb-social-tab" data-view="all" onclick="switchView('all', this)">All Channels</button>
+  <button class="sb-social-tab" data-view="timeline" onclick="switchView('timeline', this)">Timeline</button>
+</div>
+
+{# ── Top Channels view (default) ── #}
+<section class="sb-social-view" id="viewTop">
+  <div class="sb-social-channels-grid">
+    {% for ch in channels %}
+    <div class="sb-social-channel-card" onclick="showChannel({{ ch.id }})">
+      <div class="sb-social-channel-card__header">
+        <span class="sb-platform-badge sb-platform--{{ ch.platform }}">{{ ch.platform | upper }}</span>
+        <h3 class="sb-social-channel-card__name">{{ ch.name }}</h3>
+      </div>
+      <p class="sb-social-channel-card__desc">{{ (ch.description or '')[:100] }}</p>
+      <div class="sb-social-channel-card__footer">
+        <span>{{ ch.post_count or 0 }} posts</span>
+        <button class="sb-unfollow-btn" onclick="event.stopPropagation(); unfollowChannel({{ ch.id }}, '{{ ch.name }}')">Unfollow</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if not channels %}
+  <div class="sb-social-empty">
+    <p>No channels followed yet. Paste a feed URL above to get started.</p>
+  </div>
+  {% endif %}
+</section>
+
+{# ── All Channels view ── #}
+<section class="sb-social-view" id="viewAll" style="display:none;">
+  <div class="sb-social-split">
+    <div class="sb-social-channel-sidebar" id="channelSidebar">
+      {% for ch in channels %}
+      <button class="sb-social-channel-sidebar__item" data-channel-id="{{ ch.id }}" onclick="showChannelPosts({{ ch.id }}, this)">
+        <span class="sb-platform-dot sb-platform--{{ ch.platform }}"></span>
+        <span>{{ ch.name }}</span>
+        <span class="sb-social-channel-sidebar__count">{{ ch.post_count or 0 }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    <div class="sb-social-post-list" id="postList">
+      <p class="sb-social-post-list__placeholder">Select a channel to view posts</p>
+    </div>
+  </div>
+</section>
+
+{# ── Timeline view ── #}
+<section class="sb-social-view" id="viewTimeline" style="display:none;">
+  <div class="sb-social-timeline" id="socialTimeline">
+    {% for post in recent_posts %}
+    <div class="sb-social-timeline-item" data-post-id="{{ post.id }}">
+      <div class="sb-social-timeline-item__meta">
+        <span class="sb-platform-badge sb-platform--{{ post.platform }}">{{ post.platform | upper }}</span>
+        <span class="sb-social-timeline-item__channel">{{ post.channel_name }}</span>
+        <time class="sb-social-timeline-item__date">{{ post.published_at[:10] if post.published_at else '' }}</time>
+      </div>
+      <h3 class="sb-social-timeline-item__title">
+        <a href="{{ post.url }}" target="_blank" rel="noopener">{{ post.title }}</a>
+      </h3>
+      {% if post.has_summary %}
+      <button class="sb-social-timeline-item__toggle" onclick="toggleSummary(this)">Show Summary</button>
+      <div class="sb-social-timeline-item__summary" style="display:none;" data-md="{{ post.summary_md | e }}">
+      </div>
+      {% else %}
+      <p class="sb-social-timeline-item__hint">{{ (post.content_hint or '')[:200] }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if recent_posts %}
+  <button class="sb-social-load-more" id="loadMoreBtn" onclick="loadMorePosts()">Load More</button>
+  {% endif %}
+</section>
+
+{# ── Channel detail overlay ── #}
+<div class="sb-social-channel-detail" id="channelDetail" style="display:none;">
+  <div class="sb-social-channel-detail__header">
+    <button onclick="closeChannelDetail()" class="sb-social-channel-detail__back">&larr; Back</button>
+    <h2 id="channelDetailName"></h2>
+    <span id="channelDetailPlatform" class="sb-platform-badge"></span>
+  </div>
+  <div class="sb-social-channel-detail__posts" id="channelDetailPosts">
+  </div>
+</div>
+
+{# ── Fetch trigger button ── #}
+<button class="sb-social-fetch-btn" onclick="fetchNow()" title="Fetch new posts now">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+</button>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="{{ url_for('static', filename='js/social.js') }}" defer></script>
+{% endblock %}

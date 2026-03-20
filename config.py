@@ -34,6 +34,7 @@ class Config:
         'timelines': 0.10,           # auto-update + auto-discover timelines
         'grok_analysis': 0.10,       # xAI Grok: news takes + timeline + stories enrichment
         'research': 0.08,             # Telegram /research LLM data + summary
+        'social': 0.15,               # Social follows: post summaries
     }
 
     # xAI / Grok (secondary LLM provider)

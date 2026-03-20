@@ -56,6 +56,24 @@ def _cost_rollup_job(app):
         logger.info("[Job] Cost rollup complete")
 
 
+def _social_fetch_job(app):
+    with app.app_context():
+        logger.info("[Job] Social feed fetch")
+        from app.services.social_service import SocialService
+        service = SocialService()
+        count = service.fetch_new_posts()
+        logger.info(f"[Job] Social fetch: {count} new posts")
+
+
+def _social_summarize_job(app):
+    with app.app_context():
+        logger.info("[Job] Social summary generation")
+        from app.services.social_service import SocialService
+        service = SocialService()
+        count = service.generate_pending_summaries(limit=30)
+        logger.info(f"[Job] Social summaries: {count} generated")
+
+
 def _upsert_job(scheduler, **kwargs):
     scheduler.add_job(replace_existing=True, **kwargs)
 
@@ -160,6 +178,30 @@ def register_jobs(scheduler, app):
         args=[app],
         hour=23,
         minute=55,
+        misfire_grace_time=3600,
+        coalesce=True,
+        max_instances=1,
+    )
+
+    _upsert_job(
+        scheduler,
+        id='social_fetch',
+        func=_social_fetch_job,
+        trigger='cron',
+        args=[app],
+        hour='6,10,14,18,22',
+        misfire_grace_time=1800,
+        coalesce=True,
+        max_instances=1,
+    )
+    _upsert_job(
+        scheduler,
+        id='social_summarize',
+        func=_social_summarize_job,
+        trigger='cron',
+        args=[app],
+        hour=7,
+        minute=15,
         misfire_grace_time=3600,
         coalesce=True,
         max_instances=1,
