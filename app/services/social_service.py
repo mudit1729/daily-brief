@@ -1,6 +1,8 @@
 """Service for managing social media channel follows, fetching posts, and generating summaries."""
 
+import json
 import logging
+import re
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
 
@@ -30,17 +32,34 @@ description from a social media channel, produce a structured summary.
 
 Keep under 500 words. Use rich markdown formatting throughout."""
 
-# URL substring -> platform mapping (order matters: first match wins)
-_PLATFORM_PATTERNS = [
-    ('youtube.com', 'youtube'),
-    ('youtu.be', 'youtube'),
-    ('substack.com', 'substack'),
-    ('rsshub', 'twitter'),
-    ('nitter', 'twitter'),
-    ('twitter.com', 'twitter'),
-    ('x.com', 'twitter'),
-]
+YOUTUBE_SUMMARY_PROMPT = """\
+You are a content analyst creating rich, visual markdown summaries of YouTube videos.
+You are given the video's title, channel name, and its transcript.
 
+## Output Format
+- **TL;DR**: One bold sentence summary
+- **Key Points**: 5-10 numbered bullets capturing the main ideas and arguments
+- Include ONE of these visual elements where appropriate:
+  - A markdown comparison table
+  - A mermaid flowchart (use ```mermaid code blocks)
+  - An ASCII diagram showing architecture or process
+- **Timestamps & Topics**: List 3-5 key timestamps with topics (estimate from transcript position)
+- **Why It Matters**: 1-2 sentences on significance
+
+Keep under 800 words. Use rich markdown formatting throughout."""
+
+TWITTER_FETCH_PROMPT = """\
+Search for the latest tweets/posts from @{handle} on X (Twitter) from the last {hours} hours.
+
+Return a JSON array of tweets. Each tweet should have these fields:
+- "text": the full tweet text
+- "date": ISO date string (YYYY-MM-DD)
+- "urls": array of any URLs mentioned in the tweet
+- "is_thread": boolean, true if part of a thread
+- "topic": a short 3-5 word topic label
+
+Return ONLY valid JSON array, no markdown or explanation. If no tweets found, return [].
+Example: [{"text": "Just published...", "date": "2026-03-20", "urls": ["https://..."], "is_thread": false, "topic": "new paper release"}]"""
 
 _FEED_HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; PulseBot/1.0)'}
 
@@ -52,14 +71,20 @@ def _fetch_and_parse(feed_url: str):
         resp.raise_for_status()
         return feedparser.parse(resp.text)
     except Exception as e:
-        logger.warning("HTTP fetch failed for %s: %s, falling back to feedparser", feed_url, e)
-        return _fetch_and_parse(feed_url)
+        logger.warning("HTTP fetch failed for %s: %s, falling back to feedparser direct", feed_url, e)
+        return feedparser.parse(feed_url)
 
 
 def _detect_platform(feed_url: str) -> str:
     """Guess platform from URL patterns."""
     lower = feed_url.lower()
-    for pattern, platform in _PLATFORM_PATTERNS:
+    for pattern, platform in [
+        ('youtube.com', 'youtube'), ('youtu.be', 'youtube'),
+        ('substack.com', 'substack'),
+        ('rsshub', 'twitter'), ('nitter', 'twitter'),
+        ('twitter.com', 'twitter'), ('x.com', 'twitter'),
+        ('grok://twitter/', 'twitter'),
+    ]:
         if pattern in lower:
             return platform
     return 'rss'
@@ -78,6 +103,143 @@ def _parse_published(entry) -> datetime | None:
         return None
 
 
+# ── YouTube helpers ──────────────────────────────────────────────
+
+def _resolve_youtube_input(input_str: str) -> tuple[str, str | None]:
+    """Resolve a YouTube URL/handle/ID into (feed_url, channel_name).
+
+    Accepts:
+    - https://www.youtube.com/feeds/videos.xml?channel_id=UCxxx (pass through)
+    - https://www.youtube.com/channel/UCxxx
+    - https://www.youtube.com/@handle
+    - @handle or just handle
+    - Raw channel ID like UCxxx
+    """
+    input_str = input_str.strip()
+
+    # Already a feed URL
+    if 'feeds/videos.xml' in input_str:
+        m = re.search(r'channel_id=([A-Za-z0-9_-]+)', input_str)
+        return input_str, None
+
+    # youtube.com/channel/UCxxx
+    m = re.search(r'youtube\.com/channel/([A-Za-z0-9_-]+)', input_str)
+    if m:
+        cid = m.group(1)
+        feed_url = f'https://www.youtube.com/feeds/videos.xml?channel_id={cid}'
+        return feed_url, None
+
+    # youtube.com/@handle — need to fetch page to resolve channel ID
+    m = re.search(r'youtube\.com/@([A-Za-z0-9_.-]+)', input_str)
+    if m:
+        handle = m.group(1)
+        return _resolve_youtube_handle(handle)
+
+    # Bare @handle
+    if input_str.startswith('@'):
+        return _resolve_youtube_handle(input_str[1:])
+
+    # Raw channel ID (starts with UC)
+    if input_str.startswith('UC') and len(input_str) > 10:
+        feed_url = f'https://www.youtube.com/feeds/videos.xml?channel_id={input_str}'
+        return feed_url, None
+
+    # Treat as handle
+    return _resolve_youtube_handle(input_str)
+
+
+def _resolve_youtube_handle(handle: str) -> tuple[str, str | None]:
+    """Fetch youtube.com/@handle page and extract channelId from meta tags."""
+    url = f'https://www.youtube.com/@{handle}'
+    try:
+        resp = _requests.get(url, headers=_FEED_HEADERS, timeout=15)
+        resp.raise_for_status()
+        # Look for channelId in the HTML
+        m = re.search(r'"channelId"\s*:\s*"([A-Za-z0-9_-]+)"', resp.text)
+        if not m:
+            m = re.search(r'channel_id=([A-Za-z0-9_-]+)', resp.text)
+        if not m:
+            raise ValueError(f"Could not find channel ID for @{handle}")
+        cid = m.group(1)
+        # Extract channel name from og:title or <title> tag
+        name = None
+        nm = re.search(r'<meta\s+property="og:title"\s+content="([^"]+)"', resp.text)
+        if nm:
+            name = nm.group(1).replace(' - YouTube', '').strip()
+        if not name:
+            nm = re.search(r'<title>([^<]+)</title>', resp.text)
+            if nm:
+                name = nm.group(1).replace(' - YouTube', '').strip()
+        feed_url = f'https://www.youtube.com/feeds/videos.xml?channel_id={cid}'
+        return feed_url, name
+    except _requests.RequestException as e:
+        raise ValueError(f"Failed to resolve YouTube handle @{handle}: {e}")
+
+
+def _fetch_youtube_transcript(video_url: str) -> str | None:
+    """Fetch auto-generated transcript for a YouTube video. Returns text or None."""
+    # Extract video ID
+    m = re.search(r'(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})', video_url)
+    if not m:
+        return None
+    video_id = m.group(1)
+
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        # Prefer manually created, fall back to auto-generated
+        try:
+            transcript = transcript_list.find_manually_created_transcript(['en'])
+        except Exception:
+            transcript = transcript_list.find_generated_transcript(['en'])
+        segments = transcript.fetch()
+        text = ' '.join(seg.get('text', '') if isinstance(seg, dict) else str(seg) for seg in segments)
+        # Truncate to ~4000 chars for LLM context
+        if len(text) > 4000:
+            text = text[:4000] + '...'
+        return text
+    except Exception as e:
+        logger.warning("Could not fetch transcript for %s: %s", video_id, e)
+        return None
+
+
+# ── Twitter/X helpers ────────────────────────────────────────────
+
+def _resolve_twitter_input(input_str: str) -> tuple[str, str]:
+    """Resolve Twitter input to (sentinel_feed_url, handle).
+
+    Accepts: @handle, handle, https://x.com/handle, https://twitter.com/handle
+    """
+    input_str = input_str.strip()
+    # Extract handle from URL
+    m = re.search(r'(?:twitter\.com|x\.com)/([A-Za-z0-9_]+)', input_str)
+    if m:
+        handle = m.group(1)
+    elif input_str.startswith('@'):
+        handle = input_str[1:]
+    else:
+        handle = input_str.strip('/')
+
+    feed_url = f'grok://twitter/{handle}'
+    return feed_url, handle
+
+
+def _resolve_substack_input(input_str: str) -> str:
+    """Resolve Substack input to RSS feed URL.
+
+    Accepts: blog-name, blog-name.substack.com, https://blog-name.substack.com/feed
+    """
+    input_str = input_str.strip().rstrip('/')
+    if input_str.endswith('/feed'):
+        return input_str
+    m = re.search(r'([a-zA-Z0-9-]+)\.substack\.com', input_str)
+    if m:
+        return f'https://{m.group(1)}.substack.com/feed'
+    # Bare name
+    name = input_str.replace('https://', '').replace('http://', '').split('.')[0]
+    return f'https://{name}.substack.com/feed'
+
+
 class SocialService:
     """Manages social channel follows, post fetching, and LLM-based summaries."""
 
@@ -85,20 +247,29 @@ class SocialService:
     # Channel management
     # ------------------------------------------------------------------
 
-    def follow_channel(self, feed_url: str, name: str | None = None,
-                       platform: str | None = None) -> dict:
-        """Follow a new RSS/social channel by its feed URL.
+    def follow_channel(self, input_value: str, platform: str,
+                       name: str | None = None) -> dict:
+        """Follow a new channel. Resolves user-friendly input per platform.
 
-        If the channel was previously unfollowed (is_active=False), reactivate it.
-        Raises ValueError if the channel is already actively followed.
+        platform: 'youtube', 'twitter', 'substack', 'rss'
+        input_value: channel URL/handle/name depending on platform
         """
-        platform = platform or _detect_platform(feed_url)
+        if platform == 'youtube':
+            feed_url, resolved_name = _resolve_youtube_input(input_value)
+            name = name or resolved_name
+        elif platform == 'twitter':
+            feed_url, handle = _resolve_twitter_input(input_value)
+        elif platform == 'substack':
+            feed_url = _resolve_substack_input(input_value)
+        else:  # rss
+            feed_url = input_value.strip()
+            platform = platform or _detect_platform(feed_url)
 
+        # Check existing
         existing = SocialChannel.query.filter_by(feed_url=feed_url).first()
         if existing:
             if existing.is_active:
                 raise ValueError(f"Channel already followed: {existing.name}")
-            # Reactivate
             existing.is_active = True
             existing.consecutive_failures = 0
             existing.last_error = None
@@ -106,19 +277,25 @@ class SocialService:
             logger.info("Reactivated channel id=%s url=%s", existing.id, feed_url)
             return existing.to_dict()
 
-        # Fetch feed metadata
-        feed = _fetch_and_parse(feed_url)
-        feed_meta = feed.feed if feed.feed else {}
-
-        resolved_name = name or feed_meta.get('title') or feed_url
-        avatar_url = None
-        image = feed_meta.get('image')
-        if image:
-            avatar_url = image.get('href') if isinstance(image, dict) else None
-        description = feed_meta.get('subtitle', '') or feed_meta.get('description', '') or ''
+        # For non-Twitter, fetch feed metadata for name
+        if platform != 'twitter':
+            feed = _fetch_and_parse(feed_url)
+            feed_meta = feed.feed if feed.feed else {}
+            name = name or feed_meta.get('title') or input_value
+            avatar_url = None
+            image = feed_meta.get('image')
+            if image:
+                avatar_url = image.get('href') if isinstance(image, dict) else None
+            description = feed_meta.get('subtitle', '') or feed_meta.get('description', '') or ''
+        else:
+            handle = feed_url.replace('grok://twitter/', '')
+            name = name or f'@{handle}'
+            avatar_url = None
+            description = f'Twitter/X posts from @{handle}'
 
         channel = SocialChannel(
-            name=resolved_name,
+            name=name,
+            handle=handle if platform == 'twitter' else None,
             platform=platform,
             feed_url=feed_url,
             avatar_url=avatar_url,
@@ -151,7 +328,6 @@ class SocialService:
             .group_by(SocialPost.channel_id)
             .subquery()
         )
-
         query = (
             db.session.query(
                 SocialChannel,
@@ -160,10 +336,8 @@ class SocialService:
             )
             .outerjoin(post_count_sq, SocialChannel.id == post_count_sq.c.channel_id)
         )
-
         if active_only:
             query = query.filter(SocialChannel.is_active.is_(True))
-
         query = query.order_by(SocialChannel.name)
 
         results = []
@@ -178,7 +352,7 @@ class SocialService:
     # ------------------------------------------------------------------
 
     def fetch_new_posts(self, channel_id: int | None = None) -> int:
-        """Fetch new posts from RSS feeds. Returns total number of new posts inserted."""
+        """Fetch new posts from all active channels. Returns total new posts."""
         if channel_id:
             channels = SocialChannel.query.filter_by(id=channel_id, is_active=True).all()
         else:
@@ -187,7 +361,10 @@ class SocialService:
         total_new = 0
         for channel in channels:
             try:
-                new_count = self._fetch_channel_posts(channel)
+                if channel.platform == 'twitter':
+                    new_count = self._fetch_twitter_posts(channel)
+                else:
+                    new_count = self._fetch_rss_posts(channel)
                 channel.last_fetched_at = datetime.now(timezone.utc)
                 channel.last_success_at = datetime.now(timezone.utc)
                 channel.consecutive_failures = 0
@@ -205,13 +382,12 @@ class SocialService:
                      total_new, len(channels))
         return total_new
 
-    def _fetch_channel_posts(self, channel: SocialChannel) -> int:
-        """Parse a single channel's feed and insert new posts. Returns count of new posts."""
-        feed = feedparser.parse(channel.feed_url)
+    def _fetch_rss_posts(self, channel: SocialChannel) -> int:
+        """Parse a single channel's RSS feed and insert new posts."""
+        feed = _fetch_and_parse(channel.feed_url)
         if feed.bozo and not feed.entries:
             raise RuntimeError(f"Feed parse error: {feed.bozo_exception}")
 
-        # Collect existing URLs for this channel to deduplicate
         existing_urls: set[str] = set(
             url for (url,) in
             db.session.query(SocialPost.url)
@@ -224,7 +400,6 @@ class SocialService:
             url = entry.get('link')
             if not url or url in existing_urls:
                 continue
-
             post = SocialPost(
                 channel_id=channel.id,
                 url=url,
@@ -236,8 +411,100 @@ class SocialService:
             db.session.add(post)
             existing_urls.add(url)
             new_count += 1
+        return new_count
+
+    def _fetch_twitter_posts(self, channel: SocialChannel) -> int:
+        """Use Grok API with web search to fetch recent tweets."""
+        handle = channel.handle or channel.feed_url.replace('grok://twitter/', '')
+        hours = 6
+
+        prompt = TWITTER_FETCH_PROMPT.format(handle=handle, hours=hours)
+
+        try:
+            llm = LLMGateway()
+            result = llm.call(
+                messages=[
+                    {'role': 'user', 'content': prompt},
+                ],
+                purpose=f'social_twitter_fetch.{handle}',
+                section='social',
+                provider='xai',
+                search=True,
+                max_tokens=3000,
+            )
+        except BudgetExhaustedError:
+            logger.warning("Budget exhausted fetching tweets for @%s", handle)
+            return 0
+
+        # Parse the Grok response as JSON
+        content = result.get('content', '')
+        tweets = self._parse_grok_tweets(content)
+
+        existing_urls: set[str] = set(
+            url for (url,) in
+            db.session.query(SocialPost.url)
+            .filter(SocialPost.channel_id == channel.id)
+            .all()
+        )
+
+        new_count = 0
+        for i, tweet in enumerate(tweets):
+            # Create a unique URL for each tweet
+            tweet_text = tweet.get('text', '')[:200]
+            tweet_date = tweet.get('date', datetime.now(timezone.utc).strftime('%Y-%m-%d'))
+            # Use a hash-like identifier since we don't have actual tweet IDs
+            tweet_url = f"https://x.com/{handle}/status/grok-{tweet_date}-{i}"
+
+            if tweet_url in existing_urls:
+                continue
+
+            try:
+                pub_date = datetime.strptime(tweet_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                pub_date = datetime.now(timezone.utc)
+
+            post = SocialPost(
+                channel_id=channel.id,
+                url=tweet_url,
+                title=tweet.get('topic', tweet_text[:80]) or tweet_text[:80],
+                author=f'@{handle}',
+                published_at=pub_date,
+                content_hint=tweet_text[:4096],
+            )
+            db.session.add(post)
+            existing_urls.add(tweet_url)
+            new_count += 1
 
         return new_count
+
+    def _parse_grok_tweets(self, content: str) -> list[dict]:
+        """Parse Grok's response into a list of tweet dicts."""
+        # Try to extract JSON from the response
+        content = content.strip()
+        # Remove markdown code fences if present
+        if content.startswith('```'):
+            content = re.sub(r'^```\w*\n?', '', content)
+            content = re.sub(r'\n?```$', '', content)
+
+        try:
+            tweets = json.loads(content)
+            if isinstance(tweets, list):
+                return tweets
+        except json.JSONDecodeError:
+            pass
+
+        # Try to find JSON array in the text
+        m = re.search(r'\[.*\]', content, re.DOTALL)
+        if m:
+            try:
+                tweets = json.loads(m.group())
+                if isinstance(tweets, list):
+                    return tweets
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning("Could not parse Grok tweet response as JSON")
+        return []
 
     # ------------------------------------------------------------------
     # Summaries
@@ -249,21 +516,42 @@ class SocialService:
         if post is None:
             raise ValueError(f"Post not found: {post_id}")
         if post.summary_md:
-            return False  # already summarised
+            return False
 
-        platform_label = post.channel.platform if post.channel else 'rss'
-        user_content = (
-            f"Platform: {platform_label}\n"
-            f"Channel: {post.channel.name if post.channel else 'Unknown'}\n"
-            f"Title: {post.title}\n"
-            f"Description:\n{post.content_hint or '(no description)'}"
-        )
+        platform = post.channel.platform if post.channel else 'rss'
+
+        # For YouTube: try to fetch transcript for richer summaries
+        if platform == 'youtube':
+            transcript = _fetch_youtube_transcript(post.url)
+            if transcript:
+                user_content = (
+                    f"Channel: {post.channel.name if post.channel else 'Unknown'}\n"
+                    f"Title: {post.title}\n\n"
+                    f"Transcript:\n{transcript}"
+                )
+                system_prompt = YOUTUBE_SUMMARY_PROMPT
+            else:
+                user_content = (
+                    f"Platform: youtube\n"
+                    f"Channel: {post.channel.name if post.channel else 'Unknown'}\n"
+                    f"Title: {post.title}\n"
+                    f"Description:\n{post.content_hint or '(no description)'}"
+                )
+                system_prompt = SUMMARY_SYSTEM_PROMPT
+        else:
+            user_content = (
+                f"Platform: {platform}\n"
+                f"Channel: {post.channel.name if post.channel else 'Unknown'}\n"
+                f"Title: {post.title}\n"
+                f"Description:\n{post.content_hint or '(no description)'}"
+            )
+            system_prompt = SUMMARY_SYSTEM_PROMPT
 
         try:
             llm = LLMGateway()
             result = llm.call(
                 messages=[
-                    {'role': 'system', 'content': SUMMARY_SYSTEM_PROMPT},
+                    {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_content},
                 ],
                 purpose='social_summary',
@@ -289,7 +577,7 @@ class SocialService:
         return True
 
     def generate_pending_summaries(self, limit: int = 30) -> int:
-        """Generate summaries for posts that don't have one yet. Returns count generated."""
+        """Generate summaries for posts that don't have one yet."""
         pending_posts = (
             SocialPost.query
             .filter(SocialPost.summary_md.is_(None))
@@ -297,7 +585,6 @@ class SocialService:
             .limit(limit)
             .all()
         )
-
         generated = 0
         for post in pending_posts:
             if self.generate_post_summary(post.id):
@@ -313,12 +600,9 @@ class SocialService:
         """Return a summary of posts from the last 7 days grouped by channel."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         today = datetime.now(timezone.utc)
-
         rows = (
             db.session.query(
-                SocialChannel.id,
-                SocialChannel.name,
-                SocialChannel.platform,
+                SocialChannel.id, SocialChannel.name, SocialChannel.platform,
                 func.count(SocialPost.id).label('post_count'),
             )
             .join(SocialPost, SocialPost.channel_id == SocialChannel.id)
@@ -328,49 +612,29 @@ class SocialService:
             .order_by(func.count(SocialPost.id).desc())
             .all()
         )
-
         channels = []
         total_posts = 0
         for cid, cname, cplatform, pcount in rows:
-            channels.append({
-                'id': cid,
-                'name': cname,
-                'platform': cplatform,
-                'post_count': pcount,
-            })
+            channels.append({'id': cid, 'name': cname, 'platform': cplatform, 'post_count': pcount})
             total_posts += pcount
-
         date_range = f"{cutoff.strftime('%b %d')} - {today.strftime('%b %d, %Y')}"
+        return {'channels': channels, 'total_posts': total_posts, 'date_range': date_range}
 
-        return {
-            'channels': channels,
-            'total_posts': total_posts,
-            'date_range': date_range,
-        }
-
-    def get_channel_posts(self, channel_id: int, limit: int = 50,
-                          offset: int = 0) -> list[dict]:
-        """Return paginated posts for a single channel."""
+    def get_channel_posts(self, channel_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
         posts = (
             SocialPost.query
             .filter(SocialPost.channel_id == channel_id)
             .order_by(SocialPost.published_at.desc())
-            .offset(offset)
-            .limit(limit)
-            .all()
+            .offset(offset).limit(limit).all()
         )
         return [p.to_dict() for p in posts]
 
-    def get_all_posts(self, limit: int = 50, offset: int = 0,
-                      days: int = 7) -> list[dict]:
-        """Return all posts across channels from the last N days."""
+    def get_all_posts(self, limit: int = 50, offset: int = 0, days: int = 7) -> list[dict]:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         posts = (
             SocialPost.query
             .filter(SocialPost.published_at >= cutoff)
             .order_by(SocialPost.published_at.desc())
-            .offset(offset)
-            .limit(limit)
-            .all()
+            .offset(offset).limit(limit).all()
         )
         return [p.to_dict() for p in posts]

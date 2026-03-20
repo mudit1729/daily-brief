@@ -15,7 +15,13 @@
 
 {# ── Follow bar ── #}
 <section class="sb-social-follow-bar">
-  <input type="text" id="followUrl" placeholder="Paste YouTube / Substack / Twitter / RSS feed URL..." class="sb-social-follow-bar__input">
+  <select id="followPlatform" class="sb-social-follow-bar__select" onchange="updateFollowPlaceholder()">
+    <option value="youtube">YouTube</option>
+    <option value="twitter">Twitter / X</option>
+    <option value="substack">Substack</option>
+    <option value="rss">RSS Feed</option>
+  </select>
+  <input type="text" id="followUrl" placeholder="Channel URL, @handle, or ID..." class="sb-social-follow-bar__input">
   <button id="followBtn" onclick="followChannel()" class="sb-social-follow-bar__btn">Follow</button>
 </section>
 

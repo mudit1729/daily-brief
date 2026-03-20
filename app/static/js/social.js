@@ -94,17 +94,36 @@
       </div>`;
   }
 
+  // ── Platform placeholders ──
+
+  const _placeholders = {
+    youtube: 'Channel URL, @handle, or channel ID...',
+    twitter: '@handle or profile URL...',
+    substack: 'blog-name or blog-name.substack.com...',
+    rss: 'RSS feed URL...',
+  };
+
+  window.updateFollowPlaceholder = function () {
+    const sel = document.getElementById('followPlatform');
+    const input = document.getElementById('followUrl');
+    if (sel && input) {
+      input.placeholder = _placeholders[sel.value] || _placeholders.rss;
+    }
+  };
+
   // ── Follow / Unfollow ──
 
   window.followChannel = async function () {
     const input = document.getElementById('followUrl');
-    const url = (input.value || '').trim();
-    if (!url) { alert('Please enter a feed URL.'); return; }
+    const platformSel = document.getElementById('followPlatform');
+    const value = (input.value || '').trim();
+    const platform = platformSel ? platformSel.value : 'rss';
+    if (!value) { alert('Please enter a channel URL or handle.'); return; }
 
     try {
       await api('/api/social/follow', {
         method: 'POST',
-        body: JSON.stringify({ feed_url: url }),
+        body: JSON.stringify({ input_value: value, platform: platform }),
       });
       input.value = '';
       location.reload();

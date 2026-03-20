@@ -1799,15 +1799,17 @@ def social_page():
 @views_bp.route('/api/social/follow', methods=['POST'])
 def social_follow():
     data = request.get_json()
-    if not data or not data.get('feed_url'):
-        return jsonify({'error': 'feed_url required'}), 400
+    input_value = data.get('input_value') or data.get('feed_url')
+    platform = data.get('platform', 'rss')
+    if not input_value:
+        return jsonify({'error': 'input_value required'}), 400
     from app.services.social_service import SocialService
     service = SocialService()
     try:
         channel = service.follow_channel(
-            feed_url=data['feed_url'],
+            input_value=input_value,
+            platform=platform,
             name=data.get('name'),
-            platform=data.get('platform'),
         )
         return jsonify(channel)
     except ValueError as e:
