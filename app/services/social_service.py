@@ -413,10 +413,9 @@ class SocialService:
             new_count += 1
         return new_count
 
-    def _fetch_twitter_posts(self, channel: SocialChannel) -> int:
+    def _fetch_twitter_posts(self, channel: SocialChannel, hours: int = 6) -> int:
         """Use Grok API with web search to fetch recent tweets."""
         handle = channel.handle or channel.feed_url.replace('grok://twitter/', '')
-        hours = 6
 
         prompt = TWITTER_FETCH_PROMPT.format(handle=handle, hours=hours)
 
@@ -591,6 +590,182 @@ class SocialService:
                 generated += 1
         logger.info("generate_pending_summaries: %d/%d generated", generated, len(pending_posts))
         return generated
+
+    # ------------------------------------------------------------------
+    # YouTube backfill
+    # ------------------------------------------------------------------
+
+    def backfill_youtube_channel(self, channel_id: int, max_videos: int = 5):
+        """Generator that fetches recent videos, transcripts, and summaries.
+
+        Yields progress dicts: {'step': str, 'video': int, 'total': int, 'title': str, 'status': str}
+        """
+        channel = db.session.get(SocialChannel, channel_id)
+        if channel is None or channel.platform != 'youtube':
+            yield {'step': 'error', 'message': 'Channel not found or not YouTube'}
+            return
+
+        # Step 1: Fetch RSS feed
+        yield {'step': 'fetch_feed', 'video': 0, 'total': 0, 'title': '', 'status': 'Fetching RSS feed...'}
+
+        feed = _fetch_and_parse(channel.feed_url)
+        entries = feed.entries[:max_videos] if feed.entries else []
+
+        if not entries:
+            yield {'step': 'done', 'video': 0, 'total': 0, 'title': '', 'status': 'No videos found in feed.'}
+            return
+
+        total = len(entries)
+        yield {'step': 'feed_loaded', 'video': 0, 'total': total, 'title': '', 'status': f'Found {total} videos'}
+
+        # Step 2: Create posts, fetch transcripts, summarize
+        existing_urls = set(
+            url for (url,) in
+            db.session.query(SocialPost.url)
+            .filter(SocialPost.channel_id == channel.id)
+            .all()
+        )
+
+        for i, entry in enumerate(entries, 1):
+            url = entry.get('link')
+            title = entry.get('title', 'Untitled')[:1024]
+
+            if not url:
+                continue
+
+            # Create post if not exists
+            if url not in existing_urls:
+                post = SocialPost(
+                    channel_id=channel.id,
+                    url=url,
+                    title=title,
+                    author=entry.get('author', channel.name),
+                    published_at=_parse_published(entry),
+                    content_hint=(entry.get('summary') or '')[:4096],
+                )
+                db.session.add(post)
+                db.session.commit()
+                existing_urls.add(url)
+            else:
+                post = SocialPost.query.filter_by(url=url).first()
+
+            if post is None:
+                continue
+
+            # Fetch transcript
+            yield {'step': 'transcript', 'video': i, 'total': total, 'title': title, 'status': f'Fetching transcript ({i}/{total})...'}
+
+            transcript = _fetch_youtube_transcript(url)
+            transcript_status = 'transcript found' if transcript else 'no transcript available'
+
+            # Generate summary
+            yield {'step': 'summarize', 'video': i, 'total': total, 'title': title, 'status': f'Summarizing ({i}/{total})...'}
+
+            if not post.summary_md:
+                self._generate_summary_for_post(post, transcript)
+
+            yield {'step': 'video_done', 'video': i, 'total': total, 'title': title, 'status': f'Done ({i}/{total}) — {transcript_status}'}
+
+        # Update channel fetch time
+        channel.last_fetched_at = datetime.now(timezone.utc)
+        channel.last_success_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        yield {'step': 'done', 'video': total, 'total': total, 'title': '', 'status': f'Backfill complete — {total} videos processed'}
+
+    def backfill_twitter_channel(self, channel_id: int):
+        """Generator that fetches last 48h of tweets and summarizes them.
+
+        Yields progress dicts similar to YouTube backfill.
+        """
+        channel = db.session.get(SocialChannel, channel_id)
+        if channel is None or channel.platform != 'twitter':
+            yield {'step': 'error', 'video': 0, 'total': 0, 'title': '', 'status': 'Channel not found or not Twitter'}
+            return
+
+        handle = channel.handle or channel.feed_url.replace('grok://twitter/', '')
+
+        yield {'step': 'fetch_feed', 'video': 0, 'total': 0, 'title': '', 'status': f'Searching for @{handle} tweets (last 48h)...'}
+
+        # Fetch tweets from last 48 hours
+        try:
+            new_count = self._fetch_twitter_posts(channel, hours=48)
+            db.session.commit()
+        except Exception as e:
+            yield {'step': 'error', 'video': 0, 'total': 0, 'title': '', 'status': f'Failed to fetch tweets: {e}'}
+            return
+
+        yield {'step': 'feed_loaded', 'video': 0, 'total': new_count, 'title': '', 'status': f'Found {new_count} tweets'}
+
+        if new_count == 0:
+            channel.last_fetched_at = datetime.now(timezone.utc)
+            channel.last_success_at = datetime.now(timezone.utc)
+            db.session.commit()
+            yield {'step': 'done', 'video': 0, 'total': 0, 'title': '', 'status': 'No tweets found in last 48 hours.'}
+            return
+
+        # Summarize each unsummarized tweet
+        unsummarized = (
+            SocialPost.query
+            .filter(SocialPost.channel_id == channel.id, SocialPost.summary_md.is_(None))
+            .order_by(SocialPost.published_at.desc())
+            .all()
+        )
+        total = len(unsummarized)
+
+        for i, post in enumerate(unsummarized, 1):
+            yield {'step': 'summarize', 'video': i, 'total': total, 'title': post.title[:80], 'status': f'Summarizing tweet ({i}/{total})...'}
+            self._generate_summary_for_post(post)
+            yield {'step': 'video_done', 'video': i, 'total': total, 'title': post.title[:80], 'status': f'Done ({i}/{total})'}
+
+        channel.last_fetched_at = datetime.now(timezone.utc)
+        channel.last_success_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        yield {'step': 'done', 'video': total, 'total': total, 'title': '', 'status': f'Backfill complete — {new_count} tweets fetched, {total} summarized'}
+
+    def _generate_summary_for_post(self, post: SocialPost, transcript: str | None = None):
+        """Generate summary for a post with optional pre-fetched transcript."""
+        platform = post.channel.platform if post.channel else 'rss'
+
+        if platform == 'youtube' and transcript:
+            user_content = (
+                f"Channel: {post.channel.name if post.channel else 'Unknown'}\n"
+                f"Title: {post.title}\n\n"
+                f"Transcript:\n{transcript}"
+            )
+            system_prompt = YOUTUBE_SUMMARY_PROMPT
+        else:
+            user_content = (
+                f"Platform: {platform}\n"
+                f"Channel: {post.channel.name if post.channel else 'Unknown'}\n"
+                f"Title: {post.title}\n"
+                f"Description:\n{post.content_hint or '(no description)'}"
+            )
+            system_prompt = SUMMARY_SYSTEM_PROMPT
+
+        try:
+            llm = LLMGateway()
+            result = llm.call(
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_content},
+                ],
+                purpose='social_summary',
+                section='social',
+                provider='openai',
+                model='gpt-4.1-nano',
+                max_tokens=2000,
+            )
+        except (BudgetExhaustedError, Exception) as e:
+            logger.warning("Summary generation failed for post id=%s: %s", post.id, e)
+            return
+
+        post.summary_md = result['content']
+        post.summary_generated_at = datetime.now(timezone.utc)
+        post.summary_cost_usd = result.get('cost_usd')
+        post.summary_tokens = result.get('total_tokens')
+        db.session.commit()
 
     # ------------------------------------------------------------------
     # Queries

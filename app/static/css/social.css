@@ -705,3 +705,112 @@ a.sb-social-timeline-item__title:hover {
     height: 44px;
   }
 }
+
+/* ===== Backfill Progress Overlay ===== */
+
+.sb-backfill-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: sbBackfillFadeIn 0.3s ease;
+}
+
+@keyframes sbBackfillFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sb-backfill-card {
+  background: var(--sb-surface, #1e293b);
+  border: 1px solid var(--sb-border, #334155);
+  border-radius: var(--sb-radius-lg, 0.75rem);
+  padding: var(--sb-space-6, 1.5rem);
+  width: min(480px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.sb-backfill-card__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--sb-text, #f1f5f9);
+  margin: 0 0 0.25rem;
+}
+
+.sb-backfill-card__subtitle {
+  font-size: 0.8125rem;
+  color: var(--sb-text-muted, #94a3b8);
+  margin: 0 0 1rem;
+}
+
+.sb-backfill-progress {
+  height: 6px;
+  background: var(--sb-surface-alt, #0f172a);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.sb-backfill-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.sb-backfill-status {
+  font-size: 0.8125rem;
+  color: var(--sb-text-muted, #94a3b8);
+  margin-bottom: 1rem;
+}
+
+.sb-backfill-videos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sb-backfill-video-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--sb-surface-alt, #0f172a);
+  border-radius: var(--sb-radius-md, 0.5rem);
+  font-size: 0.8125rem;
+  color: var(--sb-text, #f1f5f9);
+  animation: sbBackfillSlideIn 0.3s ease;
+}
+
+@keyframes sbBackfillSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sb-backfill-video-item.done {
+  opacity: 0.7;
+}
+
+.sb-backfill-video-item__icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.sb-backfill-video-item__title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-backfill-video-item__step {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--sb-text-muted, #94a3b8);
+}

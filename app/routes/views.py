@@ -5,7 +5,7 @@ Queries the database directly (same models as API routes).
 import hmac
 import logging
 from datetime import date, timedelta, datetime, timezone
-from flask import Blueprint, render_template, request, abort, jsonify, current_app, session, redirect, url_for
+from flask import Blueprint, render_template, request, abort, jsonify, current_app, session, redirect, url_for, Response, stream_with_context
 
 from app.extensions import db, scheduler
 from app.models.brief import DailyBrief, BriefSection
@@ -1863,3 +1863,32 @@ def social_summarize_post(post_id):
     from app.services.social_service import SocialService
     SocialService().generate_post_summary(post_id)
     return jsonify({'ok': True})
+
+
+@views_bp.route('/api/social/backfill/<int:channel_id>')
+def social_backfill(channel_id):
+    """SSE endpoint that streams YouTube/Twitter backfill progress."""
+    import json as _json
+    from app.services.social_service import SocialService
+    from app.models.social import SocialChannel
+
+    channel = db.session.get(SocialChannel, channel_id)
+    platform = channel.platform if channel else 'unknown'
+
+    def generate():
+        service = SocialService()
+        if platform == 'youtube':
+            gen = service.backfill_youtube_channel(channel_id, max_videos=5)
+        elif platform == 'twitter':
+            gen = service.backfill_twitter_channel(channel_id)
+        else:
+            yield f"data: {_json.dumps({'step': 'done', 'video': 0, 'total': 0, 'title': '', 'status': 'Backfill not supported for this platform'})}\n\n"
+            return
+        for progress in gen:
+            yield f"data: {_json.dumps(progress)}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+    )

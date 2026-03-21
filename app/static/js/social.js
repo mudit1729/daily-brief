@@ -121,16 +121,96 @@
     if (!value) { alert('Please enter a channel URL or handle.'); return; }
 
     try {
-      await api('/api/social/follow', {
+      const channel = await api('/api/social/follow', {
         method: 'POST',
         body: JSON.stringify({ input_value: value, platform: platform }),
       });
       input.value = '';
-      location.reload();
+
+      // For YouTube/Twitter channels, start backfill with progress visualization
+      if ((platform === 'youtube' || platform === 'twitter') && channel && channel.id) {
+        const label = platform === 'youtube' ? 'last 5 videos' : 'last 48h of tweets';
+        startBackfill(channel.id, channel.name || channel.handle || platform, label);
+      } else {
+        location.reload();
+      }
     } catch (err) {
       alert('Error following channel: ' + err.message);
     }
   };
+
+  // ── Backfill progress overlay ──
+
+  function createBackfillOverlay(channelName, description) {
+    let overlay = document.getElementById('backfillOverlay');
+    if (overlay) overlay.remove();
+
+    overlay = document.createElement('div');
+    overlay.id = 'backfillOverlay';
+    overlay.innerHTML = `
+      <div class="sb-backfill-overlay">
+        <div class="sb-backfill-card">
+          <h3 class="sb-backfill-card__title">Importing ${channelName}</h3>
+          <p class="sb-backfill-card__subtitle">Fetching &amp; summarizing ${description}</p>
+          <div class="sb-backfill-progress">
+            <div class="sb-backfill-progress__bar" id="backfillBar" style="width:0%"></div>
+          </div>
+          <div class="sb-backfill-status" id="backfillStatus">Connecting...</div>
+          <div class="sb-backfill-videos" id="backfillVideos"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function startBackfill(channelId, channelName, description) {
+    createBackfillOverlay(channelName, description || 'content');
+    const statusEl = document.getElementById('backfillStatus');
+    const barEl = document.getElementById('backfillBar');
+    const videosEl = document.getElementById('backfillVideos');
+
+    const source = new EventSource('/api/social/backfill/' + channelId);
+
+    source.onmessage = function (event) {
+      const data = JSON.parse(event.data);
+      statusEl.textContent = data.status || '';
+
+      if (data.total > 0) {
+        const pct = Math.round((data.video / data.total) * 100);
+        barEl.style.width = pct + '%';
+      }
+
+      // Add/update video items
+      if (data.title && data.step !== 'done' && data.step !== 'feed_loaded' && data.step !== 'fetch_feed') {
+        let item = document.getElementById('backfill-v-' + data.video);
+        if (!item) {
+          item = document.createElement('div');
+          item.id = 'backfill-v-' + data.video;
+          item.className = 'sb-backfill-video-item';
+          videosEl.appendChild(item);
+        }
+        const icon = data.step === 'video_done' ? '✓' : data.step === 'summarize' ? '⚡' : '📥';
+        const stepLabel = data.step === 'transcript' ? 'Fetching transcript' :
+                          data.step === 'summarize' ? 'Summarizing' : 'Done';
+        item.innerHTML = `<span class="sb-backfill-video-item__icon">${icon}</span>
+          <span class="sb-backfill-video-item__title">${data.title}</span>
+          <span class="sb-backfill-video-item__step">${stepLabel}</span>`;
+        if (data.step === 'video_done') item.classList.add('done');
+      }
+
+      if (data.step === 'done' || data.step === 'error') {
+        source.close();
+        barEl.style.width = '100%';
+        setTimeout(() => location.reload(), 1500);
+      }
+    };
+
+    source.onerror = function () {
+      source.close();
+      statusEl.textContent = 'Connection lost. Reloading...';
+      setTimeout(() => location.reload(), 2000);
+    };
+  }
 
   window.unfollowChannel = async function (channelId, channelName) {
     if (!confirm('Unfollow ' + channelName + '?')) return;
