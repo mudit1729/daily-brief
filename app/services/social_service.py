@@ -352,14 +352,25 @@ class SocialService:
     # ------------------------------------------------------------------
 
     def fetch_new_posts(self, channel_id: int | None = None) -> int:
-        """Fetch new posts from all active channels. Returns total new posts."""
+        """Fetch new posts from all active channels. Returns total new posts.
+        Respects per-channel refresh_interval_hours — skips channels fetched too recently.
+        """
         if channel_id:
             channels = SocialChannel.query.filter_by(id=channel_id, is_active=True).all()
         else:
             channels = SocialChannel.query.filter_by(is_active=True).all()
 
+        now = datetime.now(timezone.utc)
         total_new = 0
         for channel in channels:
+            # Skip if fetched more recently than the channel's refresh interval
+            if not channel_id and channel.last_fetched_at:
+                from datetime import timedelta
+                interval = timedelta(hours=channel.refresh_interval_hours or 4)
+                if (now - channel.last_fetched_at) < interval:
+                    logger.debug("Skipping channel id=%s (last fetched %s ago, interval %sh)",
+                                 channel.id, now - channel.last_fetched_at, channel.refresh_interval_hours)
+                    continue
             try:
                 if channel.platform == 'twitter':
                     new_count = self._fetch_twitter_posts(channel)

@@ -233,6 +233,20 @@
     }
   };
 
+  // ── Refresh interval ──
+
+  window.updateRefreshInterval = async function (channelId, hours) {
+    try {
+      await api('/api/social/channel/' + channelId + '/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_interval_hours: parseInt(hours) }),
+      });
+    } catch (err) {
+      alert('Error updating refresh interval: ' + err.message);
+    }
+  };
+
   // ── View switching ──
 
   window.switchView = function (view, btn) {

@@ -1653,19 +1653,36 @@ def reader_gdrive(file_id):
         if os.path.isfile(cached):
             os.remove(cached)
 
-        # Google Drive direct download URL (with confirm=t to skip virus scan)
+        session = _req.Session()
+        resp = None
+
+        # Try direct download first (works for uploaded PDF files)
         url = (f'https://drive.usercontent.google.com/download'
                f'?id={file_id}&export=download&confirm=t')
-        session = _req.Session()
         resp = session.get(url, stream=True, timeout=(15, 300))
 
-        if resp.status_code != 200:
-            abort(502)
-
-        # Verify we got a PDF, not an HTML error/confirmation page
         content_type = resp.headers.get('Content-Type', '')
-        if 'text/html' in content_type:
-            abort(502)
+
+        # If we got HTML back, it's likely a Google Slides/Docs native file
+        # → try the export-as-PDF endpoint instead
+        if resp.status_code != 200 or 'text/html' in content_type:
+            resp.close()
+            # Try Google Slides export
+            export_url = (f'https://docs.google.com/presentation/d/'
+                          f'{file_id}/export/pdf')
+            resp = session.get(export_url, stream=True, timeout=(15, 300))
+            content_type = resp.headers.get('Content-Type', '')
+
+            if resp.status_code != 200 or 'text/html' in content_type:
+                resp.close()
+                # Try Google Docs export as last resort
+                export_url = (f'https://docs.google.com/document/d/'
+                              f'{file_id}/export?format=pdf')
+                resp = session.get(export_url, stream=True, timeout=(15, 300))
+                content_type = resp.headers.get('Content-Type', '')
+
+                if resp.status_code != 200 or 'text/html' in content_type:
+                    abort(502)
 
         # Stream from GDrive → save to cache AND stream to client
         total = resp.headers.get('Content-Length', '')
@@ -1824,6 +1841,24 @@ def social_unfollow(channel_id):
     from app.services.social_service import SocialService
     SocialService().unfollow_channel(channel_id)
     return jsonify({'ok': True})
+
+
+@views_bp.route('/api/social/channel/<int:channel_id>/settings', methods=['PATCH'])
+def social_channel_settings(channel_id):
+    from app.models.social import SocialChannel
+    channel = db.session.get(SocialChannel, channel_id)
+    if not channel:
+        return jsonify({'error': 'Channel not found'}), 404
+    data = request.get_json(force=True)
+    if 'refresh_interval_hours' in data:
+        val = int(data['refresh_interval_hours'])
+        if val < 1:
+            val = 1
+        if val > 168:
+            val = 168  # max 1 week
+        channel.refresh_interval_hours = val
+    db.session.commit()
+    return jsonify(channel.to_dict())
 
 
 @views_bp.route('/api/social/channels')

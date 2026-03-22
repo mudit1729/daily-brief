@@ -18,6 +18,7 @@ class SocialChannel(db.Model):
     last_success_at = db.Column(db.DateTime(timezone=True), nullable=True)
     consecutive_failures = db.Column(db.Integer, default=0, nullable=False)
     last_error = db.Column(db.String(512), nullable=True)
+    refresh_interval_hours = db.Column(db.Integer, default=4, nullable=False)
     created_at = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -42,6 +43,7 @@ class SocialChannel(db.Model):
             'description': self.description,
             'is_active': self.is_active,
             'last_fetched_at': self.last_fetched_at.isoformat() if self.last_fetched_at else None,
+            'refresh_interval_hours': self.refresh_interval_hours or 4,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
         if include_stats:

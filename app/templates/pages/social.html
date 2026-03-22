@@ -66,6 +66,14 @@
       <p class="sb-social-channel-card__desc">{{ (ch.description or '')[:100] }}</p>
       <div class="sb-social-channel-card__footer">
         <span>{{ ch.post_count or 0 }} posts</span>
+        <label class="sb-refresh-interval" onclick="event.stopPropagation()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <select onchange="updateRefreshInterval({{ ch.id }}, this.value)" class="sb-refresh-select">
+            {% for h in [1, 2, 4, 6, 8, 12, 24, 48] %}
+            <option value="{{ h }}" {{ 'selected' if (ch.refresh_interval_hours or 4) == h }}>{{ h }}h</option>
+            {% endfor %}
+          </select>
+        </label>
         <button class="sb-unfollow-btn" onclick="event.stopPropagation(); unfollowChannel({{ ch.id }}, '{{ ch.name }}')">Unfollow</button>
       </div>
     </div>
