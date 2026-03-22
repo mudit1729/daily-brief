@@ -2,7 +2,7 @@
 {% block title %}Pulse — Reader{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}?v=3">
 {% endblock %}
 
 {% block content %}
@@ -211,5 +211,5 @@
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
-<script src="{{ url_for('static', filename='js/reader.js') }}?v=2" type="module" defer></script>
+<script src="{{ url_for('static', filename='js/reader.js') }}?v=3" type="module" defer></script>
 {% endblock %}

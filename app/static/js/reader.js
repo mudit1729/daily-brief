@@ -270,6 +270,7 @@ async function openPDF(source) {
 
 function cleanup() {
   if (observer) observer.disconnect();
+  if (unloadObserver) unloadObserver.disconnect();
   renderedPages.clear();
   pagesContainer.innerHTML = '';
   pdfDoc = null;
@@ -290,7 +291,14 @@ function createPagePlaceholders() {
 }
 
 // ── Lazy rendering via IntersectionObserver ──
+// We use TWO observers:
+// 1. renderObserver: tight margin — renders pages near viewport
+// 2. unloadObserver: wide margin — unloads pages far from viewport to free canvas memory
+let unloadObserver = null;
+const MAX_RENDERED = 10;  // Max pages to keep rendered at once
+
 function setupObserver() {
+  // Render observer: render pages when they approach the viewport
   observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (entry.isIntersecting) {
@@ -298,18 +306,55 @@ function setupObserver() {
         const info = renderedPages.get(pageNum);
         if (info && !info.rendered && !info.rendering) {
           renderPage(pageNum);
+          // After rendering, check if we need to unload distant pages
+          trimRenderedPages(pageNum);
         }
       }
     }
   }, {
     root: viewer,
-    rootMargin: '200px 0px',  // Pre-render 200px above/below viewport
+    rootMargin: '600px 0px',  // Pre-render 600px above/below viewport
     threshold: 0
   });
 
   renderedPages.forEach((info) => {
     observer.observe(info.el);
   });
+}
+
+function trimRenderedPages(currentPage) {
+  // Count rendered pages
+  const rendered = [];
+  renderedPages.forEach((info, num) => {
+    if (info.rendered) rendered.push(num);
+  });
+
+  if (rendered.length <= MAX_RENDERED) return;
+
+  // Sort by distance from current page, unload the farthest
+  rendered.sort((a, b) => Math.abs(a - currentPage) - Math.abs(b - currentPage));
+  const toUnload = rendered.slice(MAX_RENDERED);
+
+  for (const pageNum of toUnload) {
+    unloadPage(pageNum);
+  }
+}
+
+function unloadPage(pageNum) {
+  const info = renderedPages.get(pageNum);
+  if (!info || !info.rendered) return;
+
+  // Preserve the placeholder dimensions before clearing
+  const w = info.el.style.width;
+  const h = info.el.style.height;
+  info.el.innerHTML = '';
+  info.el.style.width = w;
+  info.el.style.height = h;
+  info.rendered = false;
+  info.rendering = false;
+  info.canvas = null;
+  info.textDiv = null;
+  info.viewport = null;
 }
 
 // ── Render a single page ──
@@ -329,7 +374,7 @@ async function renderPage(pageNum) {
     // Canvas
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);  // Cap DPR to save canvas memory
     canvas.width = viewport.width * dpr;
     canvas.height = viewport.height * dpr;
     canvas.style.width = viewport.width + 'px';
