@@ -448,6 +448,7 @@ class SocialService:
 
         # Parse the Grok response as JSON
         content = result.get('content', '')
+        logger.info("Grok response for @%s (len=%d): %s", handle, len(content), content[:500])
         tweets = self._parse_grok_tweets(content)
 
         existing_urls: set[str] = set(
