@@ -1301,6 +1301,33 @@ mark.user-comment.sb-comment-flash {
   margin: 0 auto;
 }
 
+/* ── Tablet toolbar: only essential buttons (641-1024px) ── */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Hide text labels */
+  .sb-notes-toolbar__btn span {
+    display: none;
+  }
+
+  /* Hide all dividers */
+  .sb-notes-toolbar__divider {
+    display: none;
+  }
+
+  /* Hide non-essential buttons */
+  .sb-notes-toolbar__btn[onclick="clearAllHighlights()"],
+  .sb-notes-toolbar__btn#commentToggleBtn,
+  .sb-notes-toolbar__btn#commentPanelBtn,
+  .sb-notes-toolbar__btn#drawToggleBtn,
+  .sb-notes-toolbar__btn#ttsToggleBtn,
+  .sb-notes-toolbar__btn#chatToggleBtn,
+  .sb-notes-toolbar__btn#browserFullscreenBtn,
+  .sb-draw-tools,
+  .sb-tts-controls,
+  .sb-chat-toggle {
+    display: none !important;
+  }
+}
+
 /* ── Back button (mobile only) ─────────────────── */
 .sb-notes-toolbar__back {
   display: none;  /* hidden on desktop */
