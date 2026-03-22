@@ -149,7 +149,7 @@ class LLMGateway:
         }
 
     def _call_xai_with_search(self, messages, max_tokens, purpose):
-        """Make an xAI/Grok API call with live web search (Responses API)."""
+        """Make an xAI/Grok API call with live web search (Chat Completions API)."""
         if not self.xai_api_key:
             raise ValueError("XAI_API_KEY not configured")
 
@@ -159,28 +159,21 @@ class LLMGateway:
             base_url=XAI_BASE_URL,
         )
 
-        # Responses API uses 'input' instead of 'messages'
-        input_messages = [{'role': m['role'], 'content': m['content']} for m in messages]
+        chat_messages = [{'role': m['role'], 'content': m['content']} for m in messages]
 
         start_ms = int(time.time() * 1000)
         try:
-            response = client.responses.create(
+            response = client.chat.completions.create(
                 model=self.xai_model,
-                input=input_messages,
-                max_output_tokens=max_tokens,
-                tools=[{'type': 'web_search'}],
+                messages=chat_messages,
+                max_tokens=max_tokens,
+                extra_body={"search_parameters": {"mode": "auto"}},
             )
         except Exception as e:
             logger.error(f"xAI/Grok search call failed ({purpose}): {e}")
             raise
 
-        # Extract text from response output items
-        content = ''
-        for item in response.output:
-            if hasattr(item, 'content'):
-                for block in item.content:
-                    if hasattr(block, 'text'):
-                        content += block.text
+        content = response.choices[0].message.content or ''
 
         class _Usage:
             def __init__(self, inp, out):
@@ -189,8 +182,8 @@ class LLMGateway:
                 self.total_tokens = inp + out
 
         usage = _Usage(
-            getattr(response.usage, 'input_tokens', 0),
-            getattr(response.usage, 'output_tokens', 0),
+            getattr(response.usage, 'prompt_tokens', 0),
+            getattr(response.usage, 'completion_tokens', 0),
         )
 
         return self.xai_model, {

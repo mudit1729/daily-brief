@@ -451,8 +451,10 @@ class SocialService:
             # Create a unique URL for each tweet
             tweet_text = tweet.get('text', '')[:200]
             tweet_date = tweet.get('date', datetime.now(timezone.utc).strftime('%Y-%m-%d'))
-            # Use a hash-like identifier since we don't have actual tweet IDs
-            tweet_url = f"https://x.com/{handle}/status/grok-{tweet_date}-{i}"
+            # Use content hash for dedup since we don't have actual tweet IDs
+            import hashlib
+            text_hash = hashlib.md5(tweet_text.encode()).hexdigest()[:10]
+            tweet_url = f"https://x.com/{handle}/status/grok-{tweet_date}-{text_hash}"
 
             if tweet_url in existing_urls:
                 continue
