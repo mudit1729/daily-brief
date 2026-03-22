@@ -12,35 +12,117 @@
     <div class="rd-sidebar__header">
       <h2 class="rd-sidebar__title">Library</h2>
     </div>
-    <ul class="rd-book-list" id="bookList">
-      {% for pdf in pdfs %}
-      <li>
-        <button class="rd-book-item{% if loop.first %} active{% endif %}" data-file="{{ pdf.filename }}" onclick="loadPDF('{{ pdf.filename }}', this)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>{{ pdf.display_name }}</span>
-        </button>
-      </li>
-      {% endfor %}
-      {# ── Cloud-hosted books (Google Drive) ── #}
-      <li>
-        <button class="rd-book-item" data-gdrive="14fkhWB7axqOkorUnNnmWP4tJjh8ABiTw" onclick="loadGDrivePDF('14fkhWB7axqOkorUnNnmWP4tJjh8ABiTw', 'SLAM Book (EN)', this)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>SLAM Book (EN)</span>
-        </button>
-      </li>
-      <li>
-        <button class="rd-book-item" data-gdrive="1VpLbx-ggcVJkLX2ypIrTLuDPTgjFiFHr" onclick="loadGDrivePDF('1VpLbx-ggcVJkLX2ypIrTLuDPTgjFiFHr', 'Transformers &amp; Large Language Models', this)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>Transformers &amp; Large Language Models</span>
-        </button>
-      </li>
-      <li>
-        <button class="rd-book-item" data-gdrive="1mxFU6fQ4yMterQS0E6uoVUeE2uxNt8mW" onclick="loadGDrivePDF('1mxFU6fQ4yMterQS0E6uoVUeE2uxNt8mW', 'Math for ML', this)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>Math for ML</span>
-        </button>
-      </li>
-    </ul>
+
+    {# ── Books Section ── #}
+    <div class="rd-section">
+      <button class="rd-section__header" onclick="toggleSection(this)">
+        <svg class="rd-section__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <span>Books</span>
+        <span class="rd-section__count">{{ pdfs|length + 3 }}</span>
+      </button>
+      <ul class="rd-book-list rd-section__body" id="bookList">
+        {% for pdf in pdfs %}
+        <li>
+          <button class="rd-book-item{% if loop.first %} active{% endif %}" data-file="{{ pdf.filename }}" onclick="loadPDF('{{ pdf.filename }}', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>{{ pdf.display_name }}</span>
+          </button>
+        </li>
+        {% endfor %}
+        {# ── Cloud-hosted books (Google Drive) ── #}
+        <li>
+          <button class="rd-book-item" data-gdrive="14fkhWB7axqOkorUnNnmWP4tJjh8ABiTw" onclick="loadGDrivePDF('14fkhWB7axqOkorUnNnmWP4tJjh8ABiTw', 'SLAM Book (EN)', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>SLAM Book (EN)</span>
+          </button>
+        </li>
+        <li>
+          <button class="rd-book-item" data-gdrive="1VpLbx-ggcVJkLX2ypIrTLuDPTgjFiFHr" onclick="loadGDrivePDF('1VpLbx-ggcVJkLX2ypIrTLuDPTgjFiFHr', 'Transformers &amp; Large Language Models', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Transformers &amp; Large Language Models</span>
+          </button>
+        </li>
+        <li>
+          <button class="rd-book-item" data-gdrive="1mxFU6fQ4yMterQS0E6uoVUeE2uxNt8mW" onclick="loadGDrivePDF('1mxFU6fQ4yMterQS0E6uoVUeE2uxNt8mW', 'Math for ML', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Math for ML</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    {# ── Presentations Section ── #}
+    <div class="rd-section">
+      <button class="rd-section__header" onclick="toggleSection(this)">
+        <svg class="rd-section__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <span>Presentations</span>
+      </button>
+      <div class="rd-section__body" id="presentationList">
+
+        {# ── ECE 285 ── #}
+        <div class="rd-course collapsed">
+          <button class="rd-course__header" onclick="toggleSection(this)">
+            <svg class="rd-section__chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>ECE 285</span>
+            <span class="rd-section__count">6</span>
+          </button>
+          <ul class="rd-book-list rd-course__body">
+            <li><button class="rd-book-item" data-gdrive="10wvJ7VID03woLuSmIm-DzA8UhZ9so1pN" onclick="loadGDrivePDF('10wvJ7VID03woLuSmIm-DzA8UhZ9so1pN', 'ECE 285 — Intro', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>1 — Intro</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1okDYhLSZSRBQQolpdUCHEKvbuQx9T5UN" onclick="loadGDrivePDF('1okDYhLSZSRBQQolpdUCHEKvbuQx9T5UN', 'ECE 285 — Pre-Deep', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>2 — Pre-Deep</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1-JQt-yZfzFQCASAL2_n3RXHvcNMub3wG" onclick="loadGDrivePDF('1-JQt-yZfzFQCASAL2_n3RXHvcNMub3wG', 'ECE 285 — Deep', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>3 — Deep</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1F0l3cTMDaEKj23J6XW1vOfvaPm1KFrrO" onclick="loadGDrivePDF('1F0l3cTMDaEKj23J6XW1vOfvaPm1KFrrO', 'ECE 285 — CNN', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>4 — CNN</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1IBdY5SQK2YObaj41MzFK1jPXgutRdmC6" onclick="loadGDrivePDF('1IBdY5SQK2YObaj41MzFK1jPXgutRdmC6', 'ECE 285 — Detection', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>5 — Detection</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1FhCSBRwNsFTr0k4rfeQhWW28mbT4QBed" onclick="loadGDrivePDF('1FhCSBRwNsFTr0k4rfeQhWW28mbT4QBed', 'ECE 285 — Generation', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>6 — Generation</span></button></li>
+          </ul>
+        </div>
+
+        {# ── CSE 252D ── #}
+        <div class="rd-course collapsed">
+          <button class="rd-course__header" onclick="toggleSection(this)">
+            <svg class="rd-section__chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>CSE 252D</span>
+            <span class="rd-section__count">16</span>
+          </button>
+          <ul class="rd-book-list rd-course__body">
+            <li><button class="rd-book-item" data-gdrive="1upv5viGaMoJu7X5XgGifRf0hdfVEYyN1" onclick="loadGDrivePDF('1upv5viGaMoJu7X5XgGifRf0hdfVEYyN1', 'CSE 252D — Introduction', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>0 — Introduction</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1IZIpXkePlRg3pPtmVsf03QEZsRr25Wr-" onclick="loadGDrivePDF('1IZIpXkePlRg3pPtmVsf03QEZsRr25Wr-', 'CSE 252D — Neural Architectures', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>1 — Neural Architectures</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1VTw0KZMvvMbuzjvENPTezc7HszNMrxeJ" onclick="loadGDrivePDF('1VTw0KZMvvMbuzjvENPTezc7HszNMrxeJ', 'CSE 252D — Vision Transformers', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>2 — Vision Transformers</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1Hse_WMq_s6HkLTq_u2wYovOKiqyntzi7" onclick="loadGDrivePDF('1Hse_WMq_s6HkLTq_u2wYovOKiqyntzi7', 'CSE 252D — Generative Models I', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>3 — Generative Models I</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="19tZ4bbhugxD4LY9AX3WMPCm3-lTyOm_o" onclick="loadGDrivePDF('19tZ4bbhugxD4LY9AX3WMPCm3-lTyOm_o', 'CSE 252D — Generative Models II', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>4 — Generative Models II</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1BHqu_WcxGnucdx98_xEZ3BRFMFsAoyb6" onclick="loadGDrivePDF('1BHqu_WcxGnucdx98_xEZ3BRFMFsAoyb6', 'CSE 252D — Object Detection I', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>5 — Object Detection I</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1kNrh-AYdV6f5mtA3h7SogZVTzdqvvpbt" onclick="loadGDrivePDF('1kNrh-AYdV6f5mtA3h7SogZVTzdqvvpbt', 'CSE 252D — Object Detection II', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>6 — Object Detection II</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1nlyJmS4-mgDuKBGniJu0BuFnq5x9Yi85" onclick="loadGDrivePDF('1nlyJmS4-mgDuKBGniJu0BuFnq5x9Yi85', 'CSE 252D — Semantic Segmentation', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>7 — Semantic Segmentation</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1GXTBK5ygZipUeIq_PIcvVN-zw_1VSxZx" onclick="loadGDrivePDF('1GXTBK5ygZipUeIq_PIcvVN-zw_1VSxZx', 'CSE 252D — Universal Segmentation', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>8 — Universal Segmentation</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1vh9Ztj0_Cl5Rs9zJMBM3EBGfQs06b8KE" onclick="loadGDrivePDF('1vh9Ztj0_Cl5Rs9zJMBM3EBGfQs06b8KE', 'CSE 252D — Trajectory Prediction I', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>9 — Trajectory Prediction I</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1EML61BW-o6JcmW7-IOmr0PA9zaqV9c7t" onclick="loadGDrivePDF('1EML61BW-o6JcmW7-IOmr0PA9zaqV9c7t', 'CSE 252D — Trajectory Prediction II', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>10 — Trajectory Prediction II</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="12hoTSbFC8lCWyM7VJj37DAxiVKoKnvXM" onclick="loadGDrivePDF('12hoTSbFC8lCWyM7VJj37DAxiVKoKnvXM', 'CSE 252D — Structure from Motion', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>11 — Structure from Motion</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1QtMVU3gkmQs3fN2FX_D1TrI20sCGMRD5" onclick="loadGDrivePDF('1QtMVU3gkmQs3fN2FX_D1TrI20sCGMRD5', 'CSE 252D — Practical SfM', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>12 — Practical SfM</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="18ltJrvZJ2TnqJuTfzY85PbXhb31NCntN" onclick="loadGDrivePDF('18ltJrvZJ2TnqJuTfzY85PbXhb31NCntN', 'CSE 252D — Inverse Rendering', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>13 — Inverse Rendering</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1990SzfJTUNvCRaoeSlLNpTjIgEeGgm4Z" onclick="loadGDrivePDF('1990SzfJTUNvCRaoeSlLNpTjIgEeGgm4Z', 'CSE 252D — Neural Fields', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>15 — Neural Fields</span></button></li>
+            <li><button class="rd-book-item" data-gdrive="1ci3kKrJTs-O8uJRNtk0YW9x1m8o3tXf3" onclick="loadGDrivePDF('1ci3kKrJTs-O8uJRNtk0YW9x1m8o3tXf3', 'CSE 252D — Vision-Language', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>17 — Vision-Language</span></button></li>
+          </ul>
+        </div>
+
+        {# ── Google Drive Folder Links ── #}
+        <ul class="rd-book-list">
+          <li>
+            <a class="rd-book-item rd-folder-link" href="https://drive.google.com/drive/folders/16ME_1Wt9XFk-shHs6u8g8z49t_pExUih" target="_blank" rel="noopener">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Browse All Presentations</span>
+              <svg class="rd-external-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="rd-book-item rd-folder-link" href="https://drive.google.com/drive/folders/1Bock9WTSSlGj4FUOGbp4wbTX5FF57wsz" target="_blank" rel="noopener">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Browse More Slides</span>
+              <svg class="rd-external-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <div class="rd-sidebar__upload">
       <input type="file" id="localPdfInput" accept=".pdf" style="display:none" onchange="handleLocalFile(this)">
       <button class="rd-upload-btn" onclick="document.getElementById('localPdfInput').click()">
@@ -58,6 +140,9 @@
         <button class="rd-toolbar__btn rd-toolbar__back" onclick="mobileBackToSidebar()" title="Back to library">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           <span>Library</span>
+        </button>
+        <button class="rd-toolbar__btn rd-sidebar-toggle" onclick="toggleReaderSidebar()" title="Toggle sidebar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
         </button>
         <span class="rd-toolbar__title" id="pdfTitle"></span>
       </div>
