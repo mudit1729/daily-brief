@@ -31,6 +31,17 @@ const loadingEl = document.getElementById('readerLoading');
 const titleEl = document.getElementById('pdfTitle');
 const layout = document.getElementById('readerLayout');
 
+// ── Reader sidebar toggle ──
+window.toggleReaderSidebar = function() {
+  layout.classList.toggle('rd-sidebar-hidden');
+};
+
+// ── Sidebar section toggle ──
+window.toggleSection = function(btn) {
+  const section = btn.closest('.rd-course') || btn.closest('.rd-section');
+  section.classList.toggle('collapsed');
+};
+
 // ── Theme sync ──
 function syncReaderTheme() {
   const t = localStorage.getItem('sb-theme');

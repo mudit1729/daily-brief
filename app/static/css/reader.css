@@ -75,6 +75,131 @@
   opacity: 1;
 }
 
+/* ── Sidebar toggle ── */
+.rd-sidebar-toggle {
+  display: inline-flex !important;
+}
+
+.rd-sidebar-hidden .rd-sidebar {
+  display: none;
+}
+
+/* ── Sidebar Sections ── */
+.rd-section {
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.rd-section__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--sb-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  font-family: var(--sb-font-ui);
+  transition: color 0.15s;
+}
+
+.rd-section__header:hover {
+  color: var(--sb-text-primary);
+}
+
+.rd-section__chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.rd-section.collapsed .rd-section__chevron {
+  transform: rotate(-90deg);
+}
+
+.rd-section.collapsed .rd-section__body {
+  display: none;
+}
+
+.rd-section__count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--sb-text-muted);
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+/* ── Folder / external links ── */
+.rd-folder-link {
+  text-decoration: none !important;
+  color: var(--sb-text-secondary) !important;
+}
+
+.rd-folder-link:hover {
+  color: var(--sb-text-primary) !important;
+}
+
+.rd-external-icon {
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.3;
+}
+
+.rd-folder-link:hover .rd-external-icon {
+  opacity: 0.7;
+}
+
+/* ── Collapsible course sub-sections ── */
+.rd-course {
+  border-top: 1px solid var(--sb-border);
+}
+
+.rd-course:first-child {
+  border-top: none;
+}
+
+.rd-course__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 20px;
+  border: none;
+  background: none;
+  color: var(--sb-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  font-family: var(--sb-font-ui);
+  transition: color 0.15s, background 0.15s;
+}
+
+.rd-course__header:hover {
+  color: var(--sb-text-primary);
+  background: var(--sb-bg-hover, rgba(255,255,255,0.02));
+}
+
+.rd-course.collapsed .rd-section__chevron {
+  transform: rotate(-90deg);
+}
+
+.rd-course.collapsed .rd-course__body {
+  display: none;
+}
+
+.rd-course__body {
+  padding-left: 8px;
+}
+
+.rd-course__body .rd-book-item {
+  padding-left: 24px;
+  font-size: 12px;
+}
+
 /* ── Upload button ── */
 .rd-sidebar__upload {
   padding: 8px 12px;
