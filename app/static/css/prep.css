@@ -1301,8 +1301,21 @@ mark.user-comment.sb-comment-flash {
   margin: 0 auto;
 }
 
-/* ── Tablet toolbar: only essential buttons (641-1024px) ── */
+/* ── Tablet toolbar: move to bottom, only essential buttons (641-1024px) ── */
 @media (min-width: 641px) and (max-width: 1024px) {
+  /* Move toolbar to the bottom of the main area */
+  .sb-notes-main {
+    flex-direction: column;
+  }
+  .sb-notes-toolbar {
+    order: 2;
+    border-bottom: none;
+    border-top: 1px solid var(--sb-border);
+  }
+  .sb-notes-content {
+    order: 1;
+  }
+
   /* Hide text labels */
   .sb-notes-toolbar__btn span {
     display: none;
