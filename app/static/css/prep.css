@@ -1311,9 +1311,16 @@ mark.user-comment.sb-comment-flash {
     order: 2;
     border-bottom: none;
     border-top: 1px solid var(--sb-border);
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
   }
   .sb-notes-content {
     order: 1;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* Hide text labels */
