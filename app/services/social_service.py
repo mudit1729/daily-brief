@@ -49,7 +49,9 @@ You are given the video's title, channel name, and its transcript.
 Keep under 800 words. Use rich markdown formatting throughout."""
 
 TWITTER_FETCH_PROMPT = """\
-Search for the latest tweets/posts from @{handle} on X (Twitter) from the last {hours} hours.
+Use web search to find the most recent tweets from the Twitter/X account @{handle}. \
+Look at their X profile page for their latest posts from the last {hours} hours. \
+If no tweets exist in that window, return their most recent {max_tweets} tweets regardless of date.
 
 Return a JSON array of tweets. Each tweet should have these fields:
 - "text": the full tweet text
@@ -59,7 +61,7 @@ Return a JSON array of tweets. Each tweet should have these fields:
 - "topic": a short 3-5 word topic label
 
 Return ONLY valid JSON array, no markdown or explanation. If no tweets found, return [].
-Example: [{"text": "Just published...", "date": "2026-03-20", "urls": ["https://..."], "is_thread": false, "topic": "new paper release"}]"""
+Example: [{{"text": "Just published...", "date": "2026-03-20", "urls": ["https://..."], "is_thread": false, "topic": "new paper release"}}]"""
 
 _FEED_HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; PulseBot/1.0)'}
 
@@ -428,7 +430,8 @@ class SocialService:
         """Use Grok API with web search to fetch recent tweets."""
         handle = channel.handle or channel.feed_url.replace('grok://twitter/', '')
 
-        prompt = TWITTER_FETCH_PROMPT.format(handle=handle, hours=hours)
+        max_tweets = 10 if hours > 24 else 5
+        prompt = TWITTER_FETCH_PROMPT.format(handle=handle, hours=hours, max_tweets=max_tweets)
 
         try:
             llm = LLMGateway()
