@@ -1258,6 +1258,18 @@ mark.user-comment.sb-comment-flash {
   }
 }
 
+/* ── Sidebar toggle (visible only in fullscreen) ── */
+.sb-sidebar-toggle { display: none !important; }
+.sb-notes-layout--fullscreen .sb-sidebar-toggle { display: inline-flex !important; }
+
+/* Sidebar collapsed state in fullscreen */
+.sb-notes-layout--fullscreen.sb-sidebar-collapsed .sb-notes-sidebar {
+  display: none;
+}
+.sb-notes-layout--fullscreen.sb-sidebar-collapsed {
+  grid-template-columns: 1fr;
+}
+
 /* ── Fullscreen mode ───────────────────────────── */
 .sb-notes-layout--fullscreen {
   position: fixed;

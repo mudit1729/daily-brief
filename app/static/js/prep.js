@@ -75,6 +75,28 @@ function loadNote(filename, btn) {
           console.warn('MathJax typeset error:', err);
         });
       }
+      // Render mermaid diagrams — detect by content since server strips language class
+      if (typeof mermaid !== 'undefined') {
+        var mermaidKeywords = /^\s*(graph |flowchart |sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie |gitGraph|journey|mindmap|timeline|quadrantChart|sankey)/;
+        var codeBlocks = content.querySelectorAll('pre code');
+        var found = 0;
+        codeBlocks.forEach(function(block) {
+          var text = block.textContent.trim();
+          if (mermaidKeywords.test(text)) {
+            var pre = block.parentElement;
+            var div = document.createElement('div');
+            div.className = 'mermaid';
+            div.textContent = text;
+            pre.replaceWith(div);
+            found++;
+          }
+        });
+        if (found > 0) {
+          mermaid.run({ nodes: content.querySelectorAll('.mermaid') }).catch(function(err) {
+            console.warn('Mermaid render error:', err);
+          });
+        }
+      }
       // Load annotations (highlights + comments) from backend
       _loadAnnotations();
       // Scroll content to top
@@ -422,6 +444,12 @@ function toggleNotesFullscreen() {
   document.body.style.overflow = isFs ? 'hidden' : '';
 
   // Resize drawing canvas after layout change
+  setTimeout(_resizeDrawCanvas, 100);
+}
+
+function toggleNotesSidebar() {
+  var layout = document.getElementById('notesLayout');
+  layout.classList.toggle('sb-sidebar-collapsed');
   setTimeout(_resizeDrawCanvas, 100);
 }
 

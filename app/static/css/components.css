@@ -2720,12 +2720,12 @@ body {
   display: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   :root {
     --sb-bottom-nav-height: calc(56px + var(--sb-safe-bottom));
   }
 
-  /* Hide top nav tabs on mobile, keep brand */
+  /* Hide top nav tabs on tablet & mobile, keep brand */
   .sb-nav__tabs { display: none; }
   .sb-nav__right { display: none; }
   .sb-nav__inner { gap: 0; }
@@ -2783,14 +2783,24 @@ body {
     padding-bottom: var(--sb-bottom-nav-height);
   }
 
-  /* Reduce main padding on mobile */
-  .sb-main {
-    padding: var(--sb-space-4) var(--sb-space-3);
-  }
-
   .sb-footer {
     padding: var(--sb-space-4) var(--sb-space-3);
     margin-bottom: var(--sb-space-4);
+  }
+}
+
+/* Tablet-only: keep desktop-like main padding */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .sb-bottom-nav__item {
+    font-size: 11px;
+    min-width: 64px;
+  }
+}
+
+/* Mobile-only: reduce main padding */
+@media (max-width: 640px) {
+  .sb-main {
+    padding: var(--sb-space-4) var(--sb-space-3);
   }
 }
 
