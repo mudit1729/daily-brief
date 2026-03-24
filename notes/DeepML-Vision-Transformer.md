@@ -21,6 +21,14 @@ def patch_embedding_forward(image: torch.Tensor, patch_size: int) -> torch.Tenso
     return patches.to(torch.float32)
 ```
 
+**Theory**: ViT treats an image as a sequence of tokens, just like words in NLP. Each non-overlapping P×P patch is flattened into a vector of size P²C. For a 224×224 image with P=16: N = 14×14 = 196 tokens, each of dimension 16×16×3 = 768. This is equivalent to a Conv2d with kernel_size=P and stride=P.
+
+**Interview Q&A**:
+- **Why not use overlapping patches?** Non-overlapping patches = every pixel appears exactly once. Overlapping would increase sequence length and compute. Some variants (Swin) use overlapping for hierarchical features.
+- **reshape-permute-reshape trick?** This is the key operation: reshape isolates patch boundaries, permute reorders to row-major, final reshape flattens. Alternative: `F.unfold(image, P, stride=P)` or `nn.Conv2d(C, D, kernel_size=P, stride=P)`.
+- **Conv2d vs manual patching?** In practice, ViT implementations use `nn.Conv2d(3, d_model, kernel_size=P, stride=P)` which combines patch extraction + linear projection in one efficient operation. The manual version here separates them for clarity.
+- **Patch size tradeoffs?** Smaller P → more tokens → more compute (O(N²) attention), but finer spatial resolution. P=16 (ViT-B) balances compute and resolution. P=14 (ViT-L) or P=8 are used for high-res tasks.
+
 ---
 
 ## Task 02: Position Embedding Add
@@ -32,6 +40,13 @@ def position_embedding_add(patch_embeddings: torch.Tensor, position_embeddings: 
     return (patch_embeddings + position_embeddings).to(torch.float32) # (N, D) + (N, D)
 ```
 
+**Theory**: Unlike the original Transformer which uses sinusoidal PE, ViT uses learned position embeddings. Each of the N patch positions gets a learnable vector. After training, nearby positions have similar embeddings — the model learns 2D spatial structure despite receiving a 1D sequence.
+
+**Interview Q&A**:
+- **Why learned instead of sinusoidal?** ViT paper found no significant difference. Learned PE can capture 2D grid structure; sinusoidal PE is designed for 1D sequences. 2D-aware PE (separate row + column embeddings) also showed no improvement.
+- **How does ViT handle different resolutions?** Position embeddings are trained for a fixed grid (e.g., 14×14). For different resolutions, interpolate the PE using bicubic interpolation on the 2D grid. This is why ViT can fine-tune on higher resolutions than pre-training.
+- **Position embeddings for CLS token?** The CLS token gets its own position embedding (index 0). Patch positions are indices 1..N. So the full PE has shape (N+1, D).
+
 ---
 
 ## Task 03: Class Token Prepend
@@ -42,6 +57,13 @@ Z_0' = [x_class; Z_0] — prepend learnable CLS token to patch sequence
 def class_token_prepend(patch_embeddings: torch.Tensor, class_token: torch.Tensor) -> torch.Tensor:
     return torch.cat([class_token, patch_embeddings], dim=0).to(torch.float32) # (N+1, D)
 ```
+
+**Theory**: Borrowed from BERT. The CLS token is a learnable vector prepended to the patch sequence. Through self-attention, it aggregates information from all patches. After the encoder, only the CLS token's output is used for classification — it becomes a global image representation.
+
+**Interview Q&A**:
+- **CLS token vs global average pooling (GAP)?** ViT paper found CLS and GAP perform similarly. DeiT and later work often prefer GAP (average all patch representations) as it's simpler and equally effective. CLIP uses CLS token.
+- **Why prepend and not append?** Convention from BERT. Position doesn't matter much since attention is permutation-equivariant (position info comes from PE, not order).
+- **What happens to CLS during attention?** CLS attends to all patches and all patches attend to CLS. After L layers, CLS has progressively aggregated information from all spatial locations. It functions as a learned pooling mechanism.
 
 ---
 
@@ -59,6 +81,14 @@ def vit_mlp_block_forward(x, W1, b1, W2, b2):
     hidden = gelu(x @ W1 + b1) # (N, D) → (N, D_ff) — expand + activate
     return (hidden @ W2 + b2).to(torch.float32) # (N, D_ff) → (N, D) — project back
 ```
+
+**Theory**: The FFN processes each token independently (unlike attention which mixes tokens). It expands to d_ff = 4×d_model, applies non-linearity, then projects back. This is where the model stores "knowledge" — attention routes information, FFN transforms it. GELU is smoother than ReLU, avoiding the "dead neuron" problem.
+
+**Interview Q&A**:
+- **Why GELU instead of ReLU?** GELU = x · Φ(x), where Φ is the Gaussian CDF. It smoothly gates activations — small negative values are partially passed, unlike ReLU's hard cutoff. Empirically better for transformers. GPT and BERT both use GELU.
+- **What is SwiGLU?** SwiGLU(x) = Swish(xW1) ⊙ (xW3) — a gated variant used in LLaMA/PaLM. Uses 3 weight matrices instead of 2, with d_ff = 8/3 * d_model to keep param count equal. Better quality than GELU FFN.
+- **Why expand then project?** The bottleneck architecture (D → 4D → D) lets the model learn non-linear transformations in a higher-dimensional space. Similar intuition to autoencoders: the expansion creates a rich intermediate representation.
+- **What fraction of params are in FFN?** In a standard transformer layer: MHA = 4d² params, FFN = 8d² params. So FFN has 2/3 of each layer's parameters. This is why FFN is often called the "memory" of the transformer.
 
 ---
 
@@ -87,6 +117,13 @@ def vit_encoder_layer_forward(x, attn_params, mlp_params, ln1_params, ln2_params
     return x.to(torch.float32)
 ```
 
+**Theory**: ViT uses Pre-LN (normalize before each sub-layer), which is more stable than the original Transformer's Post-LN. Residual connections ensure gradients flow directly through the identity path — without them, deep transformers are untrainable. The two sub-blocks serve complementary roles: attention mixes information across tokens, FFN transforms each token's representation.
+
+**Interview Q&A**:
+- **Why Pre-LN > Post-LN for training stability?** Pre-LN keeps the residual path "clean" — gradients flow through x + f(LN(x)) without being distorted by LN. Post-LN applies LN to the sum, which can amplify or suppress the residual signal. Pre-LN models converge with larger learning rates.
+- **What's the gradient flow through a residual block?** ∂L/∂x = ∂L/∂out · (1 + ∂f/∂x). The "1" term means gradients always flow, even if the sub-layer's gradient vanishes. This is why ResNets and Transformers can be hundreds of layers deep.
+- **Dropout in transformers?** Applied to: (1) attention weights after softmax, (2) residual connections (after sub-layer, before addition), (3) embedding layer. ViT uses 0.1 dropout typically.
+
 ---
 
 ## Task 06: Scaled Dot-Product Attention
@@ -102,6 +139,8 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
     attn_weights = torch.softmax(scores, dim=-1) # normalize over keys
     return (attn_weights @ V).to(torch.float32) # (N, d_v) — weighted sum of values
 ```
+
+**Note**: This is the unbatched ViT version (2D inputs). See Attention-Is-All-You-Need Task 02 for the batched 3D version.
 
 ---
 
@@ -128,6 +167,12 @@ def multi_head_attention_forward(x, W_q, W_k, W_v, W_o, num_heads, mask=None):
     return (torch.cat(heads, dim=-1) @ W_o).to(torch.float32) # (N, D)
 ```
 
+**Note**: This uses a per-head loop (matching the DeepML functional API). The batched version in the Attention file merges heads into the batch dimension for a single matmul call — much more efficient for GPU.
+
+**Interview Q&A**:
+- **What do ViT attention heads learn?** Early layers: local spatial patterns (nearby patches). Middle layers: object-part relationships. Deep layers: global scene understanding. Some heads develop behavior similar to conv filters; others attend to all patches uniformly.
+- **ViT vs CNN attention?** CNN has local receptive fields that grow with depth. ViT has global attention from layer 1 — every patch can attend to every other patch. This is powerful but data-hungry (ViT needs ~300M images to match CNN quality from scratch). With enough data or pretraining, ViT wins.
+
 ---
 
 ## Task 08: ViT Encoder Forward
@@ -142,6 +187,12 @@ def vit_encoder_forward(x, layers_params):
     return x.to(torch.float32) # (N, D) — same shape in/out
 ```
 
+**Theory**: Each encoder layer refines the token representations. Early layers capture low-level features; deeper layers build semantic understanding. ViT-Base has 12 layers, ViT-Large has 24, ViT-Huge has 32.
+
+**Interview Q&A**:
+- **ViT model sizes?** ViT-B/16: 12 layers, d=768, h=12, 86M params. ViT-L/16: 24 layers, d=1024, h=16, 307M params. ViT-H/14: 32 layers, d=1280, h=16, 632M params. The /16 or /14 denotes patch size.
+- **Why does ViT need more data than CNN?** CNNs have strong inductive biases: locality (conv kernels), translation equivariance (weight sharing), hierarchical features (pooling). ViT has almost none — it must learn these properties from data. This is why ViT underperforms CNNs on ImageNet-1K but surpasses them with JFT-300M pretraining.
+
 ---
 
 ## Task 09: ViT Classification Head
@@ -153,6 +204,12 @@ def vit_classification_head(encoder_output, W_cls, b_cls):
     cls_token = encoder_output[0] # (D,) — extract CLS token representation
     return (cls_token @ W_cls + b_cls).to(torch.float32) # (num_classes,) — logits
 ```
+
+**Theory**: After L layers of self-attention, the CLS token has aggregated information from all patches. A single linear layer projects this d-dimensional vector to num_classes logits. This is simpler than CNN classifiers which often use global average pooling + FC layer.
+
+**Interview Q&A**:
+- **Why no hidden layer in the classification head?** During pretraining, ViT uses a 1-hidden-layer MLP head. During fine-tuning, a single linear layer suffices because the encoder already produces a rich representation.
+- **For detection/segmentation?** Drop the CLS token, use all N patch outputs as spatial feature maps. ViTDet (FAIR) and SegViT do this. The patch outputs form a 14×14 or similar spatial grid that can be upsampled.
 
 ---
 
@@ -169,3 +226,28 @@ def vit_forward_pipeline(image, patch_size, position_embeddings, class_token,
     encoded = vit_encoder_forward(sequence, encoder_params) # (N+1, D) — transformer processing
     return vit_classification_head(encoded, W_cls, b_cls) # (num_classes,) — classify from CLS
 ```
+
+**Theory**: The full ViT pipeline is remarkably simple: patch → embed → transform → classify. No pooling layers, no normalization between stages, no feature pyramids. The transformer encoder does all the heavy lifting. This simplicity is ViT's advantage — it scales predictably with compute and data.
+
+**Interview Q&A**:
+- **What's missing from this implementation?** Linear projection after patching (Conv2d), dropout, final LayerNorm before classification head, proper weight initialization (truncated normal with std=0.02).
+- **How is ViT trained?** Pretrain on large dataset (ImageNet-21K or JFT-300M) with cross-entropy loss. Fine-tune on target task at higher resolution (384×384 vs 224×224 pretraining) with interpolated position embeddings. Use strong data augmentation (RandAugment, Mixup, CutMix) to compensate for lack of inductive bias.
+
+---
+
+## Key Interview Concepts
+
+**ViT vs CNN comparison**:
+- CNNs: local receptive fields, translation equivariance, hierarchical features, parameter efficient, strong with limited data
+- ViT: global attention from layer 1, no built-in spatial bias, needs more data, scales better with compute, simpler architecture
+
+**Hybrid approaches**:
+- **DeiT** (Data-efficient Image Transformers): Uses distillation from CNN teacher + strong augmentation to train ViT on ImageNet-1K alone
+- **Swin Transformer**: Hierarchical ViT with shifted windows — combines CNN's multi-scale design with transformer attention. O(n) instead of O(n²).
+- **ConvNeXt**: "Modernized" ResNet that adopts transformer training recipes — shows CNNs can match ViT with the right tricks
+
+**Scaling laws**: ViT performance improves log-linearly with compute, data, and model size. Doubling compute → consistent accuracy gain. This is why Google/Meta invest in scaling ViT rather than designing new architectures.
+
+**Inference efficiency**: ViT's main bottleneck is O(N²) attention where N = (H/P)². For 224×224 with P=16: N=196 (fast). For 1024×1024 with P=16: N=4096 (slow). Solutions: FlashAttention, window attention, token pruning.
+
+**MAE (Masked Autoencoder)**: Self-supervised pretraining for ViT. Mask 75% of patches, encode visible patches, decode to reconstruct masked patches. Learns strong representations without labels. Analogous to BERT's masked language modeling.
