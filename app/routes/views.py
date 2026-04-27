@@ -911,6 +911,9 @@ def prep_page():
     # Categorize notes into sections
     # Each category: { 'label': str, 'icon': str, 'notes': [filename, ...] }
     CATEGORIES = [
+        {'label': 'Tesla Interview Prep', 'icon': 'briefcase', 'match': ['Tesla-']},
+        {'label': 'Cheatsheets', 'icon': 'book', 'match': ['Cheatsheet-']},
+        {'label': 'ML System Design', 'icon': 'cpu', 'match': ['MLSystemDesign-']},
         {'label': 'ML Coursework', 'icon': 'book', 'match': ['CMU-']},
         {'label': 'ML Flashcards', 'icon': 'book', 'match': ['ML-Comprehensive-Guide']},
         {'label': 'ML Theory Interview', 'icon': 'book', 'match': ['MLTheory-']},
