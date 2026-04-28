@@ -24,6 +24,50 @@ function _isMobile() {
   return window.innerWidth <= 640;
 }
 
+// Convert any `<code>SomeNote.md</code>` mentions in the rendered body
+// into clickable links that load the referenced note. Only converts if a
+// matching note actually exists in the sidebar (avoids broken links).
+function _linkifyNoteReferences(container) {
+  if (!container) return;
+  // Build a set of available notes from the sidebar
+  var available = {};
+  document.querySelectorAll('.sb-notes-list__item[data-note]').forEach(function(btn) {
+    var n = btn.getAttribute('data-note');
+    if (n) available[n] = true;
+    // Also register without .md so bare names work
+    if (n && n.toLowerCase().endsWith('.md')) {
+      available[n.slice(0, -3)] = n;
+    }
+  });
+  var codeEls = container.querySelectorAll('code');
+  codeEls.forEach(function(code) {
+    // Skip code inside <pre> (code blocks)
+    if (code.closest('pre')) return;
+    var text = code.textContent.trim();
+    if (!text) return;
+    // Match anything that looks like a note filename: alphanumeric + - _ .md optional
+    if (!/^[A-Za-z0-9_\-]+(\.md)?$/.test(text)) return;
+    var target = null;
+    if (available[text] === true) target = text;
+    else if (typeof available[text] === 'string') target = available[text];
+    else if (available[text + '.md'] === true) target = text + '.md';
+    if (!target) return;
+    // Convert the <code> into a clickable link
+    var link = document.createElement('a');
+    link.href = '#';
+    link.className = 'sb-note-xref';
+    link.textContent = code.textContent;
+    link.setAttribute('data-target-note', target);
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var btn = document.querySelector('.sb-notes-list__item[data-note="' + target + '"]');
+      if (btn) loadNote(target, btn);
+      else loadNote(target, null);
+    });
+    code.parentNode.replaceChild(link, code);
+  });
+}
+
 function loadNote(filename, btn) {
   // Mark active
   document.querySelectorAll('.sb-notes-list__item').forEach(el => el.classList.remove('active'));
@@ -65,6 +109,8 @@ function loadNote(filename, btn) {
     .then(data => {
       _cachedNotesHtml = data.html;
       content.innerHTML = '<div class="md-body">' + data.html + '</div>';
+      // Convert inline `*.md` references in the body into clickable note links
+      _linkifyNoteReferences(content);
       // Apply syntax highlighting to all code blocks
       content.querySelectorAll('pre code').forEach(block => {
         if (typeof hljs !== 'undefined') hljs.highlightElement(block);

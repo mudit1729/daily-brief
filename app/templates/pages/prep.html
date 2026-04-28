@@ -2,7 +2,7 @@
 {% block title %}Pulse — Prep{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/prep.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/prep.css') }}?v=2">
 <!-- Syntax highlighting (theme-aware: set immediately from localStorage to avoid flash) -->
 <script>
 (function(){
@@ -372,5 +372,5 @@ window.MathJax = {
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/prep.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/prep.js') }}?v=2" defer></script>
 {% endblock %}
