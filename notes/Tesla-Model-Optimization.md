@@ -4,7 +4,14 @@ Generated: April 27, 2026
 
 Purpose: a focused guide for the model optimization and latency portion of the Tesla ML Engineer screen (~8% of total weight, 10–20 min). Tesla's AI page explicitly calls out throughput, latency, correctness, determinism, quantization, pruning, and real-time constraints. This guide maps directly to those themes.
 
-Screen weight note: optimization questions are often follow-ups to a model design question. Expect "Your model is accurate but 3x too slow on FSD hardware. What do you do?"
+Screen weight note: optimization questions are often follow-ups to a model design question. Expect "Your model is accurate but 3x too slow on the target vehicle or inference hardware. What do you do?"
+
+Research alignment from the technical-screen article:
+
+- Optimization/latency is usually a follow-up, not the whole interview.
+- The highest-yield answer is production-minded: profile first, protect correctness/determinism, then optimize the real bottleneck.
+- Candidate-reported Tesla-adjacent screens include CNN arithmetic, NumPy/vectorization, and evaluation metrics; optimization answers should therefore connect speed changes back to tensor shapes, memory traffic, and metric regressions.
+- Treat deployment-runtime examples such as ONNX/TensorRT as hardware-stack examples. Tesla vehicle inference hardware may use internal runtimes; the interview skill is the workflow: export/compile, benchmark on target hardware, and gate by slice metrics.
 
 ---
 
@@ -585,7 +592,7 @@ Fusing Conv+BN removes BN's separate forward pass: BN parameters (weight, bias, 
 
 ### FlashAttention (one-liner you should know)
 
-FlashAttention is an IO-aware exact attention kernel: it tiles Q/K/V into SRAM-sized blocks, computes softmax-weighted attention block-by-block, and never materializes the full N×N attention matrix in HBM. Result: O(N) memory instead of O(N²) and a 2–4× wall-clock speedup on long sequences. Available via `torch.nn.functional.scaled_dot_product_attention` (PyTorch 2.x picks FlashAttention automatically on supported GPUs) or `flash_attn` package. Relevant at Tesla for transformer-based perception/planning stacks where long context (lots of tokens per scene) is the bottleneck.
+FlashAttention is an IO-aware exact attention kernel: it tiles Q/K/V into SRAM-sized blocks, computes softmax-weighted attention block-by-block, and never materializes the full N×N attention matrix in HBM. Result: much lower memory traffic and often large wall-clock speedups on long sequences. Available via `torch.nn.functional.scaled_dot_product_attention` on supported PyTorch/GPU/kernel configurations or via the `flash_attn` package. Relevant for transformer-based perception/planning stacks where long context (lots of tokens per scene) is the bottleneck.
 
 ---
 
@@ -762,14 +769,60 @@ Step 9 — Knowledge distillation.
   If a larger/slower model exists with higher accuracy, distill into
   the current architecture or a smaller one.
 
-Step 10 — Export to TensorRT.
-  Build a TensorRT engine with static shapes.
-  Run trtexec benchmark, compare vs target latency.
+Step 10 — Export to the target runtime.
+  For NVIDIA stacks, this might mean ONNX -> TensorRT with static shapes.
+  For other edge accelerators, use the target compiler/runtime and benchmark there.
 
 Tesla-specific gates at each step:
   - Accuracy must not regress on night/rain/rare-object slices.
   - Determinism must be verifiable for the regression test suite.
-  - Latency measured on the actual target hardware (HW3/HW4), not cloud GPU.
+  - Latency measured on the actual target hardware, not only a convenient cloud GPU.
+```
+
+---
+
+## Technical-Screen Mini-Drills
+
+### Drill 1. GPU utilization is low during training
+
+```text
+Answer in this order:
+1. Instrument batch data wait time vs GPU compute time.
+2. Try DataLoader num_workers = 0, 2, 4, 8 and watch scaling.
+3. Enable pin_memory for CUDA and use non_blocking=True transfers.
+4. Check image decode, Python transforms, collate_fn, storage bandwidth.
+5. Increase batch size only if memory allows and latency is not the metric.
+6. Cache or move expensive preprocessing into vectorized/native code.
+7. Verify random augmentations are seeded per worker.
+```
+
+### Drill 2. Inference is accurate but p99 latency misses target
+
+```text
+Do not optimize mean latency only.
+- Profile queue wait, host preprocessing, H2D copy, GPU compute, D2H copy, postprocess.
+- Use static shapes if possible.
+- Cap dynamic-batch wait time.
+- Avoid logging or metric aggregation on the critical path.
+- Consider FP16/INT8 only after profiling shows compute or memory bandwidth bottleneck.
+- Re-check p50, p95, p99, and max latency on target hardware.
+```
+
+### Drill 3. Quantization preserves mAP but hurts safety slices
+
+```text
+Likely causes:
+- calibration data missed rare activation ranges
+- small/low-light/occluded objects are scale-sensitive
+- per-tensor quantization was hurt by channel outliers
+- postprocess thresholds were not retuned after quantization
+
+Fixes:
+- rebuild representative calibration set
+- use per-channel weight quantization where supported
+- try QAT
+- retune thresholds on validation data
+- ship only if rare slices recover
 ```
 
 ---
@@ -838,7 +891,7 @@ def set_deterministic(seed: int = 42) -> None:
     torch.use_deterministic_algorithms(True)   # raises if non-deterministic op used
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False     # disable kernel auto-selection
-    # CUBLAS_WORKSPACE_CONFIG must be set in environment for full determinism:
+    # CUBLAS_WORKSPACE_CONFIG must be set before Python starts for full determinism:
     # export CUBLAS_WORKSPACE_CONFIG=:4096:8
 ```
 
@@ -866,8 +919,8 @@ ONNX:
     specific path.
   - Good for: cross-framework deployment, TensorRT integration (ONNX → TRT).
 
-At Tesla: ONNX → TensorRT is the common production path for NVIDIA hardware.
-TorchScript may be used for early prototyping or non-NVIDIA targets.
+ONNX -> TensorRT is a common production path for NVIDIA hardware. Do not claim this is necessarily the vehicle production path for every Tesla team; the portable interview point is that deployment requires a target-specific compiler/runtime, static-shape or profile choices, and target-hardware benchmarking.
+TorchScript may be used for PyTorch-native C++ deployment or early prototyping.
 ```
 
 **Q: What is `torch.compile` and when should you use it?**
@@ -887,7 +940,7 @@ Limitations:
 - First call is slow (compilation). Use warmup iterations before benchmarking.
 - Recompiles if input shapes change (prefer static shapes or mark dynamic dims).
 - Graph breaks on unsupported Python patterns (fallback to eager, lower speedup).
-- Not a replacement for TensorRT in production NVIDIA deployment.
+- Not always a replacement for a target-specific deployment compiler such as TensorRT.
 ```
 
 **Q: How do you validate that an optimization didn't regress the model?**

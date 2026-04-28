@@ -6,6 +6,19 @@ Purpose: a practical SQL cheatsheet for Tesla ML Engineer technical screens. Cov
 
 Typical screen format: 10–20 minutes, one or two medium-complexity problems, often using schemas named `drive_events`, `routes`, `fleet_logs`, `collision_events`, or `calibration_metrics`.
 
+Research alignment from the technical-screen article:
+
+- SQL is a likely short follow-up, not necessarily the whole screen.
+- Highest-yield patterns are joins, `GROUP BY`, window functions, deduplication, event-time filtering, grain checks, and NULL-safe metrics.
+- Candidate-reported data-science-style Tesla screens mention Python + SQL in roughly 30 minutes, so optimize for clear schema assumptions and fast correctness.
+- When a prompt is vague, ask for table grain and output grain before writing SQL. This prevents join fanout and wrong denominators.
+
+Dialect note:
+
+- The examples lean Postgres/Snowflake style because those are readable in interviews.
+- `FILTER`, `DISTINCT ON`, `ILIKE`, `REGEXP`, `DATE_TRUNC`, and interval syntax vary by database.
+- If the interviewer names BigQuery, Spark SQL, Snowflake, or Postgres, adapt syntax but keep the same logic.
+
 ---
 
 ## Interview Mindset
@@ -398,6 +411,8 @@ ORDER BY event_date, day_rank;
 
 Key choices: RANK vs ROW_NUMBER. RANK gives ties the same position; ROW_NUMBER breaks ties arbitrarily. Clarify with the interviewer.
 
+Edge case: this query pre-filters to collision rows. If the interviewer wants the top 3 routes including zero-collision routes, aggregate all events and use `SUM(CASE WHEN collision_flag = 1 THEN 1 ELSE 0 END)` instead of filtering in `WHERE`.
+
 ---
 
 ### Q2. Deduplicate fleet logs — keep latest per device_id
@@ -410,7 +425,7 @@ WITH latest_per_device AS (
         *,
         ROW_NUMBER() OVER (
             PARTITION BY device_id
-            ORDER BY logged_at DESC        -- 1 = most recent log
+            ORDER BY logged_at DESC, log_id DESC  -- deterministic tie-break
         ) AS rn
     FROM fleet_logs
 )
@@ -757,6 +772,55 @@ ORDER BY vehicle_id, month;
 
 ---
 
+### Q13. Compute `has_collided` and radial TTC from logs
+
+Tesla-style question from the research article: "Given ego and object positions/velocities in a log table, compute a collision label and a radial time-to-collision metric."
+
+Assume `object_frames(session_id, frame_ts, object_id, ego_x, ego_y, ego_vx, ego_vy, obj_x, obj_y, obj_vx, obj_vy, ego_radius_m, obj_radius_m)`.
+
+```sql
+WITH rel AS (
+    -- grain: one row per tracked object per frame
+    SELECT
+        session_id,
+        frame_ts,
+        object_id,
+        obj_x - ego_x AS rx,
+        obj_y - ego_y AS ry,
+        obj_vx - ego_vx AS rvx,
+        obj_vy - ego_vy AS rvy,
+        ego_radius_m + obj_radius_m AS collision_radius_m
+    FROM object_frames
+),
+metrics AS (
+    SELECT
+        *,
+        SQRT(rx * rx + ry * ry) AS distance_m,
+        -1.0 * (rx * rvx + ry * rvy)
+          / NULLIF(SQRT(rx * rx + ry * ry), 0) AS closing_speed_mps
+    FROM rel
+)
+SELECT
+    session_id,
+    frame_ts,
+    object_id,
+    CASE WHEN distance_m <= collision_radius_m THEN 1 ELSE 0 END AS has_collided,
+    CASE
+        WHEN distance_m <= collision_radius_m THEN 0.0
+        WHEN closing_speed_mps <= 0 THEN NULL
+        ELSE (distance_m - collision_radius_m) / closing_speed_mps
+    END AS radial_ttc_s
+FROM metrics;
+```
+
+Interview notes:
+
+- Define the label before computing it: point distance, circle overlap, box overlap, or swept-volume collision are different labels.
+- Radial TTC is a fast screening metric. Exact collision evaluation should use oriented boxes or swept geometry if object shape matters.
+- Return `NULL` or `INF` for non-closing objects; state the convention.
+
+---
+
 ## Common Pitfalls
 
 - **Non-grouped columns in SELECT**: every column in SELECT must either be in GROUP BY or wrapped in an aggregate. `SELECT vehicle_id, event_type, COUNT(*) FROM t GROUP BY vehicle_id` will error or give wrong results because `event_type` is not grouped.
@@ -905,6 +969,7 @@ Track whether a new firmware release degraded collision detection recall.
 WITH version_metrics AS (
     SELECT
         firmware_version,
+        MIN(release_date)                           AS release_date,
         SUM(tp)                                    AS tp,
         SUM(fp)                                    AS fp,
         SUM(fn)                                    AS fn
@@ -918,12 +983,14 @@ SELECT
     ROUND(tp * 1.0 / NULLIF(tp + fp, 0), 4)       AS precision,
     ROUND(2.0 * tp / NULLIF(2 * tp + fp + fn, 0), 4) AS f1,
     LAG(ROUND(tp * 1.0 / NULLIF(tp + fn, 0), 4)) OVER (
-        ORDER BY firmware_version                  -- compare to previous version
+        ORDER BY release_date, firmware_version     -- compare to previous release
     )                                              AS prev_recall,
     ROUND(tp * 1.0 / NULLIF(tp + fn, 0), 4)
     - LAG(ROUND(tp * 1.0 / NULLIF(tp + fn, 0), 4)) OVER (
-        ORDER BY firmware_version
+        ORDER BY release_date, firmware_version
     )                                              AS recall_delta
 FROM version_metrics
-ORDER BY firmware_version;
+ORDER BY release_date, firmware_version;
 ```
+
+If `release_date` is not in the eval table, join to a release metadata table first. Lexicographic ordering by version string alone can compare `2024.10` before `2024.9` incorrectly.

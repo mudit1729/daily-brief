@@ -4,11 +4,17 @@ Generated: April 27, 2026
 
 Purpose: a targeted prep guide for Tesla autonomy interviews that cover classical computer vision and tracking algorithms. Covers Kalman filter, multi-object tracking, optical flow, HOG, SIFT/ORB, image pyramids, and camera calibration. Each section includes math, NumPy code, and interview Q&A.
 
+Research alignment from the technical-screen article:
+
+- Candidate-reported Tesla CV/ML screens include CNN tensor arithmetic, 2D convolution, Kalman-style tracking, HOG/classical CV, and log-derived metrics such as `has_collided` and radial TTC.
+- Classical CV is usually a depth check after coding or CNN fundamentals. Keep answers short, equation-backed, and tied to failure modes.
+- Do not present exact Tesla internal stack details as facts. Use Tesla-flavored examples to show autonomy reasoning, but phrase implementation details as "production autonomy systems" unless sourced by the interviewer.
+
 ---
 
 ## Kalman Filter
 
-The Kalman filter is the most important topic in this space. Tesla's tracking stack uses it to smooth detector outputs, propagate object positions between frames, and fuse noisy sensor measurements.
+The Kalman filter is the most important topic in this space. Production autonomy systems use Kalman-style filters to smooth detector outputs, propagate object positions between frames, and fuse noisy measurements.
 
 ### State-Space Model
 
@@ -603,7 +609,7 @@ Anchor-based          : use anchors of different sizes at each location
 Anchor-free           : predict scale directly (FCOS, CenterPoint)
 ```
 
-Tesla's BEV detection avoids this problem in image space by projecting to a fixed bird's-eye-view grid where scale is controlled, but camera-based detectors still need multi-scale handling.
+BEV detection reduces the image-scale problem by projecting features into a fixed bird's-eye-view grid where scale is more controlled, but camera-based detectors still need multi-scale handling before or during the BEV transform.
 
 ---
 
@@ -693,11 +699,11 @@ Disparity is large for close objects and small for distant objects. At 50 m with
 ```text
 Lane misalignment   : a 0.5° pitch error at 40 m projects camera-detected lane to wrong ground plane
 Depth error         : intrinsic shift of 2 px changes depth estimates by several percent at range
-Sensor fusion error : camera and LiDAR projections must agree; drift causes misregistration
-Radar fusion        : radar bearing accuracy depends on correct camera pose for confirmation gating
+BEV fusion error    : camera features projected into a shared world/BEV frame become misaligned
+Aux sensor fusion   : any auxiliary sensor projection through [R|t] becomes misregistered
 ```
 
-Tesla's cameras undergo in-production online re-calibration. Extrinsics are re-estimated from vehicle-motion constraints (e.g., assuming flat-ground motion). Any production pipeline must treat calibration as uncertain and either re-estimate online or propagate calibration uncertainty through the tracking pipeline.
+A production camera stack should treat calibration as uncertain. Extrinsics can drift from vibration, thermal changes, or service events, so the system should either re-estimate calibration online or propagate calibration uncertainty through the tracking pipeline.
 
 ---
 
@@ -842,15 +848,123 @@ Answer:
 
 ```text
 Every pixel-to-world mapping depends on calibration. Errors compound:
-- Lane detection: a 0.5 px principal point error misprojects lane lines on the ground plane.
-- Depth from stereo: depth Z = f*B/d; a 1 px error in f or d causes significant depth error at range.
-- Sensor fusion: LiDAR points are painted onto the image using [R|t]; drift misaligns projected
-  LiDAR onto wrong image regions, breaking depth-from-camera fusion.
-- Planner safety margins: incorrect depth → incorrect following distance → safety violation.
+- Lane detection: a small principal-point or extrinsic error misprojects lane lines on the ground plane.
+- Depth from stereo: depth Z = f*B/d; error in focal length, baseline, or disparity creates depth error.
+- Multi-camera fusion: drift misaligns features projected into a shared BEV/world frame.
+- Generic robotics sensor fusion: any auxiliary sensor projection through [R|t] will misregister if calibration drifts.
+- Planner safety margins: incorrect depth or position -> incorrect following distance -> safety violation.
 
 Production systems re-estimate calibration online (vehicle-motion-based extrinsic calibration)
 and propagate calibration uncertainty into downstream confidence estimates.
 ```
+
+---
+
+### 9. Given a CNN layer, compute output shape and learnable parameters.
+
+Question:
+
+```text
+Input: [B, 3, 224, 224].
+Layer: Conv2d(C_in=3, C_out=64, kernel=7, stride=2, padding=3, dilation=1, bias=True).
+What is the output shape and parameter count?
+```
+
+Answer:
+
+```text
+H_out = floor((H + 2P - D*(K - 1) - 1) / S + 1)
+      = floor((224 + 6 - 1*(7 - 1) - 1) / 2 + 1)
+      = 112
+
+W_out = 112
+Output shape = [B, 64, 112, 112]
+
+Params = C_out * (C_in/groups) * K_h * K_w + C_out
+       = 64 * 3 * 7 * 7 + 64
+       = 9472
+```
+
+Follow-ups:
+
+- Pooling has no learnable parameters.
+- BatchNorm has two learnable parameters per channel: gamma and beta. Running mean/var are buffers, not learned parameters.
+- Grouped convolution uses `C_in / groups` channels per filter.
+
+### 10. Code a valid 2D convolution/cross-correlation.
+
+Question:
+
+```text
+Implement valid 2D filtering for one grayscale image and one kernel.
+```
+
+Answer:
+
+```python
+from typing import List
+
+
+def conv2d_valid(image: List[List[float]], kernel: List[List[float]]) -> List[List[float]]:
+    h, w = len(image), len(image[0])
+    kh, kw = len(kernel), len(kernel[0])
+    out_h, out_w = h - kh + 1, w - kw + 1
+    if out_h <= 0 or out_w <= 0:
+        raise ValueError("kernel must fit inside image")
+
+    out = [[0.0 for _ in range(out_w)] for _ in range(out_h)]
+    for i in range(out_h):
+        for j in range(out_w):
+            acc = 0.0
+            for r in range(kh):
+                for c in range(kw):
+                    acc += image[i + r][j + c] * kernel[r][c]
+            out[i][j] = acc
+    return out
+```
+
+Interview note: most deep-learning libraries implement cross-correlation, not flipped-kernel mathematical convolution. Clarify if the interviewer wants the kernel flipped.
+
+### 11. Compute radial TTC from positions and velocities.
+
+Question:
+
+```text
+Given ego/object positions and velocities, compute a fast time-to-collision screening metric.
+```
+
+Answer:
+
+```python
+from math import inf, sqrt
+from typing import Tuple
+
+
+def radial_ttc(
+    ego_pos: Tuple[float, float],
+    ego_vel: Tuple[float, float],
+    obj_pos: Tuple[float, float],
+    obj_vel: Tuple[float, float],
+    collision_radius: float = 0.0,
+) -> float:
+    rx = obj_pos[0] - ego_pos[0]
+    ry = obj_pos[1] - ego_pos[1]
+    rvx = obj_vel[0] - ego_vel[0]
+    rvy = obj_vel[1] - ego_vel[1]
+
+    dist = sqrt(rx * rx + ry * ry)
+    if dist <= collision_radius:
+        return 0.0
+    if dist == 0.0:
+        return 0.0
+
+    closing_speed = -(rx * rvx + ry * rvy) / dist
+    if closing_speed <= 0.0:
+        return inf
+    return (dist - collision_radius) / closing_speed
+```
+
+Follow-up: radial TTC assumes constant relative velocity and reduces geometry to a radial closing metric. For production-grade collision labels, compare oriented boxes or swept volumes and slice failures by scenario.
 
 ---
 
@@ -876,12 +990,12 @@ and propagate calibration uncertainty into downstream confidence estimates.
 
 ## Tesla Connection
 
-In Tesla's autonomy stack, classical tracking algorithms are not a relic — they are production code. The architecture looks roughly like this:
+In autonomy stacks, classical tracking algorithms are not a relic; they remain useful production tools around learned perception. A simplified architecture looks like this:
 
 ```text
-Cameras (8x) + Radar
+Cameras / perception sensors
        |
-   Neural detector  (RegNets / HydraNet BEV → 3D object detections per frame)
+   Neural detector or BEV network -> object detections per frame
        |
    Tracker          (Kalman filter per object, Hungarian/ByteTrack association)
        |
@@ -890,7 +1004,7 @@ Cameras (8x) + Radar
    Planner          (trajectory optimization using track predictions)
 ```
 
-Even though detectors are deep neural networks, the Kalman filter remains the right tool immediately after detection for several reasons. First, detectors are noisy: they miss objects for 1–3 frames during occlusion, and their bounding boxes jitter frame-to-frame. The Kalman filter smooths this jitter and coasts through missed detections using physics. Second, the planner needs velocity and acceleration estimates, not just position — the Kalman state vector provides these naturally. Third, the filter quantifies uncertainty via the covariance matrix P, which the planner uses for risk-aware trajectory optimization (wider safety margins when P is large). Fourth, sensor fusion happens naturally in the Kalman update step: each sensor modality (camera, radar, lidar) contributes a measurement z with its own noise model R. Classical CV knowledge — HOG for quick prototyping, optical flow for ego-motion sanity checks, camera calibration for the projection pipeline, multi-scale pyramids for BEV feature alignment — remains essential because the team needs to understand, debug, and extend these components in code every day.
+Even though detectors are deep neural networks, Kalman-style filtering can remain useful immediately after detection for several reasons. First, detectors are noisy: they miss objects for 1-3 frames during occlusion, and their boxes jitter frame-to-frame. A filter smooths this jitter and coasts through missed detections using motion assumptions. Second, the planner needs velocity and uncertainty, not just position. Third, the covariance matrix `P` gives a usable uncertainty estimate for gating and risk-aware downstream logic. Classical CV knowledge - HOG for quick prototyping, optical flow for ego-motion sanity checks, camera calibration for the projection pipeline, multi-scale pyramids for BEV feature alignment - remains useful because teams still debug geometry, tracking, and data quality around neural models.
 
 ---
 

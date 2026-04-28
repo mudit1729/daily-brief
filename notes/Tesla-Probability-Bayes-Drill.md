@@ -2,6 +2,13 @@
 
 *Targeted at Tesla MLE technical screens. Statistics/probability ≈ 8% of screen weight. Bayes/conditional reasoning explicitly called out. Expect classical puzzles + ML metric questions under time pressure.*
 
+Research alignment from the technical-screen article:
+
+- Probability is usually a short depth check, not the whole screen.
+- Candidate-reported Tesla-adjacent data-science screens include confusion matrix interpretation and L1 vs L2 regularization.
+- For ML Engineer roles, prioritize Bayes/base rates, calibration, class imbalance, PR vs ROC, and decision-threshold tradeoffs over obscure puzzle memorization.
+- Always connect probability answers to labels, metrics, and safety-critical slices.
+
 ---
 
 ## Interview Mindset
@@ -411,6 +418,53 @@ P = | 1-α   α  |
 
 ---
 
+### Q16: Confusion Matrix, Precision, Recall, and F1
+
+**Setup:** A perception model produces the following binary confusion counts for pedestrian detection:
+
+```
+TP = 80, FP = 20, FN = 40, TN = 9860
+```
+
+**Answer:**
+
+```
+precision = TP / (TP + FP) = 80 / 100 = 0.80
+recall    = TP / (TP + FN) = 80 / 120 = 0.667
+F1        = 2PR / (P + R)  = 2 * 0.80 * 0.667 / 1.467 = 0.727
+accuracy  = (TP + TN) / total = 9940 / 10000 = 0.994
+```
+
+**Interview point:** accuracy looks excellent because pedestrians are rare, but recall is only 66.7%. For a safety-critical detector, accuracy is the wrong headline metric.
+
+**Tesla-style follow-up:** If recall is too low, lower the threshold, mine false negatives, oversample rare/small/night pedestrian examples, use focal/class-balanced loss, and evaluate false positives separately because unnecessary braking also matters.
+
+### Q17: ROC-AUC vs PR-AUC Under Imbalance
+
+**Question:** When is PR-AUC more useful than ROC-AUC?
+
+**Answer:** PR-AUC is usually more informative when positives are rare. ROC-AUC includes true negatives in the false-positive-rate denominator, so it can look strong even when precision is poor. PR-AUC directly exposes whether retrieved positives are actually correct.
+
+**Screen phrase:**
+
+```
+For rare autonomy failures or rare object classes, I would look at PR curves,
+recall at fixed precision, and slice metrics. ROC-AUC can be a useful ranking
+metric, but it can hide poor positive-class precision under heavy imbalance.
+```
+
+### Q18: L1 vs L2 as MAP Priors
+
+**Question:** Why does L1 encourage sparsity while L2 smoothly shrinks weights?
+
+**Answer:** MAP adds a log-prior term to the log-likelihood. A Gaussian prior on weights gives an L2 penalty; a Laplace prior gives an L1 penalty. The L1 penalty has a sharp corner at zero, so the optimum often lands exactly on zero. L2 is smooth, so it usually shrinks weights without making them exactly zero.
+
+**Use L1 when:** feature selection or sparse linear models matter.
+
+**Use L2 when:** correlated/noisy features exist and you want stable shrinkage.
+
+---
+
 ## Bonus Classic Puzzles
 
 ### Urn / Red Ball Problem
@@ -523,22 +577,22 @@ MAP adds log P(θ) as a regularizer: effectively penalizes extreme parameter val
 
 ### Sensor Fusion — Bayesian Update as Kalman Filter
 
-Combining a radar measurement z_radar and camera measurement z_cam to estimate vehicle position x. Under Gaussian noise:
+Combining two noisy measurement sources, such as a camera-based position estimate and a temporal/motion prior, to estimate vehicle position x. Under Gaussian noise:
 ```
-P(x | z_radar, z_cam) ∝ P(z_radar | x) · P(z_cam | x) · P(x)
+P(x | z_1, z_2) ∝ P(z_1 | x) · P(z_2 | x) · P(x)
 ```
 Each sensor update is a Bayesian update. The Kalman filter is the closed-form solution for linear-Gaussian systems. The prior is the predicted state from dynamics; each measurement sharpens the posterior.
 
 ### Calibration — Reliability of Probabilistic Predictions
 
-A model is *calibrated* if P(y=1 | model outputs p) = p for all p. Plot reliability diagrams: if the curve deviates from the diagonal, the model is over- or under-confident. Tesla's perception models need calibrated confidence so downstream systems (planner) can trust uncertainty estimates.
+A model is *calibrated* if P(y=1 | model outputs p) = p for all p. Plot reliability diagrams: if the curve deviates from the diagonal, the model is over- or under-confident. Autonomy perception models need calibrated confidence so downstream systems can use uncertainty sensibly.
 
 ### Uncertainty Estimation — Aleatoric vs. Epistemic
 
 - **Aleatoric:** Irreducible noise in the data (e.g., sensor noise, occluded objects). Cannot be reduced with more data.
 - **Epistemic:** Model uncertainty from limited training data. Can be reduced with more data or better models.
 
-Tesla uses both: aleatoric uncertainty informs sensor fusion weights; epistemic uncertainty triggers cautious planning in novel scenarios (OOD detection).
+Production autonomy systems need both: aleatoric uncertainty informs measurement weighting; epistemic uncertainty helps identify novel or out-of-distribution scenarios.
 
 ### Object Detection Score → Probability via Temperature Scaling
 
@@ -554,7 +608,7 @@ A vehicle can turn left, go straight, or stop — each is a *mode*. A proper pro
 ```
 P(trajectory) = Σ_m P(mode = m) · P(trajectory | mode = m)
 ```
-Evaluating such predictions requires metrics like minADE (best-of-K) and probability-weighted metrics. Single-mode predictions are systematically wrong at intersections — this is why Tesla's occupancy networks model full distributions.
+Evaluating such predictions requires metrics like minADE (best-of-K) and probability-weighted metrics. Single-mode predictions are systematically wrong at intersections; modern occupancy or trajectory-prediction systems therefore model distributions over possible futures.
 
 ---
 
