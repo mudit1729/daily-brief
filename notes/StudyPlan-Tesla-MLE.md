@@ -55,6 +55,24 @@ If you only have **one week**, focus exclusively on these four notes. They cover
 
 ---
 
+## GAP-FILLING NOTES (High-Priority Adds)
+
+These four notes were added specifically to plug critical gaps the standard prep material doesn't cover. Promote any of these into MUST if your screen has been confirmed to include the topic.
+
+### `Tesla-SQL-Cheatsheet.md` — SQL Deep-Dive
+Covers what `Tesla-ML-Engineer-Study-Guide.md` only sketches: window functions (RANK, LAG, ROW_NUMBER), CTEs, dedup patterns, anti-joins, gaps-and-islands, time-bucketing, NULL traps. 12 Tesla-flavored worked questions (drive_events, fleet logs, calibration drift). Read if your screen has a SQL round.
+
+### `Tesla-Model-Optimization.md` — Quantization, Pruning, Latency
+The "your model is 3x too slow" answer scaffold. PTQ vs QAT, AMP with `GradScaler`, structured vs unstructured pruning, knowledge distillation with temperature, FlashAttention, profiling workflow, deployment (ONNX/TensorRT). Read if your screen mentions edge inference, latency, or efficient deployment.
+
+### `Tesla-Tracking-Classical-CV.md` — Kalman, SORT, HOG
+Older Tesla CV interviews still ask Kalman + HOG. Predict/update math, 1D NumPy implementation, EKF/UKF/particle filter, SORT/DeepSORT/ByteTrack, Hungarian assignment, optical flow, HOG/SIFT/ORB, camera calibration, Mahalanobis gating, track lifecycle. Read if your screen has CV depth or autonomy follow-ups.
+
+### `Tesla-Probability-Bayes-Drill.md` — Probability Puzzles
+15 classic puzzles (Monty Hall, disease testing/base rates, two-child, birthday, coupon collector, reservoir sampling, A/B sample size, conditional independence/colliders) plus ML-specific Bayes (cross-entropy as KL, MAP=MLE+regularization, GDA, Naive Bayes). Read if your screen mentions stats, calibration, or uncertainty.
+
+---
+
 ## GOOD TO HAVE (Additional Reading Material)
 
 If you have **2–4 weeks**, add these for depth, polish, and Tesla-specific talking points.
